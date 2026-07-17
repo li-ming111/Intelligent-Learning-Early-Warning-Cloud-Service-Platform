@@ -1,6 +1,7 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8081/api'
+// 开发环境使用相对路径（Vite代理），生产环境使用环境变量
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -32,6 +33,13 @@ apiClient.interceptors.response.use(
     // 对于blob类型的响应，直接返回response.data
     if (response.config.responseType === 'blob') {
       return response.data
+    }
+    
+    // 登录接口特殊处理：返回包含 code/data/message 的完整 ApiResponse
+    // 因为登录需要访问 response.data.data.token 等字段
+    if (response.config.url && response.config.url.includes('/auth/login')) {
+      // 返回整个 axios response，让调用者自己处理
+      return response
     }
     
     if (response.data && response.data.code !== undefined) {

@@ -1,423 +1,238 @@
 <template>
-  <view class="scores-page">
-    <view class="header">
-      <text class="page-title">成绩查询</text>
-      <text class="page-subtitle">查看您的课程成绩和学分情况</text>
-    </view>
-
-    <view class="filter-section" hover-class="filter-section-hover">
-      <picker :range="semesters" :value="getSemesterIndex()" @change="handleSemesterChange" class="semester-picker">
-        <view class="picker-label">
-          <text class="picker-text">{{ selectedSemester }}</text>
-          <text class="picker-arrow">▼</text>
-        </view>
-      </picker>
-    </view>
-
-    <view class="scores-container">
-      <view v-if="scores.length > 0" class="scores-list">
-        <view v-for="course in scores" :key="course.id" class="score-item" hover-class="score-item-hover">
-          <view class="course-info">
-            <text class="course-name">{{ course.courseName }}</text>
-            <text class="course-semester">{{ course.semester }}</text>
-          </view>
-          <view class="score-details">
-            <text :class="['score', getScoreClass(course.scoreTotal)]">{{ course.scoreTotal }}</text>
-            <text class="credit">{{ course.credits }} 学分</text>
-          </view>
+  <view class="page">
+    <!-- 学期标签 -->
+    <scroll-view scroll-x class="term-tabs" show-scrollbar="false">
+      <view class="tabs-inner">
+        <view
+          v-for="(t, idx) in semesters"
+          :key="t.value"
+          :class="['term-tab', { active: selectedIndex === idx }]"
+          @click="selectTerm(idx)"
+          hover-class="term-hover"
+          :hover-start-time="0"
+          :hover-stay-time="100"
+        >
+          <text>{{ t.label }}</text>
         </view>
       </view>
-      <view v-else class="empty-state">
-        <view class="empty-icon">📊</view>
-        <text>暂无成绩记录</text>
-      </view>
-    </view>
+    </scroll-view>
 
-    <view class="statistics">
-      <view class="stat-item" hover-class="stat-item-hover">
-        <view class="stat-icon average">📈</view>
-        <text class="stat-label">平均成绩</text>
-        <text class="stat-value">{{ averageScore }}</text>
+    <!-- 成绩表卡片 -->
+    <view class="table-card">
+      <!-- 表头 -->
+      <view class="table-header">
+        <text class="th th-name">课程名称</text>
+        <text class="th th-score">分数</text>
+        <text class="th th-gpa">绩点</text>
       </view>
-      <view class="stat-item" hover-class="stat-item-hover">
-        <view class="stat-icon credits">📚</view>
-        <text class="stat-label">已修学分</text>
-        <text class="stat-value">{{ completedCredits }}</text>
-      </view>
-      <view class="stat-item" hover-class="stat-item-hover">
-        <view class="stat-icon failed">⚠️</view>
-        <text class="stat-label">挂科数量</text>
-        <text class="stat-value warning">{{ failedCount }}</text>
+
+      <!-- 表体 -->
+      <scroll-view scroll-y class="table-body" v-if="scores.length > 0">
+        <view v-for="c in scores" :key="c.id" class="table-row">
+          <text class="td td-name">{{ c.courseName }}</text>
+          <text :class="['td', 'td-score', scoreClass(c.scoreTotal)]">{{ scoreText(c.scoreTotal) }}</text>
+          <text class="td td-gpa">{{ c.gradePoint || calcGpa(c.scoreTotal) }}</text>
+        </view>
+      </scroll-view>
+
+      <!-- 空状态 -->
+      <view v-else class="empty">
+        <text class="empty-text">暂无成绩记录</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { apiClient } from '../../services/api'
+import { ref, onMounted } from 'vue'
+import { studentAPI } from '@/services/api.js'
 
-const selectedSemester = ref('全部学期')
-const semesters = ref([
-  '全部学期',
-  '2025-2026春',
-  '2025-2026秋',
-  '2024-2025春',
-  '2024-2025秋',
-  '2023-2024春',
-  '2023-2024秋'
-])
-
+const selectedIndex = ref(0)
 const scores = ref([])
 
-const averageScore = computed(() => {
-  if (scores.value.length === 0) return '0.0'
-  const sum = scores.value.reduce((total, course) => total + (course.scoreTotal || 0), 0)
-  return (sum / scores.value.length).toFixed(1)
-})
+// 学期列表：显示标签 + 传给后端的值
+const semesters = ref([
+  { label: '全部', value: '' },
+  { label: '2025-2026-02', value: '2025-2026-2' },
+  { label: '2025-2026-01', value: '2025-2026-1' },
+  { label: '2024-2025-02', value: '2024-2025-2' },
+  { label: '2024-2025-01', value: '2024-2025-1' },
+  { label: '2023-2024-02', value: '2023-2024-2' },
+  { label: '2023-2024-01', value: '2023-2024-1' }
+])
 
-const completedCredits = computed(() => {
-  return scores.value.reduce((total, course) => {
-    return (course.scoreTotal || 0) >= 60 ? total + (course.credits ? parseFloat(course.credits) : 0) : total
-  }, 0).toFixed(1)
-})
-
-const failedCount = computed(() => {
-  return scores.value.filter(course => (course.scoreTotal || 0) < 60).length
-})
-
-const getScoreClass = (score) => {
-  const scoreNum = score || 0
-  if (scoreNum < 60) return 'failed'
-  if (scoreNum < 70) return 'pass'
-  if (scoreNum < 80) return 'good'
-  return 'excellent'
+const scoreClass = (s) => {
+  const n = Number(s) || 0
+  if (n >= 90) return 'excellent'
+  if (n >= 80) return 'good'
+  if (n >= 70) return 'medium'
+  if (n >= 60) return 'pass'
+  return 'fail'
 }
 
-const getSemesterIndex = () => {
-  return semesters.value.indexOf(selectedSemester.value)
+const scoreText = (s) => {
+  const n = Number(s) || 0
+  if (n >= 90) return '优秀'
+  return String(n)
 }
 
-const handleSemesterChange = (e) => {
-  const index = e.detail.value
-  selectedSemester.value = semesters.value[index]
+const calcGpa = (s) => {
+  const n = Number(s) || 0
+  if (n >= 90) return '4.0'
+  if (n >= 85) return '3.7'
+  if (n >= 82) return '3.3'
+  if (n >= 78) return '3.0'
+  if (n >= 75) return '2.7'
+  if (n >= 72) return '2.3'
+  if (n >= 68) return '2.0'
+  if (n >= 64) return '1.5'
+  if (n >= 60) return '1.0'
+  return '0'
+}
+
+const selectTerm = (idx) => {
+  selectedIndex.value = idx
   loadScores()
 }
 
 const loadScores = async () => {
   try {
-    const semester = selectedSemester.value === '全部学期' ? null : selectedSemester.value
-    const response = await apiClient.getStudentScores(semester)
-    if (response) {
-      scores.value = response
-    }
-  } catch (error) {
-    console.error('获取成绩失败:', error)
-    // 使用模拟数据
-    scores.value = [
-      {
-        id: 1,
-        courseName: '高等数学',
-        scoreTotal: 58,
-        credits: 4,
-        semester: '2025-2026春'
-      },
-      {
-        id: 2,
-        courseName: '大学英语',
-        scoreTotal: 75,
-        credits: 3,
-        semester: '2025-2026春'
-      },
-      {
-        id: 3,
-        courseName: '计算机基础',
-        scoreTotal: 82,
-        credits: 3,
-        semester: '2025-2026春'
-      },
-      {
-        id: 4,
-        courseName: '大学物理',
-        scoreTotal: 65,
-        credits: 4,
-        semester: '2025-2026秋'
-      },
-      {
-        id: 5,
-        courseName: '线性代数',
-        scoreTotal: 78,
-        credits: 3,
-        semester: '2025-2026秋'
-      }
-    ]
+    const uid = uni.getStorageSync('userId')
+    if (!uid) return
+    const sem = semesters.value[selectedIndex.value].value
+    const res = await studentAPI.getScores(uid, sem || null)
+    const arr = Array.isArray(res) ? res : (res?.data || [])
+    scores.value = arr.map(s => ({
+      id: s.id || s.courseId,
+      courseName: s.courseName || s.course_name || '',
+      scoreTotal: Number(s.scoreTotal || s.score_total || s.score || 0),
+      gradePoint: s.gradePoint || s.grade_point || null
+    }))
+  } catch (e) {
+    console.error('获取成绩失败:', e)
+    uni.showToast({ title: '加载失败', icon: 'none' })
   }
 }
 
-// 监听学期变化
-watch(selectedSemester, () => {
-  loadScores()
-})
-
-onMounted(() => {
-  loadScores()
-})
+onMounted(() => { loadScores() })
 </script>
 
 <style scoped>
-.scores-page {
-  padding: 20rpx;
-  background-color: #f5f7fa;
+.page {
   min-height: 100vh;
+  background: #f2f3f7;
+  padding-top: 16rpx;
 }
 
-.header {
-  margin-bottom: 24rpx;
-}
-
-.page-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #333;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.page-subtitle {
-  font-size: 18rpx;
-  color: #666;
-  display: block;
-}
-
-.filter-section {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  border: 1rpx solid #f0f0f0;
-  transition: all 0.3s ease;
-}
-
-.filter-section-hover {
-  transform: translateY(-2rpx);
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.12);
-}
-
-.semester-picker {
+/* 学期标签 */
+.term-tabs {
   width: 100%;
+  white-space: nowrap;
+  margin-bottom: 16rpx;
+  background: #f2f3f7;
+}
+.tabs-inner {
+  display: inline-flex;
+  padding: 0 20rpx;
+}
+.term-tab {
+  padding: 20rpx 28rpx;
+  position: relative;
+}
+.term-tab text {
+  font-size: 28rpx;
+  color: #666;
+}
+.term-tab.active text {
+  color: #e85a4f;
+  font-weight: 600;
+}
+.term-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 6rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40rpx;
+  height: 4rpx;
+  background: #e85a4f;
+  border-radius: 2rpx;
+}
+.term-hover {
+  opacity: 0.7;
 }
 
-.picker-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 18rpx;
-  color: #333;
-}
-
-.picker-text {
-  font-weight: 500;
-}
-
-.picker-arrow {
-  font-size: 14rpx;
-  color: #999;
-  transition: transform 0.3s ease;
-}
-
-.filter-section-hover .picker-arrow {
-  transform: rotate(180deg);
-}
-
-.scores-container {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  border: 1rpx solid #f0f0f0;
-}
-
-.scores-list {
+/* 成绩表卡片 */
+.table-card {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 0 20rpx 20rpx;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  max-height: calc(100vh - 180rpx);
 }
 
-.score-item {
+/* 表头 */
+.table-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20rpx;
-  border: 1rpx solid #f0f0f0;
-  border-radius: 16rpx;
-  background-color: #f9f9f9;
-  transition: all 0.3s ease;
+  background: #4a90ff;
+  padding: 24rpx 0;
+  flex-shrink: 0;
 }
-
-.score-item-hover {
-  background-color: #f0f7ff;
-  border-color: #4facfe;
-  transform: translateX(8rpx);
-}
-
-.course-info {
-  flex: 1;
-  margin-right: 20rpx;
-}
-
-.course-name {
-  font-size: 18rpx;
-  font-weight: 600;
-  color: #333;
-  display: block;
-  margin-bottom: 6rpx;
-}
-
-.course-semester {
-  font-size: 16rpx;
-  color: #666;
-}
-
-.score-details {
-  text-align: right;
-}
-
-.score {
-  font-size: 24rpx;
-  font-weight: 700;
-  display: block;
-  margin-bottom: 6rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 12rpx;
-  display: inline-block;
-}
-
-.score.failed {
-  color: #ff5252;
-  background-color: #ffebee;
-}
-
-.score.pass {
-  color: #4caf50;
-  background-color: #e8f5e9;
-}
-
-.score.good {
-  color: #2196f3;
-  background-color: #e3f2fd;
-}
-
-.score.excellent {
-  color: #ff9800;
-  background-color: #fff3e0;
-}
-
-.credit {
-  font-size: 16rpx;
-  color: #666;
+.th {
+  font-size: 28rpx;
+  color: #fff;
+  text-align: center;
   font-weight: 500;
 }
+.th-name { flex: 2.2; text-align: left; padding-left: 24rpx; }
+.th-score { flex: 1; }
+.th-gpa { flex: 1; padding-right: 24rpx; }
 
-.empty-state {
-  text-align: center;
-  padding: 60rpx 0;
-  color: #999;
-  font-size: 16rpx;
+/* 表体 */
+.table-body {
+  flex: 1;
+  height: auto;
 }
-
-.empty-icon {
-  font-size: 60rpx;
-  margin-bottom: 16rpx;
-  display: block;
+.table-row {
+  display: flex;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
 }
-
-.statistics {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 20rpx;
+.table-row:last-child {
+  border-bottom: none;
 }
-
-.stat-item {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  text-align: center;
-  border: 1rpx solid #f0f0f0;
-  transition: all 0.3s ease;
-}
-
-.stat-item-hover {
-  transform: translateY(-4rpx);
-  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.12);
-}
-
-.stat-icon {
-  font-size: 36rpx;
-  margin-bottom: 12rpx;
-  display: block;
-}
-
-.stat-icon.average {
-  color: #4facfe;
-}
-
-.stat-icon.credits {
-  color: #4caf50;
-}
-
-.stat-icon.failed {
-  color: #ff5252;
-}
-
-.stat-label {
-  font-size: 16rpx;
-  color: #666;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.stat-value {
-  font-size: 24rpx;
-  font-weight: 700;
+.td {
+  font-size: 28rpx;
   color: #333;
+  text-align: center;
 }
-
-.stat-value.warning {
-  color: #ff5252;
+.td-name {
+  flex: 2.2;
+  text-align: left;
+  padding-left: 24rpx;
+  padding-right: 20rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.td-score { flex: 1; }
+.td-gpa { flex: 1; padding-right: 24rpx; }
 
-/* 动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.td-score.excellent { color: #f59e0b; font-weight: 600; }
+.td-score.good { color: #3b5ce8; }
+.td-score.medium { color: #22c55e; }
+.td-score.pass { color: #666; }
+.td-score.fail { color: #ef4444; }
+
+/* 空状态 */
+.empty {
+  padding: 80rpx 0;
+  text-align: center;
 }
-
-.scores-page > * {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-.scores-page > *:nth-child(1) {
-  animation-delay: 0.1s;
-}
-
-.scores-page > *:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.scores-page > *:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-.scores-page > *:nth-child(4) {
-  animation-delay: 0.4s;
+.empty-text {
+  font-size: 26rpx;
+  color: #999;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-data-export">
+  <div class="admin-data-export" style="background-color: #f8f9fa !important; min-height: 100vh;">
     <div class="page-header">
       <h1>数据导出与备份</h1>
       <p>Excel导入导出、报表生成、数据备份恢复</p>
@@ -71,21 +71,55 @@
           <!-- 导出历史 -->
           <el-card>
             <template #header>
-              <div class="card-header">导出历史</div>
+              <div class="card-header">
+                <span>导出历史</span>
+                <span class="history-count">共 {{ exportHistoryTotal }} 条记录</span>
+              </div>
             </template>
-            <el-table :data="exportHistory" stripe>
-              <el-table-column prop="file_name" label="文件名" min-width="180"></el-table-column>
-              <el-table-column prop="data_type" label="数据类型" width="120"></el-table-column>
-              <el-table-column prop="record_count" label="记录数" width="100"></el-table-column>
+            
+            <div v-if="exportHistory.length === 0" style="padding: 20px; text-align: center; color: #999;">
+              暂无导出记录
+            </div>
+            <el-table v-else :data="exportHistory" stripe @selection-change="handleHistorySelectionChange">
+              <el-table-column type="selection" width="55" />
+              <el-table-column prop="id" label="ID" width="80" sortable></el-table-column>
+              <el-table-column prop="file_name" label="文件名" min-width="180" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="data_type_name" label="文件名称" width="120"></el-table-column>
+              <el-table-column prop="record_count" label="记录数" width="100" sortable></el-table-column>
               <el-table-column prop="file_size" label="文件大小" width="100"></el-table-column>
-              <el-table-column prop="created_at" label="导出时间" width="180"></el-table-column>
+              <el-table-column prop="created_at" label="导出时间" width="180" sortable></el-table-column>
               <el-table-column label="操作" width="150" fixed="right">
                 <template #default="{ row }">
-                  <el-button type="primary" size="small" link @click="downloadFile(row)">下载</el-button>
-                  <el-button type="danger" size="small" link @click="deleteExport(row.id)">删除</el-button>
+                  <div class="action-buttons">
+                    <el-button type="primary" size="small" @click="downloadFile(row)">
+                      <el-icon><Download /></el-icon> 下载
+                    </el-button>
+                    <el-button type="danger" size="small" @click="deleteExport(row.id)">
+                      <el-icon><Delete /></el-icon> 删除
+                    </el-button>
+                  </div>
                 </template>
               </el-table-column>
             </el-table>
+
+            <div class="table-footer" v-if="exportHistoryTotal > 0">
+              <div class="selection-info" v-if="selectedHistory.length > 0">
+                已选择 {{ selectedHistory.length }} 项
+                <el-button type="primary" size="small" @click="batchDownloadHistory">批量下载</el-button>
+                <el-button type="danger" size="small" @click="batchDeleteHistory">批量删除</el-button>
+              </div>
+              <div class="pagination-wrapper">
+                <el-pagination
+                  :current-page="exportHistoryPage"
+                  :page-size="exportHistoryPageSize"
+                  :total="exportHistoryTotal"
+                  :page-sizes="[10, 20, 50, 100]"
+                  layout="total, sizes, prev, pager, next, jumper"
+                  @size-change="handleExportHistorySizeChange"
+                  @current-change="handleExportHistoryPageChange"
+                />
+              </div>
+            </div>
           </el-card>
         </div>
       </el-tab-pane>
@@ -190,11 +224,11 @@
               </el-form-item>
 
               <el-form-item label="开始日期">
-                <el-date-picker v-model="reportForm.start_date" type="date"></el-date-picker>
+                <el-date-picker v-model="reportForm.start_date" type="date" :max-date="new Date()"></el-date-picker>
               </el-form-item>
 
               <el-form-item label="结束日期">
-                <el-date-picker v-model="reportForm.end_date" type="date"></el-date-picker>
+                <el-date-picker v-model="reportForm.end_date" type="date" :max-date="new Date()"></el-date-picker>
               </el-form-item>
 
               <el-form-item>
@@ -204,27 +238,107 @@
             </el-form>
           </el-card>
 
-          <!-- 预定义模板 -->
-          <el-card>
+          <!-- 模板上传 -->
+          <el-card style="margin-bottom: 20px;">
             <template #header>
-              <div class="card-header">可用模板</div>
+              <div class="card-header">上传自定义模板</div>
             </template>
 
-            <el-row :gutter="20">
-              <el-col v-for="template in reportTemplates" :key="template.id" :xs="24" :md="8">
-                <div style="padding: 15px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;">
-                  <h4 style="margin: 0 0 8px 0;">{{ template.name }}</h4>
-                  <p style="margin: 0 0 10px 0; color: #666; font-size: 12px;">
-                    {{ template.description }}
-                  </p>
-                  <div>
-                    <el-tag v-for="field in template.fields" :key="field" size="small" style="margin: 2px;">
-                      {{ field }}
-                    </el-tag>
+            <el-upload
+              ref="uploadTemplate"
+              :action="'/api/admin/export/reports/templates/upload'"
+              :headers="{ Authorization: 'Bearer ' + token }"
+              :auto-upload="false"
+              accept=".xlsx,.xls"
+              :on-change="handleTemplateFileChange"
+              style="margin-bottom: 15px;"
+            >
+              <template #default>
+                <el-button>选择Excel模板文件</el-button>
+              </template>
+            </el-upload>
+
+            <el-form :model="templateForm" label-width="100px" style="max-width: 500px;">
+              <el-form-item label="模板名称">
+                <el-input v-model="templateForm.name" placeholder="请输入模板名称"></el-input>
+              </el-form-item>
+              <el-form-item label="模板描述">
+                <el-input v-model="templateForm.description" placeholder="请输入模板描述"></el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="success" @click="uploadTemplate">上传模板</el-button>
+                <el-button @click="resetTemplateForm">重置</el-button>
+              </el-form-item>
+            </el-form>
+
+            <div style="padding: 10px; background: #f5f7fa; border-radius: 4px;">
+              <p style="color: #666; margin: 0;">
+                <strong>上传说明：</strong>
+              </p>
+              <ul style="margin: 5px 0; padding-left: 20px; color: #666; font-size: 12px;">
+                <li>支持Excel格式（.xlsx、.xls）</li>
+                <li>模板第一行将作为表头</li>
+                <li>自定义模板可以在生成报表时使用</li>
+              </ul>
+            </div>
+          </el-card>
+
+          <!-- 可用模板列表 -->
+          <el-card>
+            <template #header>
+              <div class="card-header">
+                <span>可用模板</span>
+                <span class="template-count">共 {{ reportTemplates.length + customTemplates.length }} 个模板</span>
+              </div>
+            </template>
+
+            <div v-if="reportTemplates.length === 0 && customTemplates.length === 0" style="padding: 20px; text-align: center; color: #999;">
+              暂无可用模板
+            </div>
+            
+            <div v-if="reportTemplates.length > 0" style="margin-bottom: 20px;">
+              <h4 style="color: #333; margin-bottom: 10px;">系统模板</h4>
+              <el-row :gutter="20">
+                <el-col v-for="template in reportTemplates" :key="'sys-' + template.id" :xs="24" :md="8">
+                  <div style="padding: 15px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;">
+                    <h4 style="margin: 0 0 8px 0;">{{ template.name }}</h4>
+                    <p style="margin: 0 0 10px 0; color: #666; font-size: 12px;">
+                      {{ template.description }}
+                    </p>
+                    <div>
+                      <el-tag v-for="field in template.fields" :key="field" size="small" style="margin: 2px;">
+                        {{ field }}
+                      </el-tag>
+                      <el-tag size="small" type="info" style="margin: 2px;">系统</el-tag>
+                    </div>
                   </div>
-                </div>
-              </el-col>
-            </el-row>
+                </el-col>
+              </el-row>
+            </div>
+
+            <div v-if="customTemplates.length > 0">
+              <h4 style="color: #333; margin-bottom: 10px;">自定义模板</h4>
+              <el-row :gutter="20">
+                <el-col v-for="template in customTemplates" :key="'custom-' + template.id" :xs="24" :md="8">
+                  <div style="padding: 15px; border: 1px solid #409eff; border-radius: 4px; margin-bottom: 10px; background: #f8fafc;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                      <h4 style="margin: 0;">{{ template.name }}</h4>
+                      <el-button type="text" size="small" @click="deleteCustomTemplate(template.id)" style="color: #f56c6c;">
+                        删除
+                      </el-button>
+                    </div>
+                    <p style="margin: 0 0 10px 0; color: #666; font-size: 12px;">
+                      {{ template.description || '无描述' }}
+                    </p>
+                    <div>
+                      <el-tag size="small" type="success" style="margin: 2px;">自定义</el-tag>
+                      <el-tag size="small" style="margin: 2px;">{{ template.fileName }}</el-tag>
+                      <el-tag size="small" style="margin: 2px;">{{ template.fileSize }}</el-tag>
+                    </div>
+                  </div>
+                </el-col>
+              </el-row>
+            </div>
           </el-card>
         </div>
       </el-tab-pane>
@@ -248,47 +362,89 @@
             </el-button>
 
             <!-- 备份列表 -->
-            <el-table :data="backupList" stripe v-loading="backupLoading">
-              <el-table-column prop="name" label="备份名称" min-width="180"></el-table-column>
-              <el-table-column prop="created_at" label="备份时间" width="180"></el-table-column>
+            <div v-if="backupList.length === 0" style="padding: 20px; text-align: center; color: #999;">
+              暂无备份记录
+            </div>
+            <el-table v-else :data="backupList" stripe v-loading="backupLoading">
+              <el-table-column type="selection" width="55" />
+              <el-table-column prop="id" label="ID" width="80" sortable></el-table-column>
+              <el-table-column prop="name" label="备份名称" min-width="180" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="created_at" label="备份时间" width="180" sortable></el-table-column>
               <el-table-column prop="size" label="文件大小" width="120"></el-table-column>
               <el-table-column label="状态" width="100">
                 <template #default="{ row }">
-                  <el-tag type="success">{{ row.status === 'success' ? '成功' : '进行中' }}</el-tag>
+                  <el-tag :type="row.status === 'success' ? 'success' : 'warning'">{{ row.status === 'success' ? '成功' : '进行中' }}</el-tag>
                 </template>
               </el-table-column>
               <el-table-column label="操作" width="150" fixed="right">
                 <template #default="{ row }">
-                  <el-button type="primary" size="small" link @click="restoreBackup(row.id)"
-                    >恢复</el-button
-                  >
-                  <el-button type="danger" size="small" link @click="deleteBackup(row.id)"
-                    >删除</el-button
-                  >
+                  <div class="action-buttons">
+                    <el-button type="primary" size="small" @click="restoreBackup(row.id)">
+                      恢复
+                    </el-button>
+                    <el-button type="danger" size="small" @click="deleteBackup(row.id)">
+                      <el-icon><Delete /></el-icon> 删除
+                    </el-button>
+                  </div>
                 </template>
               </el-table-column>
             </el-table>
+
+            <div class="table-footer" v-if="backupList.length > 0">
+              <div class="selection-info" v-if="selectedBackups.length > 0">
+                已选择 {{ selectedBackups.length }} 项
+                <el-button type="danger" size="small" @click="batchDeleteBackups">批量删除</el-button>
+              </div>
+            </div>
           </el-card>
         </div>
       </el-tab-pane>
     </el-tabs>
+
+    <!-- 删除确认弹窗 -->
+    <el-dialog v-model="deleteDialogVisible" title="确认删除" width="400px">
+      <div class="delete-warning">
+        <el-icon color="#F56C6C" size="20"><WarningFilled /></el-icon>
+        <p>确定要删除选中的 <strong>{{ deleteCount }} 项</strong> 吗？</p>
+        <p class="warning-text">此操作不可逆，删除后将无法恢复！</p>
+      </div>
+      <template #footer>
+        <el-button @click="deleteDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="confirmDelete" :loading="deleteLoading">确认删除</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { adminAPI } from '@/api/index'
+import apiClient from '@/api/client'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Download, Delete, WarningFilled } from '@element-plus/icons-vue'
 
 // 数据
 const token = localStorage.getItem('token')
 const exportHistory = ref([])
 const reportTemplates = ref([])
+const customTemplates = ref([])
 const backupList = ref([])
 const backupLoading = ref(false)
+const selectedHistory = ref([])
+const selectedBackups = ref([])
+const deleteDialogVisible = ref(false)
+const deleteLoading = ref(false)
+const deleteCount = ref(0)
+const deleteType = ref('')
+
+// 分页相关
+const exportHistoryTotal = ref(0)
+const exportHistoryPage = ref(1)
+const exportHistoryPageSize = ref(10)
 
 const studentFile = ref(null)
 const scoreFile = ref(null)
+const templateFile = ref(null)
 
 const reportForm = ref({
   template_id: '',
@@ -296,64 +452,81 @@ const reportForm = ref({
   end_date: null
 })
 
+const templateForm = ref({
+  name: '',
+  description: ''
+})
+
 onMounted(async () => {
   await loadExportHistory()
   await loadReportTemplates()
+  await loadCustomTemplates()
   await loadBackupList()
 })
 
 // 加载导出历史
-const loadExportHistory = async () => {
+const loadExportHistory = async (page = exportHistoryPage.value, pageSize = exportHistoryPageSize.value) => {
   try {
-    const response = await adminAPI.getExportHistory()
-    if (Array.isArray(response)) {
-      // 为了兼容后端返回的驼峰命名，需要转换字段名
-const formatted = response.map(item => ({
-        id: item.id,
-        file_name: item.fileName || '',
-        data_type: item.dataType || '',
-        record_count: item.recordCount || 0,
-        file_size: '\u672a知',
-        created_at: item.createdAt ? new Date(item.createdAt).toLocaleString('zh-CN') : ''
-      }))
-      exportHistory.value = formatted
-    } else if (response?.data) {
-      const formatted = response.data.map(item => ({
-        id: item.id,
-        file_name: item.fileName || '',
-        data_type: item.dataType || '',
-        record_count: item.recordCount || 0,
-        file_size: '\u672a知',
-        created_at: item.createdAt ? new Date(item.createdAt).toLocaleString('zh-CN') : ''
-      }))
-      exportHistory.value = formatted
+    const response = await adminAPI.getExportHistory(page, pageSize)
+    let dataList = []
+    let total = 0
+    
+    if (response?.data?.items) {
+      dataList = response.data.items
+      total = response.data.total || 0
+    } else if (response?.items) {
+      dataList = response.items
+      total = response.total || 0
+    } else if (Array.isArray(response)) {
+      dataList = response
+      total = response.length
+    } else if (response?.data && Array.isArray(response.data)) {
+      dataList = response.data
+      total = response.data.length
     }
+    
+    const formatted = dataList.map(item => ({
+      id: item.id,
+      file_name: item.fileName || item.file_name || '',
+      data_type: item.dataType || item.data_type || '',
+      data_type_name: item.dataTypeName || item.data_type_name || item.dataType || item.data_type || '',
+      record_count: item.recordCount || item.record_count || 0,
+      file_size: item.fileSize || item.file_size || '未知',
+      created_at: item.createdAt ? new Date(item.createdAt).toLocaleString('zh-CN') : (item.created_at ? new Date(item.created_at).toLocaleString('zh-CN') : '')
+    }))
+    exportHistory.value = formatted
+    exportHistoryTotal.value = total
+    selectedHistory.value = []
   } catch (error) {
-    console.error('\u52a0载导出历史失败:', error)
+    console.error('加载导出历史失败:', error)
     exportHistory.value = []
+    exportHistoryTotal.value = 0
   }
 }
 
-// 初始化导出历史(已删除虽拟数据，改用技能加载)
+// 分页大小改变
+const handleExportHistorySizeChange = (val) => {
+  exportHistoryPageSize.value = val
+  exportHistoryPage.value = 1
+  loadExportHistory()
+}
+
+// 分页页码改变
+const handleExportHistoryPageChange = (val) => {
+  exportHistoryPage.value = val
+  loadExportHistory()
+}
 
 // 导出学生数据
 const exportStudents = async () => {
   try {
     const response = await adminAPI.exportStudents()
-    let data = []
-    if (Array.isArray(response)) {
-      data = response
-    } else if (response?.data) {
-      data = Array.isArray(response.data) ? response.data : [response.data]
-    }
-    
-    if (data.length === 0) {
+    if (!response || response.size === 0) {
       ElMessage.warning('暂无学生数据')
       return
     }
     
-    const fileName = `学生数据_${new Date().getTime()}.xlsx`
-    downloadExcel(data, fileName)
+    downloadFileFromBlob(response, `学生数据_${new Date().getTime()}.xlsx`)
     ElMessage.success('学生数据已导出')
     await loadExportHistory()
   } catch (error) {
@@ -366,20 +539,12 @@ const exportStudents = async () => {
 const exportScores = async () => {
   try {
     const response = await adminAPI.exportScores()
-    let data = []
-    if (Array.isArray(response)) {
-      data = response
-    } else if (response?.data) {
-      data = Array.isArray(response.data) ? response.data : [response.data]
-    }
-    
-    if (data.length === 0) {
+    if (!response || response.size === 0) {
       ElMessage.warning('暂无成绩数据')
       return
     }
     
-    const fileName = `成绩数据_${new Date().getTime()}.xlsx`
-    downloadExcel(data, fileName)
+    downloadFileFromBlob(response, `成绩数据_${new Date().getTime()}.xlsx`)
     ElMessage.success('成绩数据已导出')
     await loadExportHistory()
   } catch (error) {
@@ -392,20 +557,12 @@ const exportScores = async () => {
 const exportWarnings = async () => {
   try {
     const response = await adminAPI.exportWarnings()
-    let data = []
-    if (Array.isArray(response)) {
-      data = response
-    } else if (response?.data) {
-      data = Array.isArray(response.data) ? response.data : [response.data]
-    }
-    
-    if (data.length === 0) {
+    if (!response || response.size === 0) {
       ElMessage.warning('暂无预警数据')
       return
     }
     
-    const fileName = `预警数据_${new Date().getTime()}.xlsx`
-    downloadExcel(data, fileName)
+    downloadFileFromBlob(response, `预警数据_${new Date().getTime()}.xlsx`)
     ElMessage.success('预警数据已导出')
     await loadExportHistory()
   } catch (error) {
@@ -418,20 +575,12 @@ const exportWarnings = async () => {
 const exportUsers = async () => {
   try {
     const response = await adminAPI.exportUsers()
-    let data = []
-    if (Array.isArray(response)) {
-      data = response
-    } else if (response?.data) {
-      data = Array.isArray(response.data) ? response.data : [response.data]
-    }
-    
-    if (data.length === 0) {
+    if (!response || response.size === 0) {
       ElMessage.warning('暂无用户数据')
       return
     }
     
-    const fileName = `用户数据_${new Date().getTime()}.xlsx`
-    downloadExcel(data, fileName)
+    downloadFileFromBlob(response, `用户数据_${new Date().getTime()}.xlsx`)
     ElMessage.success('用户数据已导出')
     await loadExportHistory()
   } catch (error) {
@@ -440,10 +589,42 @@ const exportUsers = async () => {
   }
 }
 
+// 从Blob下载文件（后端返回文件流时使用）
+const downloadFileFromBlob = (blob, filename) => {
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+}
+
+// 下载报表文件（携带认证信息）
+const downloadReportFile = async (downloadUrl) => {
+  try {
+    const response = await apiClient.get('/admin/export/reports/' + downloadUrl.split('/').pop(), {
+      responseType: 'blob',
+      headers: {
+        'Authorization': 'Bearer ' + token
+      }
+    })
+    if (response && response.size > 0) {
+      const fileName = downloadUrl.split('/').pop()
+      downloadFileFromBlob(response, fileName)
+    } else {
+      ElMessage.warning('报表文件为空')
+    }
+  } catch (error) {
+    console.error('下载报表失败:', error)
+    ElMessage.error('下载报表失败')
+  }
+}
+
 // 使用 JSON 导出 Excel（前端方案，无需后端依赖）
 const downloadExcel = (data, filename) => {
   try {
-    // 动态加载 XLSX 库
     if (!window.XLSX) {
       const script = document.createElement('script')
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
@@ -468,25 +649,20 @@ const exportToExcel = (data, filename) => {
     return
   }
 
-  // 获取所有字段作为表头
   const headers = Object.keys(data[0])
   
-  // 准备工作表数据
   const worksheetData = [
-    headers,  // 表头
+    headers,
     ...data.map(row => headers.map(header => row[header]))
   ]
   
-  // 创建工作簿
   const worksheet = window.XLSX.utils.aoa_to_sheet(worksheetData)
   const workbook = window.XLSX.utils.book_new()
   window.XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1')
   
-  // 设置列宽
   const colWidths = headers.map(h => Math.max(h.length * 2, 15))
   worksheet['!cols'] = colWidths.map(width => ({ wch: width }))
   
-  // 导出
   window.XLSX.writeFile(workbook, filename)
 }
 
@@ -532,9 +708,121 @@ const importScores = async () => {
 }
 
 // 下载模板
-const downloadTemplate = (type) => {
-  const templateName = type === 'students' ? '学生导入模板.xlsx' : '成绩导入模板.xlsx'
-  ElMessage.info('模板下载功能开发中...')
+const downloadTemplate = async (type) => {
+  try {
+    const response = await adminAPI.downloadTemplate(type)
+    if (response) {
+      const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = type === 'students' ? '学生导入模板.xlsx' : '成绩导入模板.xlsx'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      ElMessage.success('模板下载成功')
+    }
+  } catch (error) {
+    console.error('下载模板失败:', error)
+    ElMessage.error('下载模板失败')
+  }
+}
+
+// 加载自定义模板
+const loadCustomTemplates = async () => {
+  try {
+    const response = await adminAPI.getCustomReportTemplates()
+    if (Array.isArray(response)) {
+      customTemplates.value = response
+    } else if (response?.data && Array.isArray(response.data)) {
+      customTemplates.value = response.data
+    }
+  } catch (error) {
+    console.error('加载自定义模板失败:', error)
+    customTemplates.value = []
+  }
+}
+
+// 模板文件选择处理
+const handleTemplateFileChange = (file) => {
+  templateFile.value = file.raw || file
+}
+
+// 上传模板
+const uploadTemplate = async () => {
+  if (!templateFile.value) {
+    ElMessage.error('请选择要上传的模板文件')
+    return
+  }
+  if (!templateForm.value.name) {
+    ElMessage.error('请输入模板名称')
+    return
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('file', templateFile.value)
+    formData.append('name', templateForm.value.name)
+    if (templateForm.value.description) {
+      formData.append('description', templateForm.value.description)
+    }
+
+    const response = await apiClient.post('/admin/export/reports/templates/upload', formData, {
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+
+    if (response && response.message) {
+      ElMessage.success(response.message)
+      await loadCustomTemplates()
+      resetTemplateForm()
+    }
+  } catch (error) {
+    console.error('上传模板失败:', error)
+    ElMessage.error('上传模板失败: ' + (error.response?.data?.message || error.message))
+  }
+}
+
+// 重置模板表单
+const resetTemplateForm = () => {
+  templateForm.value = {
+    name: '',
+    description: ''
+  }
+  templateFile.value = null
+  const uploadRef = document.querySelector('.el-upload')
+  if (uploadRef && uploadRef.querySelector('.el-upload__tip')) {
+    uploadRef.querySelector('.el-upload__tip')?.remove()
+  }
+}
+
+// 删除自定义模板
+const deleteCustomTemplate = async (templateId) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要删除这个模板吗？',
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    const response = await adminAPI.deleteCustomTemplate(templateId)
+    if (response) {
+      ElMessage.success('模板删除成功')
+      await loadCustomTemplates()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除模板失败:', error)
+      ElMessage.error('删除模板失败')
+    }
+  }
 }
 
 // 加载报表模板
@@ -560,12 +848,32 @@ const generateReport = async () => {
     return
   }
 
+  // 日期校验
+  const startDate = new Date(reportForm.value.start_date)
+  const endDate = new Date(reportForm.value.end_date)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  if (startDate > endDate) {
+    ElMessage.error('开始日期不能大于结束日期')
+    return
+  }
+
   try {
-    await adminAPI.generateReport(reportForm.value)
-    ElMessage.success('报表已生成')
+    const response = await adminAPI.generateReport(reportForm.value)
+    console.log('报表生成响应:', response)
+    if (response && response.downloadUrl) {
+      await downloadReportFile(response.downloadUrl)
+      ElMessage.success('报表已生成并开始下载')
+    } else if (response && response.filePath) {
+      await downloadReportFile(response.filePath)
+      ElMessage.success('报表已生成并开始下载')
+    } else {
+      ElMessage.success('报表已生成')
+    }
     resetReportForm()
   } catch (error) {
-    ElMessage.error('生成报表失败')
+    ElMessage.error('生成报表失败: ' + (error.response?.data?.message || error.message))
   }
 }
 
@@ -595,7 +903,10 @@ const loadBackupList = async () => {
   try {
     const response = await adminAPI.getBackupList()
     if (Array.isArray(response)) {
-      backupList.value = response
+      backupList.value = response.map(item => ({
+        ...item,
+        created_at: item.createdAt ? new Date(item.createdAt).toLocaleString('zh-CN') : ''
+      }))
     }
   } catch (error) {
     console.error('加载备份列表失败:', error)
@@ -617,65 +928,148 @@ const restoreBackup = async (backupId) => {
 
 // 删除备份
 const deleteBackup = (backupId) => {
-  ElMessage.info('删除功能开发中...')
+  deleteType.value = 'backup'
+  deleteCount.value = 1
+  deleteDialogVisible.value = true
 }
 
-// 删除导出
+// 处理导出历史选择变化
+const handleHistorySelectionChange = (val) => {
+  selectedHistory.value = val
+}
+
+// 删除导出记录
 const deleteExport = (exportId) => {
-  ElMessageBox.confirm('确定删除该导出记录吗？', '警告', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      await adminAPI.deleteExport(exportId)
-      ElMessage.success('已删除')
-      await loadExportHistory()
-    } catch (error) {
-      ElMessage.error('删除失败')
+  deleteType.value = 'export'
+  deleteCount.value = 1
+  deleteDialogVisible.value = true
+  // 临时保存要删除的单个ID
+  window.__deleteSingleId = exportId
+}
+
+// 批量下载导出记录
+const batchDownloadHistory = async () => {
+  if (selectedHistory.value.length === 0) {
+    ElMessage.warning('请先选择要下载的记录')
+    return
+  }
+  
+  const loading = ElLoading.service({ text: '正在下载文件...' })
+  
+  try {
+    for (let i = 0; i < selectedHistory.value.length; i++) {
+      const item = selectedHistory.value[i]
+      await downloadFile(item)
+      if (i < selectedHistory.value.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
     }
-  }).catch(() => {
-    // 取消删除
-  })
+    ElMessage.success(`成功下载 ${selectedHistory.value.length} 个文件`)
+  } catch (error) {
+    console.error('批量下载失败:', error)
+    ElMessage.error('下载失败')
+  } finally {
+    loading.close()
+  }
+}
+
+// 批量删除导出记录
+const batchDeleteHistory = () => {
+  if (selectedHistory.value.length === 0) {
+    ElMessage.warning('请先选择要删除的记录')
+    return
+  }
+  deleteType.value = 'export'
+  deleteCount.value = selectedHistory.value.length
+  deleteDialogVisible.value = true
+}
+
+// 批量删除备份
+const batchDeleteBackups = () => {
+  if (selectedBackups.value.length === 0) {
+    ElMessage.warning('请先选择要删除的备份')
+    return
+  }
+  deleteType.value = 'backup'
+  deleteCount.value = selectedBackups.value.length
+  deleteDialogVisible.value = true
+}
+
+// 确认删除
+const confirmDelete = async () => {
+  deleteLoading.value = true
+  try {
+    if (deleteType.value === 'export') {
+      if (deleteCount.value === 1) {
+        // 删除单条记录时使用保存的ID，确保是数字类型
+        const exportId = window.__deleteSingleId !== undefined ? parseInt(window.__deleteSingleId, 10) : null
+        if (exportId) {
+          await adminAPI.deleteExport(exportId)
+        }
+        window.__deleteSingleId = undefined
+      } else {
+        // 批量删除时确保每个ID都是数字类型
+        const deletePromises = selectedHistory.value.map(item => {
+          const id = typeof item.id === 'number' ? item.id : parseInt(item.id, 10)
+          return adminAPI.deleteExport(id)
+        })
+        await Promise.all(deletePromises)
+      }
+      ElMessage.success(`成功删除 ${deleteCount.value} 条导出记录`)
+      await loadExportHistory()
+      selectedHistory.value = []
+    } else if (deleteType.value === 'backup') {
+      ElMessage.info('删除备份功能开发中...')
+    }
+    deleteDialogVisible.value = false
+  } catch (error) {
+    ElMessage.error('删除失败')
+  } finally {
+    deleteLoading.value = false
+  }
 }
 
 // 下载文件
 const downloadFile = async (file) => {
   try {
-    // 根据数据类型调用相应的导出接口
     let response
-    switch(file.data_type) {
+    const fileName = file.file_name || file.fileName
+    const dataType = file.data_type || file.dataType
+    
+    switch(dataType) {
       case '学生数据':
+      case 'students':
         response = await adminAPI.exportStudents()
         break
       case '成绩数据':
+      case 'scores':
         response = await adminAPI.exportScores()
         break
       case '预警数据':
+      case 'warnings':
         response = await adminAPI.exportWarnings()
         break
       case '用户数据':
+      case 'users':
         response = await adminAPI.exportUsers()
+        break
+      case 'colleges':
+        response = await adminAPI.exportColleges()
+        break
+      case 'teachers':
+        response = await adminAPI.exportTeachers()
         break
       default:
         ElMessage.error('未知的数据类型')
         return
     }
     
-    let data = []
-    if (Array.isArray(response)) {
-      data = response
-    } else if (response?.data) {
-      data = Array.isArray(response.data) ? response.data : [response.data]
-    }
-    
-    if (data.length === 0) {
+    if (!response || response.size === 0) {
       ElMessage.warning('数据已删除或不存在')
       return
     }
     
-    downloadExcel(data, file.file_name)
-    ElMessage.success('正在下载')
+    downloadFileFromBlob(response, fileName)
   } catch (error) {
     console.error('下载失败:', error)
     ElMessage.error('下载失败')
@@ -712,9 +1106,82 @@ const downloadFile = async (file) => {
   font-size: 16px;
   font-weight: bold;
   color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.history-count, .template-count {
+  font-size: 14px;
+  color: #909399;
+  font-weight: normal;
 }
 
 .export-card {
   height: 100%;
+}
+
+.table-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.selection-info {
+  color: #606266;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.delete-warning {
+  text-align: center;
+  padding: 20px;
+}
+
+.delete-warning p {
+  margin: 10px 0;
+  color: #606266;
+}
+
+.delete-warning .warning-text {
+  color: #F56C6C;
+  font-size: 14px;
+}
+
+.admin-data-export :deep(.el-card) {
+  border: 1px solid #e9ecef !important;
+}
+
+.admin-data-export :deep(.el-button--primary) {
+  background-color: #667eea !important;
+  border-color: #667eea !important;
+}
+
+.admin-data-export :deep(.el-button--primary:hover) {
+  background-color: #5568d3 !important;
+  border-color: #5568d3 !important;
+}
+
+.admin-data-export :deep(.el-button--danger) {
+  background-color: #f56c6c !important;
+  border-color: #f56c6c !important;
+}
+
+.admin-data-export :deep(.el-button--danger:hover) {
+  background-color: #e64141 !important;
+  border-color: #e64141 !important;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.action-buttons .el-button {
+  margin: 0;
 }
 </style>

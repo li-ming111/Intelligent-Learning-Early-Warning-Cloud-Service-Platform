@@ -26,7 +26,7 @@
 ### 后端技术栈
 - **框架**: Spring Boot 3.3.0
 - **微服务框架**: Spring Cloud
-- **服务注册与发现**: Eureka
+- **服务注册与发现**: Nacos
 - **服务调用**: OpenFeign
 - **数据库**: MySQL 8.0
 - **ORM**: MyBatis Plus
@@ -80,14 +80,17 @@
 
 ### 微服务启动顺序
 
-#### 1. 启动 Eureka 服务注册中心
+#### 1. 启动 Nacos 服务注册中心
 
 ```bash
-cd academic-microservices/eureka-server
-mvn spring-boot:run
+# 下载并启动 Nacos 服务器（如果尚未安装）
+# 访问 https://github.com/alibaba/nacos/releases 下载最新版本
+# 解压后运行：
+cd nacos/bin
+startup.cmd -m standalone
 ```
 
-Eureka 服务将在 `http://localhost:8761` 启动
+Nacos 服务将在 `http://localhost:8848` 启动
 
 #### 2. 启动用户服务
 
@@ -107,14 +110,20 @@ mvn spring-boot:run
 
 学生服务将在 `http://localhost:8083/api` 启动并注册到 Eureka
 
-#### 4. 启动后端主服务
+#### 4. 启动其他微服务
 
 ```bash
-cd academic-warning-backend
-mvn spring-boot:run
+# 教师服务
+cd academic-microservices/teacher-service && mvn spring-boot:run
+
+# 辅导员服务
+cd academic-microservices/counselor-service && mvn spring-boot:run
+
+# 管理服务
+cd academic-microservices/admin-service && mvn spring-boot:run
 ```
 
-后端主服务将在 `http://localhost:8081/api` 启动并注册到 Eureka
+所有微服务统一通过 Gateway `http://localhost:8076` 访问
 
 ### 前端启动
 
@@ -175,20 +184,21 @@ ABS/
 │   ├── user-service/             # 用户服务
 │   └── student-service/          # 学生服务
 │
-├── academic-warning-backend/     # 后端主服务
-│   ├── src/main/java/com/academic/
-│   │   ├── controller/           # 控制器
-│   │   ├── service/              # 业务逻辑
-│   │   ├── mapper/               # 数据访问
-│   │   ├── entity/               # 数据实体
-│   │   ├── dto/                  # 数据传输对象
-│   │   ├── config/               # 配置类
-│   │   └── util/                 # 工具类
-│   ├── src/main/resources/
-│   │   ├── application.yml       # 应用配置
-│   │   └── schema.sql            # 数据库脚本
-│   ├── pom.xml
-│   └── target/                   # 编译输出
+├── academic-microservices/       # 微服务后端
+│   ├── gateway-service/          # API 网关 (8076)
+│   ├── auth-service/             # 认证服务 (8072)
+│   ├── admin-service/            # 管理服务 (8070)
+│   ├── student-service/          # 学生服务 (8079)
+│   ├── teacher-service/          # 教师服务 (8090)
+│   ├── counselor-service/        # 辅导员服务 (8074)
+│   ├── course-service/           # 课程服务 (8075)
+│   ├── college-service/          # 学院服务 (8073)
+│   ├── warning-service/          # 预警服务 (8093)
+│   ├── user-service/             # 用户服务 (8092)
+│   ├── message-service/          # 消息服务 (8077)
+│   ├── resource-service/         # 资源服务 (8078)
+│   ├── ai-service/               # AI服务 (8071)
+│   └── academic-common/          # 公共模块
 │
 ├── academic-warning-frontend/    # 前端应用
 │   ├── src/

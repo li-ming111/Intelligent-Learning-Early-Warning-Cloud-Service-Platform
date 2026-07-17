@@ -1,58 +1,66 @@
 <template>
-  <view class="roles-container">
-    <view class="header">
-      <text class="title">角色管理</text>
-      <text class="subtitle">管理系统角色和权限</text>
-    </view>
-
-    <view class="roles-list">
-      <view v-for="role in roles" :key="role.id" class="role-item" hover-class="role-item-hover">
-        <view class="role-icon">{{ role.icon }}</view>
-        <view class="role-info">
-          <text class="role-name">{{ role.name }}</text>
-          <text class="role-description">{{ role.description }}</text>
-          <view class="role-stats">
-            <text class="stat">用户: {{ role.userCount }}人</text>
-            <text class="stat">权限: {{ role.permissionCount }}项</text>
+  <view class="page">
+    <view class="header"><text class="title">角色管理</text><text class="sub">系统角色权限配置</text></view>
+    <view class="card-list">
+      <view v-for="r in roles" :key="r.id" class="card">
+        <view class="card-head">
+          <view class="ri" :style="{background:r.color}">{{ r.label[0] }}</view>
+          <view class="rinfo">
+            <text class="rname">{{ r.label }}</text>
+            <text class="rcnt">{{ r.userCount || 0 }} 名用户</text>
           </view>
         </view>
-        <view class="role-actions">
-          <button class="action-btn" @click="editRole(role)">编辑权限</button>
+        <view class="card-body">
+          <text class="perm-title">权限范围</text>
+          <view class="perm-tags">
+            <text v-for="p in r.permissions" :key="p" class="perm-tag">{{ p }}</text>
+          </view>
         </view>
       </view>
     </view>
   </view>
 </template>
 
-<script setup>
-import { ref } from 'vue';
+<script>
+import { adminAPI } from '@/services/api.js'
 
-const roles = ref([
-  { id: 1, name: '学生', icon: '👨‍🎓', description: '学生用户，可查看成绩、预警和帮扶计划', userCount: 2000, permissionCount: 8 },
-  { id: 2, name: '教师', icon: '👨‍🏫', description: '教师用户，可管理学生成绩和预警', userCount: 150, permissionCount: 15 },
-  { id: 3, name: '辅导员', icon: '👨‍💼', description: '辅导员用户，可管理学生预警和帮扶', userCount: 30, permissionCount: 20 },
-  { id: 4, name: '管理员', icon: '👨‍💻', description: '系统管理员，拥有所有权限', userCount: 5, permissionCount: 50 }
-]);
-
-const editRole = (role) => {
-  uni.showToast({ title: `编辑角色: ${role.name}`, icon: 'none' });
-};
+export default {
+  data() {
+    return {
+      roles: [
+        { id:1, label:'学生', color:'#2563eb', userCount:0, permissions:['查看成绩','查看预警','查看帮扶计划','提交申诉','查看分析'] },
+        { id:2, label:'教师', color:'#16a34a', userCount:0, permissions:['录入成绩','修改成绩','管理课程','处理预警','查看统计'] },
+        { id:3, label:'辅导员', color:'#7c3aed', userCount:0, permissions:['学生管理','预警处理','帮扶计划','通知发送','数据分析'] },
+        { id:4, label:'管理员', color:'#1d4ed8', userCount:0, permissions:['用户管理','角色管理','部门管理','系统设置','日志查看','数据导出'] },
+        { id:5, label:'学院管理员', color:'#2563eb', userCount:0, permissions:['学院统计','班级对比','教师管理','数据导出'] }
+      ]
+    }
+  },
+  onShow() { this.loadData() },
+  methods: {
+    async loadData() {
+      try {
+        const res = await adminAPI.getRoleStats()
+        if (res) {
+          const map = {}
+          ;(Array.isArray(res) ? res : (res?.data || [])).forEach(r => { map[r.role || r.id] = r.count || r.userCount || 0 })
+          this.roles.forEach(r => { r.userCount = map[r.id] || 0 })
+        }
+      } catch (e) {}
+    }
+  }
+}
 </script>
 
 <style scoped>
-.roles-container { padding: 20rpx; background-color: #f5f7fa; min-height: 100vh; }
-.header { margin-bottom: 24rpx; }
-.title { font-size: 32rpx; font-weight: 700; color: #333; margin-bottom: 8rpx; display: block; }
-.subtitle { font-size: 18rpx; color: #666; display: block; }
-.roles-list { display: flex; flex-direction: column; gap: 16rpx; }
-.role-item { background: white; border-radius: 20rpx; padding: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.08); border: 1rpx solid #f0f0f0; display: flex; align-items: flex-start; transition: all 0.3s ease; }
-.role-item-hover { transform: translateY(-4rpx); box-shadow: 0 6rpx 20rpx rgba(0,0,0,0.12); border-color: #4facfe; }
-.role-icon { font-size: 48rpx; margin-right: 20rpx; }
-.role-info { flex: 1; }
-.role-name { font-size: 20rpx; font-weight: 600; color: #333; display: block; margin-bottom: 8rpx; }
-.role-description { font-size: 14rpx; color: #666; display: block; margin-bottom: 12rpx; }
-.role-stats { display: flex; gap: 16rpx; }
-.stat { font-size: 14rpx; color: #999; background-color: #f5f5f5; padding: 4rpx 12rpx; border-radius: 8rpx; }
-.role-actions { flex-shrink: 0; }
-.action-btn { padding: 12rpx 24rpx; background-color: #4facfe; color: white; border: none; border-radius: 12rpx; font-size: 14rpx; }
+.page { padding:20rpx; background:#f0f2f8; min-height:100vh; }
+.header { margin-bottom:20rpx; } .title { font-size:36rpx; font-weight:800; color:#1e293b; display:block; } .sub { font-size:24rpx; color:#94a3b8; }
+.card-list { display:flex; flex-direction:column; gap:14rpx; }
+.card { background:#fff; border-radius:16rpx; padding:24rpx; }
+.card-head { display:flex; align-items:center; gap:14rpx; margin-bottom:18rpx; }
+.ri { width:64rpx; height:64rpx; border-radius:16rpx; color:#fff; font-size:28rpx; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.rinfo { flex:1; } .rname { font-size:28rpx; font-weight:600; color:#1e293b; display:block; } .rcnt { font-size:22rpx; color:#94a3b8; }
+.card-body {} .perm-title { font-size:22rpx; color:#94a3b8; display:block; margin-bottom:10rpx; }
+.perm-tags { display:flex; flex-wrap:wrap; gap:8rpx; }
+.perm-tag { font-size:20rpx; padding:4rpx 14rpx; background:#f1f5f9; border-radius:8rpx; color:#475569; }
 </style>

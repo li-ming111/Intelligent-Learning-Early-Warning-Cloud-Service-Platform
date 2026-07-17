@@ -43,7 +43,7 @@
           <template #default="{ row }">
             <el-progress 
               :percentage="parseInt(row.achievementRate || 0)"
-              :color="row.achievementRate >= 80 ? '#67c23a' : (row.achievementRate >= 60 ? '#e6a23c' : '#f56c6c')"
+              :color="row.achievementRate >= 80 ? '#67c23a' : (row.achievementRate >= 60 ? '#2563eb' : '#f56c6c')"
               style="width: 100%;"
             ></el-progress>
           </template>

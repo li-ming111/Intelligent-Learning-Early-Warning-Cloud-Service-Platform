@@ -1,41 +1,35 @@
 <template>
   <div class="teacher-scores">
-    <!-- 欢迎区域 -->
-    <div class="welcome-section">
-      <div class="welcome-card">
-        <div class="welcome-content">
-          <h1>成绩管理</h1>
-          <p>录入、管理和分析学生成绩</p>
-        </div>
-      </div>
+    <div class="page-header">
+      <h1>成绩管理</h1>
+      <p>查看和管理班级学生成绩</p>
     </div>
 
-    <!-- 操作栏 -->
-    <div class="toolbar-section">
-      <div class="toolbar">
-        <el-select v-model="selectedCourse" placeholder="选择课程" @change="loadCourseScores" class="toolbar-item" filterable clearable>
-          <el-option v-for="course in courses" :key="course.id" :label="course.name" :value="course.id"></el-option>
-        </el-select>
-        <el-upload
-          ref="uploadRef"
-          :auto-upload="false"
-          :on-change="handleFileSelect"
-          accept=".xlsx,.xls"
-          class="toolbar-item"
-          :show-file-list="false"
-        >
-          <el-button class="toolbar-item" style="background-color: #409EFF; color: white; border-color: #409EFF;">导入Excel</el-button>
-        </el-upload>
-        <el-button @click="exportScores" class="toolbar-item">导出成绩</el-button>
-        <el-button @click="analyzeScores" class="toolbar-item" type="info">成绩分析</el-button>
-        <el-button @click="detectAnomalies" class="toolbar-item" type="warning">异常检测</el-button>
-        <el-button @click="triggerWarnings" class="toolbar-item" type="danger">触发预警</el-button>
-        <el-button @click="batchDeleteScores" class="toolbar-item" type="danger" :disabled="selectedRows.length === 0">批量删除</el-button>
-      </div>
+    <div class="action-bar">
+      <el-select v-model="selectedClass" placeholder="选择班级" @change="loadClassScores" filterable clearable style="width: 200px;">
+        <el-option v-for="cls in classes" :key="cls.id" :label="cls.name" :value="cls.name"></el-option>
+      </el-select>
+      <el-input v-model="searchName" placeholder="搜索学生姓名" clearable :prefix-icon="Search" @input="currentPage=1" style="width: 200px;" />
+      <el-select v-model="selectedSemester" placeholder="全部学期" clearable @change="currentPage=1" style="width:170px">
+        <el-option v-for="s in availableSemesters" :key="s.value" :label="s.label" :value="s.value" />
+      </el-select>
+      <el-upload
+        ref="uploadRef"
+        :auto-upload="false"
+        :on-change="handleFileSelect"
+        accept=".xlsx,.xls"
+        :show-file-list="false"
+      >
+        <el-button type="primary">导入Excel</el-button>
+      </el-upload>
+      <el-button @click="exportScores">导出成绩</el-button>
+      <el-button @click="analyzeScores" type="info">成绩分析</el-button>
+      <el-button @click="openNotifyCounselor" type="success" :disabled="!selectedClass">通知辅导员</el-button>
+      <el-button @click="batchOperation" type="warning" :disabled="selectedRows.length === 0">批量操作</el-button>
     </div>
 
     <!-- 成绩分析卡片 -->
-    <div v-if="selectedCourse && analysisData" class="content-card">
+    <div v-if="selectedClass && analysisData" class="content-card">
       <div class="card-title-bar">
         <h2>课程成绩分析</h2>
       </div>
@@ -81,48 +75,63 @@
       </div>
     </div>
 
-    <!-- 成绩表格卡片 -->
-    <div class="content-card">
-      <div class="card-title-bar">
-        <h2>{{ selectedCourse ? '课程成绩列表' : '请选择课程' }}</h2>
-      </div>
-      <div class="card-body-section">
-        <el-table :data="scoresList" stripe v-if="selectedCourse" class="modern-table" @selection-change="handleSelectionChange">
-          <el-table-column type="selection" width="50"></el-table-column>
-          <el-table-column prop="studentId" label="学号" width="150"></el-table-column>
-          <el-table-column prop="studentName" label="姓名" width="120"></el-table-column>
-          <el-table-column prop="regularScore" label="平时分" width="100">
-            <template #default="{ row }">
-              <el-input-number v-model="row.regularScore" :min="0" :max="100" size="small"></el-input-number>
-            </template>
-          </el-table-column>
-          <el-table-column prop="finalScore" label="期末分" width="100">
-            <template #default="{ row }">
-              <el-input-number v-model="row.finalScore" :min="0" :max="100" size="small"></el-input-number>
-            </template>
-          </el-table-column>
-          <el-table-column prop="totalScore" label="总分" width="100">
-            <template #default="{ row }">
-              <span class="score-value">{{ calculateTotal(row) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="grade" label="等级" width="80"></el-table-column>
-          <el-table-column label="操作" width="200" fixed="right">
-            <template #default="{ row }">
-              <el-button type="primary" size="small" link @click="editScore(row)">修改</el-button>
-              <el-button type="danger" size="small" link @click="deleteScore(row)">删除</el-button>
-              <el-button type="info" size="small" link @click="viewStudentAnalysis(row)">分析</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <el-empty v-else description="请先选择课程"></el-empty>
-      </div>
-    </div>
+    <!-- 成绩表格 -->
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <span>{{ selectedClass ? '班级成绩列表' : '请选择班级' }}</span>
+          <span class="score-count" v-if="selectedClass">共 {{ filteredScores.length }} 条记录</span>
+        </div>
+      </template>
+      <el-table :data="pagedScores" stripe v-if="selectedClass" @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="55" />
+        <el-table-column label="学号" width="150">
+          <template #default="{ row }">{{ row.studentNo || row.studentId || '--' }}</template>
+        </el-table-column>
+        <el-table-column prop="studentName" label="姓名" width="100" />
+        <el-table-column label="学期" width="130">
+          <template #default="{ row }">{{ row.semesterLabel || row.semester || '--' }}</template>
+        </el-table-column>
+        <el-table-column label="课程" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.courseName || row.courseId || '--' }}</template>
+        </el-table-column>
+        <el-table-column label="最终成绩" width="120" sortable>
+          <template #header>
+            <span>最终成绩</span>
+          </template>
+          <template #default="{ row }">
+            <span class="score-value">{{ row.totalScore || row.scoreTotal || row.score || '--' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="260" fixed="right">
+          <template #default="{ row }">
+            <div class="action-buttons">
+              <el-button type="primary" size="small" @click="editScore(row)">修改</el-button>
+              <el-button type="danger" size="small" @click="deleteScore(row)">删除</el-button>
+              <el-button type="info" size="small" @click="viewStudentAnalysis(row)">分析</el-button>
+              <el-button type="success" size="small" @click="notifyCounselor(row)">通知辅导员</el-button>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-else description="请先选择班级"></el-empty>
 
-    <!-- 保存按钮 -->
-    <div class="action-section">
-      <el-button type="success" size="large" @click="saveScores" class="save-btn">保存成绩</el-button>
-    </div>
+      <div class="table-footer" v-if="selectedClass">
+        <div class="selection-info">
+          <span v-if="selectedRows.length > 0">已选择 {{ selectedRows.length }} 项</span>
+          <el-button type="warning" size="small" @click="batchOperation" :disabled="selectedRows.length === 0">批量操作</el-button>
+        </div>
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50]"
+          :total="filteredScores.length"
+          layout="total, sizes, prev, pager, next"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </el-card>
 
     <!-- 修改对话框 -->
     <el-dialog v-model="editDialogVisible" title="修改成绩" width="500px">
@@ -130,11 +139,8 @@
         <el-form-item label="学生">
           <el-input :value="editingScore.studentName" disabled></el-input>
         </el-form-item>
-        <el-form-item label="平时分">
-          <el-input-number v-model="editingScore.regularScore" :min="0" :max="100"></el-input-number>
-        </el-form-item>
-        <el-form-item label="期末分">
-          <el-input-number v-model="editingScore.finalScore" :min="0" :max="100"></el-input-number>
+        <el-form-item label="最终成绩">
+          <el-input-number v-model="editingScore.totalScore" :min="0" :max="100"></el-input-number>
         </el-form-item>
         <el-form-item label="修改原因">
           <el-input v-model="editingScore.reason" type="textarea" rows="3" placeholder="请说明修改原因"></el-input>
@@ -192,98 +198,164 @@
       </template>
     </el-dialog>
 
-    <!-- 异常检测对话框 -->
-    <el-dialog v-model="anomalyDialogVisible" title="成绩异常检测" width="600px">
-      <div v-if="anomalyData" class="anomaly-analysis">
-        <div class="anomaly-header">
-          <h3>异常成绩检测结果</h3>
-          <p>共检测到 {{ anomalyData.length }} 个异常成绩</p>
-        </div>
-        <el-table :data="anomalyData" stripe class="modern-table">
-          <el-table-column prop="studentId" label="学号" width="150"></el-table-column>
-          <el-table-column prop="studentName" label="姓名" width="120"></el-table-column>
-          <el-table-column prop="totalScore" label="总分" width="100"></el-table-column>
-          <el-table-column prop="anomalyScore" label="异常分数" width="120"></el-table-column>
-          <el-table-column prop="anomalyType" label="异常类型" width="150"></el-table-column>
-          <el-table-column prop="confidence" label="置信度" width="100">
-            <template #default="{ row }">
-              <el-progress :percentage="(row.confidence * 100).toFixed(0)" :color="getProgressColor(row.confidence)"></el-progress>
-            </template>
-          </el-table-column>
-        </el-table>
+    <!-- 通知辅导员对话框 -->
+    <el-dialog v-model="notifyDialogVisible" title="通知辅导员" width="500px">
+      <div class="notify-counselor" v-if="notifyTarget">
+        <el-alert 
+          :title="`将通知 ${notifyTarget.counselorName || '班级辅导员'}`" 
+          :description="notifyTarget.counselorPhone ? `联系电话：${notifyTarget.counselorPhone}` : ''"
+          type="info" 
+          show-icon 
+          :closable="false"
+          style="margin-bottom: 16px;"
+        />
+        <el-form label-width="80px">
+          <el-form-item label="涉及学生">
+            <el-tag v-if="notifyTarget.studentName">{{ notifyTarget.studentName }} ({{ notifyTarget.studentNo }})</el-tag>
+            <el-tag v-else type="warning">全班学生</el-tag>
+          </el-form-item>
+          <el-form-item label="沟通内容">
+            <el-input v-model="notifyContent" type="textarea" rows="4" placeholder="请描述需要辅导员关注的学生情况..." />
+          </el-form-item>
+        </el-form>
+      </div>
+      <div v-else class="notify-counselor">
+        <el-alert title="当前班级未配置辅导员" type="warning" show-icon :closable="false" />
       </div>
       <template #footer>
-        <el-button @click="anomalyDialogVisible = false">关闭</el-button>
+        <el-button @click="notifyDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitNotify" :disabled="!notifyTarget || !notifyContent.trim()">发送通知</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量操作对话框 -->
+    <el-dialog v-model="batchDialogVisible" title="批量操作" width="500px">
+      <div class="batch-operation">
+        <p>已选择 <strong>{{ selectedRows.length }}</strong> 条成绩记录，请选择操作：</p>
+        <div class="batch-actions">
+          <el-button type="danger" @click="batchDeleteScores" size="large">
+            批量删除
+          </el-button>
+          <el-button type="primary" @click="batchExportScores" size="large">
+            批量导出
+          </el-button>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="batchDialogVisible = false">取消</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { teacherAPI } from '@/api/index'
 import { getUserId } from '@/utils/userUtils'
 
-const selectedCourse = ref('')
+const selectedClass = ref('')
+const searchName = ref('')
+const selectedSemester = ref('')
 const editDialogVisible = ref(false)
 const editingScore = ref({})
-const courses = ref([])
+const classes = ref([])
+const courseMap = ref(new Map())
 
 const scoresList = ref([])
 const uploadRef = ref(null)
 
-// 新增状态变量
 const analysisData = ref(null)
 const studentAnalysisVisible = ref(false)
 const studentAnalysisData = ref(null)
-const anomalyDialogVisible = ref(false)
-const anomalyData = ref([])
+const batchDialogVisible = ref(false)
+const notifyDialogVisible = ref(false)
+const notifyTarget = ref(null)
+const notifyContent = ref('')
 const selectedRows = ref([])
 
-// 自动计算当前学期
+// 分页
+const currentPage = ref(1)
+const pageSize = ref(20)
+const filteredScores = computed(() => {
+  let list = scoresList.value
+  const kw = searchName.value.toLowerCase()
+  if (kw) list = list.filter(s => ('' + (s.studentName || '')).toLowerCase().includes(kw) || ('' + (s.studentNo || '')).includes(String(kw)))
+  if (selectedSemester.value) list = list.filter(s => String(s.semester) === String(selectedSemester.value))
+  return list
+})
+const pagedScores = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredScores.value.slice(start, start + pageSize.value)
+})
+
+// 从学号提取入学年份（如 "2023020616" → 2023）
+const entranceYear = computed(() => {
+  const first = scoresList.value.find(s => s.studentNo && /^\d{10}$/.test(String(s.studentNo)))
+  return first ? parseInt(String(first.studentNo).substring(0, 4)) : 2023
+})
+
+// 根据入学年份和当前北京时间，计算当前是第几学期
+// 学年划分：第一学期9月~次年2月，第二学期3月~8月
+const currentSemester = computed(() => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1
+  const academicStartYear = month >= 9 ? year : year - 1
+  const term = month >= 3 && month <= 8 ? 2 : 1
+  return (academicStartYear - entranceYear.value) * 2 + term
+})
+
+function semLabel(num) {
+  const n = parseInt(num); if (isNaN(n) || n < 1) return '--'
+  const y = entranceYear.value + Math.floor((n - 1) / 2)
+  return `${y}-${y + 1}-${(n - 1) % 2 + 1}`
+}
+const availableSemesters = computed(() => {
+  // 自动生成第1学期到当前学期的选项
+  const list = []
+  for (let i = 1; i <= currentSemester.value; i++) {
+    list.push({ value: i, label: `第${i}学期  ${semLabel(i)}` })
+  }
+  return list.reverse()
+})
+
+const handleSizeChange = () => { currentPage.value = 1 }
+const handleCurrentChange = () => {}
+
 const getCurrentSemester = () => {
   const now = new Date()
   const year = now.getFullYear()
-  const month = now.getMonth() + 1 // 月份从0开始，所以加1
-  
-  // 第一学期：9月-次年2月
-  // 第二学期：3月-8月
-  if (month >= 9 || month <= 2) {
-    // 第一学期
-    const startYear = month <= 2 ? year - 1 : year
-    const endYear = month <= 2 ? year : year + 1
-    return `${startYear}-${endYear}-1`
-  } else {
-    // 第二学期
-    return `${year}-${year + 1}-2`
-  }
+  const month = now.getMonth() + 1
+  if (month >= 9) return `${year}-${year + 1}-1`
+  if (month <= 2) return `${year - 1}-${year}-1`
+  return `${year - 1}-${year}-2`   // 3~8月为第二学期
 }
 
 onMounted(async () => {
-  await loadCourses()
+  await loadCourseMap()
+  await loadClasses()
 })
 
-// 处理文件选择
 const handleFileSelect = async (uploadFile) => {
   try {
-    if (!selectedCourse.value) {
-      ElMessage.error('请先选择课程')
+    if (!selectedClass.value) {
+      ElMessage.error('请先选择班级')
       uploadRef.value.clearFiles()
       return
     }
-    
     const file = uploadFile.raw
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('courseId', selectedCourse.value)
+    const defaultCourseId = scoresList.value[0]?.courseId || ''
+    formData.append('courseId', defaultCourseId)
+    formData.append('className', selectedClass.value)
     formData.append('semester', getCurrentSemester())
-    
-    const response = await teacherAPI.importScores(formData)
+    await teacherAPI.importScores(formData)
     ElMessage.success('成绩导入成功')
     uploadRef.value.clearFiles()
-    // 导入成功后刷新当前课程的成绩
-    await loadCourseScores(selectedCourse.value)
+    await loadClassScores(selectedClass.value)
   } catch (error) {
     console.error('导入成绩失败:', error)
     ElMessage.error(error.message || '导入成绩失败')
@@ -291,134 +363,94 @@ const handleFileSelect = async (uploadFile) => {
   }
 }
 
-// 加载课程列表
-const loadCourses = async () => {
+const loadCourseMap = async () => {
   try {
-    // 尝试从localStorage获取teacherId，如果不存在则使用getUserId()
-    const teacherId = localStorage.getItem('teacherId') || getUserId()
-    console.log('Teacher ID:', teacherId)
-    if (!teacherId) {
-      // 设置默认教师ID为9
-      localStorage.setItem('teacherId', '9')
-      const defaultTeacherId = '9'
-      console.log('Using default teacher ID:', defaultTeacherId)
-      try {
-        const response = await teacherAPI.getCourses(defaultTeacherId)
-        console.log('Get courses response:', response)
-        if (Array.isArray(response)) {
-          courses.value = response
-          console.log('Loaded courses:', courses.value)
-          // 自动选择第一个课程并加载成绩
-          if (courses.value.length > 0 && !selectedCourse.value) {
-            console.log('First course:', courses.value[0])
-            selectedCourse.value = courses.value[0].id
-            console.log('Selected course ID:', selectedCourse.value)
-            await loadCourseScores(courses.value[0].id)
-          }
-        }
-      } catch (error) {
-        console.error('加载课程失败:', error)
-        // 模拟课程数据
-        courses.value = [
-          { id: 147, name: '互联网程序设计' },
-          { id: 148, name: 'Linux操作系统' },
-          { id: 149, name: 'Python程序设计' },
-          { id: 150, name: '生活中的心理学' },
-          { id: 151, name: '软件工程' }
-        ]
-        // 自动选择第一个课程并加载成绩
-        if (courses.value.length > 0 && !selectedCourse.value) {
-          selectedCourse.value = courses.value[0].id
-          await loadCourseScores(courses.value[0].id)
-        }
-      }
-      return
-    }
-    try {
-      const response = await teacherAPI.getCourses(teacherId)
-      console.log('Get courses response:', response)
-      if (Array.isArray(response)) {
-        courses.value = response
-        console.log('Loaded courses:', courses.value)
-        // 自动选择第一个课程并加载成绩
-        if (courses.value.length > 0 && !selectedCourse.value) {
-          console.log('First course:', courses.value[0])
-          selectedCourse.value = courses.value[0].id
-          console.log('Selected course ID:', selectedCourse.value)
-          await loadCourseScores(courses.value[0].id)
-        }
-      }
-    } catch (error) {
-      console.error('加载课程失败:', error)
-      // 模拟课程数据
-      courses.value = [
-        { id: 147, name: '互联网程序设计' },
-        { id: 148, name: 'Linux操作系统' },
-        { id: 149, name: 'Python程序设计' },
-        { id: 150, name: '生活中的心理学' },
-        { id: 151, name: '软件工程' }
-      ]
-      // 自动选择第一个课程并加载成绩
-      if (courses.value.length > 0 && !selectedCourse.value) {
-        selectedCourse.value = courses.value[0].id
-        await loadCourseScores(courses.value[0].id)
-      }
+    const teacherId = localStorage.getItem('teacherId') || getUserId() || '9'
+    const response = await teacherAPI.getCourses(teacherId)
+    if (Array.isArray(response)) {
+      response.forEach(c => {
+        if (c.id) courseMap.value.set(String(c.id), c.name || ('课程' + c.id))
+      })
     }
   } catch (error) {
-    console.error('加载课程失败:', error)
+    console.error('加载课程映射失败:', error)
   }
 }
 
-// 简选课程时加载成绩
-const loadCourseScores = async (courseId) => {
+const loadClasses = async () => {
   try {
-    console.log('Loading scores for course ID:', courseId)
-    
-    // 如果courseId为空，清空成绩列表
-    if (!courseId) {
-      scoresList.value = []
+    const teacherId = localStorage.getItem('teacherId') || getUserId()
+    if (!teacherId) {
+      localStorage.setItem('teacherId', '9')
+      const defaultTeacherId = '9'
+      try {
+        const response = await teacherAPI.getMyClasses(defaultTeacherId)
+        const classList = Array.isArray(response) ? response : (response?.data || [])
+        classes.value = classList.map(cls => ({
+          id: cls.id || cls.classId,
+          name: cls.name || cls.className
+        }))
+        if (classes.value.length > 0 && !selectedClass.value) {
+          selectedClass.value = classes.value[0].name
+          await loadClassScores(classes.value[0].name)
+        }
+      } catch (error) {
+        console.error('加载班级失败:', error)
+      }
       return
     }
-    
     try {
-      const response = await teacherAPI.getScores(courseId)
-      console.log('Get scores response:', response)
+      const response = await teacherAPI.getMyClasses(teacherId)
+      const classList = Array.isArray(response) ? response : (response?.data || [])
+      classes.value = classList.map(cls => ({
+        id: cls.id || cls.classId,
+        name: cls.name || cls.className
+      }))
+      if (classes.value.length > 0 && !selectedClass.value) {
+        selectedClass.value = classes.value[0].name
+        await loadClassScores(classes.value[0].name)
+      }
+    } catch (error) {
+      console.error('加载班级失败:', error)
+    }
+  } catch (error) {
+    console.error('加载班级失败:', error)
+  }
+}
+
+const loadClassScores = async (className) => {
+  try {
+    if (!className) {
+      scoresList.value = []
+      selectedSemester.value = ''
+      return
+    }
+    selectedSemester.value = ''
+    try {
+      const teacherId = localStorage.getItem('teacherId') || getUserId()
+      const response = await teacherAPI.getScoresByClass(className, teacherId)
       if (Array.isArray(response)) {
-        // 处理后端返回的数据结构
         scoresList.value = response.map(item => {
-          // 使用后端返回的平时分和期末分，如果没有则计算
-          const totalScore = item.totalScore || 0
+          const totalScore = item.totalScore || item.score || 0
+          const displayStudentNo = item.studentNo || item.studentId || ''
           return {
             id: item.id,
-            studentId: item.studentId,
+            studentNo: displayStudentNo,
             studentName: item.studentName,
-            regularScore: item.regularScore || Math.round(totalScore * 0.3),
-            finalScore: item.finalScore || Math.round(totalScore * 0.7),
+            courseId: item.courseId,
+            courseName: item.courseName || courseMap.value.get(String(item.courseId)) || ('课程' + item.courseId),
             totalScore: totalScore,
-            grade: item.grade || '-'
+            semester: item.semester,
+            semesterLabel: semLabel(item.semester)
           }
         })
-        console.log('Loaded scores:', scoresList.value)
       }
     } catch (error) {
       console.error('加载成绩失败:', error)
-      // 模拟成绩数据
-      scoresList.value = [
-        { id: 1, studentId: '2023001', studentName: '张三', regularScore: 85, finalScore: 90, totalScore: 89, grade: 'A' },
-        { id: 2, studentId: '2023002', studentName: '李四', regularScore: 75, finalScore: 80, totalScore: 79, grade: 'B' },
-        { id: 3, studentId: '2023003', studentName: '王五', regularScore: 65, finalScore: 70, totalScore: 69, grade: 'C' },
-        { id: 4, studentId: '2023004', studentName: '赵六', regularScore: 55, finalScore: 60, totalScore: 59, grade: 'D' },
-        { id: 5, studentId: '2023005', studentName: '钱七', regularScore: 45, finalScore: 50, totalScore: 49, grade: 'F' }
-      ]
-      console.log('Loaded mock scores:', scoresList.value)
     }
   } catch (error) {
     console.error('加载成绩失败:', error)
   }
-}
-
-const calculateTotal = (row) => {
-  return Math.round(row.regularScore * 0.3 + row.finalScore * 0.7)
 }
 
 const editScore = (row) => {
@@ -442,45 +474,31 @@ const submitEdit = async () => {
     await teacherAPI.updateScore(editingScore.value.id, data)
     ElMessage.success('成绩已修改，修改记录已保存')
     editDialogVisible.value = false
-    await loadCourseScores(selectedCourse.value)
+    await loadClassScores(selectedClass.value)
   } catch (error) {
     console.error('修改成绩失败:', error)
     ElMessage.error('修改成绩失败')
   }
 }
 
-const saveScores = async () => {
-  try {
-    const userId = getUserId()
-    if (!selectedCourse.value) {
-      ElMessage.error('请先选择课程')
-      return
-    }
-    const scoreData = {
-      courseId: selectedCourse.value,
-      scores: scoresList.value
-    }
-    await teacherAPI.saveScores(scoreData)
-    ElMessage.success('所有成绩已保存到数据库')
-  } catch (error) {
-    console.error('保存成绩失败:', error)
-    ElMessage.error('保存成绩失败')
-  }
-}
-
 const exportScores = async () => {
   try {
-    if (!selectedCourse.value) {
-      ElMessage.error('请先选择课程')
+    if (!selectedClass.value) {
+      ElMessage.error('请先选择班级')
       return
     }
-    await teacherAPI.exportScores(selectedCourse.value)
+    const defaultCourseId = scoresList.value[0]?.courseId
+    if (!defaultCourseId) {
+      ElMessage.error('当前班级暂无成绩数据，无法导出')
+      return
+    }
+    await teacherAPI.exportScores(defaultCourseId)
     ElMessage.info('成绩单已导出为Excel')
-    const blob = await teacherAPI.downloadScores(selectedCourse.value)
+    const blob = await teacherAPI.downloadScores(defaultCourseId)
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `scores_${selectedCourse.value}_${Date.now()}.xlsx`
+    link.download = `scores_${selectedClass.value}_${Date.now()}.xlsx`
     link.click()
     window.URL.revokeObjectURL(url)
   } catch (error) {
@@ -489,14 +507,18 @@ const exportScores = async () => {
   }
 }
 
-// 成绩分析
 const analyzeScores = async () => {
   try {
-    if (!selectedCourse.value) {
-      ElMessage.error('请先选择课程')
+    if (!selectedClass.value) {
+      ElMessage.error('请先选择班级')
       return
     }
-    const response = await teacherAPI.analyzeScores(selectedCourse.value)
+    const defaultCourseId = scoresList.value[0]?.courseId
+    if (!defaultCourseId) {
+      ElMessage.error('当前班级暂无成绩数据')
+      return
+    }
+    const response = await teacherAPI.analyzeScores(defaultCourseId)
     analysisData.value = response
     ElMessage.success('成绩分析完成')
   } catch (error) {
@@ -505,42 +527,9 @@ const analyzeScores = async () => {
   }
 }
 
-// 异常检测
-const detectAnomalies = async () => {
-  try {
-    if (!selectedCourse.value) {
-      ElMessage.error('请先选择课程')
-      return
-    }
-    const response = await teacherAPI.detectAnomalies(selectedCourse.value)
-    anomalyData.value = response
-    anomalyDialogVisible.value = true
-    ElMessage.success('异常检测完成')
-  } catch (error) {
-    console.error('异常检测失败:', error)
-    ElMessage.error('异常检测失败')
-  }
-}
-
-// 触发预警
-const triggerWarnings = async () => {
-  try {
-    if (!selectedCourse.value) {
-      ElMessage.error('请先选择课程')
-      return
-    }
-    const response = await teacherAPI.triggerWarnings(selectedCourse.value)
-    ElMessage.success(`成功触发 ${response} 个预警`)
-  } catch (error) {
-    console.error('触发预警失败:', error)
-    ElMessage.error('触发预警失败')
-  }
-}
-
-// 查看学生分析
 const viewStudentAnalysis = async (row) => {
   try {
-    const response = await teacherAPI.analyzeStudentScore(row.studentId, selectedCourse.value)
+    const response = await teacherAPI.analyzeStudentScore(row.studentId, row.courseId)
     studentAnalysisData.value = response
     studentAnalysisVisible.value = true
   } catch (error) {
@@ -549,60 +538,133 @@ const viewStudentAnalysis = async (row) => {
   }
 }
 
-// 获取进度条颜色
-const getProgressColor = (confidence) => {
-  if (confidence > 0.8) return '#f56c6c'
-  if (confidence > 0.6) return '#e6a23c'
-  return '#67c23a'
-}
-
-// 处理选择变化
 const handleSelectionChange = (selection) => {
   selectedRows.value = selection
 }
 
-// 删除成绩
+// 打开批量操作对话框
+const batchOperation = () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.error('请先选择要操作的成绩记录')
+    return
+  }
+  batchDialogVisible.value = true
+}
+
+// 批量删除
+const batchDeleteScores = async () => {
+  try {
+    if (confirm(`确定要删除选中的 ${selectedRows.value.length} 条成绩记录吗？`)) {
+      const scoreIds = selectedRows.value.map(row => row.id)
+      await teacherAPI.batchDeleteScores(scoreIds)
+      ElMessage.success(`成功删除 ${selectedRows.value.length} 条成绩记录`)
+      batchDialogVisible.value = false
+      selectedRows.value = []
+      await loadClassScores(selectedClass.value)
+    }
+  } catch (error) {
+    console.error('批量删除成绩失败:', error)
+    ElMessage.error('批量删除成绩失败')
+  }
+}
+
+// 批量导出
+const batchExportScores = async () => {
+  try {
+    const rows = selectedRows.value
+    const header = ['学号', '姓名', '课程', '最终成绩']
+    const data = rows.map(r => [r.studentNo, r.studentName, r.courseName, r.totalScore])
+    const csvContent = '\uFEFF' + [header, ...data].map(row => row.join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `成绩_${selectedClass.value}_${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success(`成功导出 ${rows.length} 条成绩记录`)
+    batchDialogVisible.value = false
+  } catch (error) {
+    console.error('批量导出失败:', error)
+    ElMessage.error('批量导出失败')
+  }
+}
+
+// 通知辅导员（工具栏按钮 - 全班）
+const openNotifyCounselor = async () => {
+  if (!selectedClass.value) return
+  try {
+    const response = await teacherAPI.getCounselorByClass(selectedClass.value)
+    const counselor = response?.data || response
+    if (counselor && counselor.counselorId) {
+      notifyTarget.value = { ...counselor }
+    } else {
+      notifyTarget.value = null
+    }
+  } catch (error) {
+    notifyTarget.value = null
+  }
+  notifyContent.value = ''
+  notifyDialogVisible.value = true
+}
+
+// 通知辅导员（行按钮 - 单个学生）
+const notifyCounselor = async (row) => {
+  if (!selectedClass.value) return
+  try {
+    const response = await teacherAPI.getCounselorByClass(selectedClass.value)
+    const counselor = response?.data || response
+    if (counselor && counselor.counselorId) {
+      notifyTarget.value = { ...counselor, studentName: row.studentName, studentNo: row.studentNo }
+    } else {
+      notifyTarget.value = null
+    }
+  } catch (error) {
+    notifyTarget.value = null
+  }
+  notifyContent.value = row.totalScore < 60 
+    ? `${row.studentName}同学${row.courseName}课程成绩为${row.totalScore}分，未达到及格线，请辅导员关注该生学习情况。`
+    : ''
+  notifyDialogVisible.value = true
+}
+
+// 提交通知
+const submitNotify = async () => {
+  if (!notifyContent.value.trim()) {
+    ElMessage.error('请输入沟通内容')
+    return
+  }
+  try {
+    const teacherId = getUserId()
+    await teacherAPI.saveCommunication({
+      teacherId: teacherId,
+      studentId: notifyTarget.value.studentName ? 0 : 0,
+      content: notifyContent.value,
+      type: 'notify_counselor',
+      studentName: notifyTarget.value.studentName || '全班'
+    })
+    ElMessage.success('已通知辅导员')
+    notifyDialogVisible.value = false
+  } catch (error) {
+    console.error('通知辅导员失败:', error)
+    ElMessage.error('通知辅导员失败')
+  }
+}
+
 const deleteScore = async (row) => {
   try {
     if (!row.id) {
       ElMessage.error('成绩ID不存在')
       return
     }
-    
-    // 显示确认对话框
     if (confirm('确定要删除这条成绩记录吗？')) {
       await teacherAPI.deleteScore(row.id)
       ElMessage.success('成绩删除成功')
-      // 重新加载当前课程的成绩
-      await loadCourseScores(selectedCourse.value)
+      await loadClassScores(selectedClass.value)
     }
   } catch (error) {
     console.error('删除成绩失败:', error)
     ElMessage.error('删除成绩失败')
-  }
-}
-
-// 批量删除成绩
-const batchDeleteScores = async () => {
-  try {
-    if (selectedRows.value.length === 0) {
-      ElMessage.error('请选择要删除的成绩')
-      return
-    }
-    
-    // 显示确认对话框
-    if (confirm(`确定要删除选中的 ${selectedRows.value.length} 条成绩记录吗？`)) {
-      const scoreIds = selectedRows.value.map(row => row.id)
-      await teacherAPI.batchDeleteScores(scoreIds)
-      ElMessage.success(`成功删除 ${selectedRows.value.length} 条成绩记录`)
-      // 重新加载当前课程的成绩
-      await loadCourseScores(selectedCourse.value)
-      // 清空选择
-      selectedRows.value = []
-    }
-  } catch (error) {
-    console.error('批量删除成绩失败:', error)
-    ElMessage.error('批量删除成绩失败')
   }
 }
 </script>
@@ -610,69 +672,83 @@ const batchDeleteScores = async () => {
 <style scoped>
 .teacher-scores {
   padding: 20px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  background-color: #f8f9fa !important;
   min-height: 100vh;
 }
 
-/* ===== 欢迎区域 ===== */
-.welcome-section {
-  margin-bottom: 30px;
-}
-
-.welcome-card {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border-radius: 12px;
-  padding: 30px;
-  color: white;
-  box-shadow: 0 10px 30px rgba(79, 172, 254, 0.2);
-}
-
-.welcome-content h1 {
-  font-size: 28px;
-  margin: 0 0 8px 0;
-  font-weight: 600;
-}
-
-.welcome-content p {
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.9;
-}
-
-/* ===== 操作栏 ===== */
-.toolbar-section {
+.page-header {
   margin-bottom: 20px;
 }
 
-.toolbar {
+.page-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.page-header p {
+  margin: 0;
+  color: #999;
+  font-size: 14px;
+}
+
+.action-bar {
   display: flex;
-  gap: 12px;
-  padding: 16px 20px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.card-header {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
 }
 
-.toolbar-item {
-  flex: 0 0 auto;
-  min-width: 120px;
+.score-count {
+  font-size: 14px;
+  color: #909399;
+  font-weight: normal;
 }
 
-:deep(.toolbar .el-select) {
-  flex: 1;
-  min-width: 200px;
+.table-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-:deep(.toolbar .el-upload) {
-  flex: 0 0 auto;
+.selection-info {
+  color: #606266;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-:deep(.toolbar .el-upload .el-button) {
-  min-width: 120px;
+.score-value {
+  color: #667eea;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: #f0f2f8;
+  border-radius: 4px;
 }
 
-/* ===== 内容卡片 ===== */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.action-buttons .el-button {
+  margin: 0;
+}
+
+/* 内容卡片 */
 .content-card {
   background: white;
   border-radius: 10px;
@@ -698,50 +774,31 @@ const batchDeleteScores = async () => {
   padding: 20px;
 }
 
-.modern-table {
-  width: 100%;
+.teacher-scores :deep(.el-card) {
+  border: 1px solid #e9ecef !important;
 }
 
-.score-value {
-  color: #667eea;
-  font-weight: 600;
-  padding: 2px 8px;
-  background: #f0f2f8;
-  border-radius: 4px;
+.teacher-scores :deep(.el-button--primary) {
+  background-color: #667eea !important;
+  border-color: #667eea !important;
 }
 
-/* ===== 保存节 ===== */
-.action-section {
-  display: flex;
-  justify-content: center;
-  padding: 20px;
+.teacher-scores :deep(.el-button--primary:hover) {
+  background-color: #5568d3 !important;
+  border-color: #5568d3 !important;
 }
 
-.save-btn {
-  min-width: 180px;
-  height: 40px;
-  font-size: 15px;
-  font-weight: 500;
+.teacher-scores :deep(.el-button--danger) {
+  background-color: #f56c6c !important;
+  border-color: #f56c6c !important;
 }
 
-:deep(.el-table) {
-  border-radius: 8px;
+.teacher-scores :deep(.el-button--danger:hover) {
+  background-color: #e64141 !important;
+  border-color: #e64141 !important;
 }
 
-:deep(.el-table__header th) {
-  background-color: #f8f9fa !important;
-  border-color: #e8ecf1 !important;
-}
-
-:deep(.el-table__body tr) {
-  border-color: #e8ecf1 !important;
-}
-
-:deep(.el-table__body tr:hover > td) {
-  background-color: #f8f9fa !important;
-}
-
-/* 成绩分析样式 */
+/* 成绩分析 */
 .analysis-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -821,7 +878,7 @@ const batchDeleteScores = async () => {
   color: #333;
 }
 
-/* 学生分析样式 */
+/* 学生分析 */
 .student-analysis {
   padding: 20px 0;
 }
@@ -867,29 +924,24 @@ const batchDeleteScores = async () => {
   color: #666;
 }
 
-/* 异常检测样式 */
-.anomaly-analysis {
-  padding: 20px 0;
+/* 批量操作对话框 */
+.batch-operation {
+  padding: 10px 0;
 }
 
-.anomaly-header {
-  margin-bottom: 20px;
-}
-
-.anomaly-header h3 {
-  margin: 0 0 5px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-.anomaly-header p {
-  margin: 0;
+.batch-operation p {
+  margin: 0 0 20px 0;
   font-size: 14px;
-  color: #666;
+  color: #606266;
 }
 
-/* 预警状态样式 */
+.batch-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+/* 预警状态 */
 .warning-level {
   padding: 2px 8px;
   border-radius: 4px;
@@ -924,19 +976,12 @@ const batchDeleteScores = async () => {
 
 /* 响应式 */
 @media (max-width: 1024px) {
-  .toolbar {
+  .action-bar {
     flex-wrap: wrap;
   }
-  
-  .toolbar-item {
-    flex: 1;
-    min-width: 100px;
-  }
-  
   .analysis-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
   .analysis-row {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -946,21 +991,17 @@ const batchDeleteScores = async () => {
   .analysis-grid {
     grid-template-columns: 1fr;
   }
-  
   .analysis-row {
     grid-template-columns: 1fr;
   }
-  
   .distribution-bar {
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
   }
-  
   .bar-label {
     width: 100%;
   }
-  
   .bar-count {
     width: 100%;
     text-align: left;

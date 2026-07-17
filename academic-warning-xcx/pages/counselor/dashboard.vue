@@ -1,479 +1,178 @@
 <template>
-  <view class="counselor-dashboard">
-    <view class="header">
-      <view class="user-info">
-        <text class="welcome">欢迎，{{ counselorName }}</text>
-        <text class="role">辅导员</text>
-      </view>
-      <view class="avatar">
-        <text class="avatar-text">辅</text>
-      </view>
-    </view>
-
-    <view class="stats-container">
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon students">👨‍🎓</view>
-        <text class="stat-value">{{ stats.totalStudents }}</text>
-        <text class="stat-label">负责学生</text>
-      </view>
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon warnings">⚠️</view>
-        <text class="stat-value">{{ stats.totalWarnings }}</text>
-        <text class="stat-label">预警学生</text>
-      </view>
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon assistance">🤝</view>
-        <text class="stat-value">{{ stats.assistancePlans }}</text>
-        <text class="stat-label">帮扶计划</text>
-      </view>
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon classes">🏫</view>
-        <text class="stat-value">{{ stats.totalClasses }}</text>
-        <text class="stat-label">管理班级</text>
-      </view>
-    </view>
-
-    <view class="quick-actions">
-      <view class="section-header">
-        <text class="section-title">学生工作</text>
-      </view>
-      <view class="action-grid">
-        <view class="action-item" @click="manageStudents" hover-class="action-item-hover">
-          <view class="action-icon">👨‍🎓</view>
-          <text class="action-label">学生管理</text>
-        </view>
-        <view class="action-item" @click="manageWarnings" hover-class="action-item-hover">
-          <view class="action-icon">⚠️</view>
-          <text class="action-label">预警管理</text>
-        </view>
-        <view class="action-item" @click="manageAssistance" hover-class="action-item-hover">
-          <view class="action-icon">🤝</view>
-          <text class="action-label">帮扶计划</text>
-        </view>
-        <view class="action-item" @click="viewReports" hover-class="action-item-hover">
-          <view class="action-icon">📊</view>
-          <text class="action-label">统计报表</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="recent-tasks">
-      <view class="section-header">
-        <text class="section-title">待办任务</text>
-        <text class="more-link" @click="viewAllTasks">查看全部</text>
-      </view>
-      <view v-if="tasks.length > 0" class="task-list">
-        <view v-for="task in tasks" :key="task.id" class="task-item" hover-class="task-item-hover">
-          <view class="task-icon" :class="task.type">{{ getTaskIcon(task.type) }}</view>
-          <view class="task-content">
-            <text class="task-title">{{ task.title }}</text>
-            <text class="task-desc">{{ task.description }}</text>
-            <text class="task-deadline">截止: {{ task.deadline }}</text>
+  <view class="page">
+    <view class="hero">
+      <view class="hero-row">
+        <view class="hero-left">
+          <view class="hero-av">辅</view>
+          <view>
+            <text class="hero-name">{{ name }}</text>
+            <text class="hero-role">辅导员 · 工作台</text>
           </view>
-          <view class="task-priority" :class="task.priority">{{ getPriorityText(task.priority) }}</view>
+        </view>
+        <view class="hero-logout" @tap="handleLogout">
+          <text class="logout-icon">⇤</text>
         </view>
       </view>
-      <view v-else class="empty-state">
-        <view class="empty-icon">📋</view>
-        <text>暂无待办任务</text>
+    </view>
+
+    <!-- 统计 -->
+    <view class="section-pad">
+      <view class="stats-grid">
+        <view class="st-card" @tap="goTo('/pages/counselor/students')">
+          <text class="st-num">{{ stats.totalStudents }}</text>
+          <text class="st-lbl">负责学生</text>
+        </view>
+        <view class="st-card" @tap="goTo('/pages/counselor/warnings')">
+          <text class="st-num red">{{ stats.totalWarnings }}</text>
+          <text class="st-lbl">预警学生</text>
+        </view>
+        <view class="st-card" @tap="goTo('/pages/counselor/assistance')">
+          <text class="st-num green">{{ stats.assistancePlans }}</text>
+          <text class="st-lbl">帮扶计划</text>
+        </view>
+        <view class="st-card">
+          <text class="st-num">{{ stats.totalClasses }}</text>
+          <text class="st-lbl">管理班级</text>
+        </view>
       </view>
     </view>
+
+    <!-- 快捷入口 -->
+    <view class="section">
+      <text class="section-title">学生工作</text>
+      <view class="entry-grid">
+        <view class="entry-card" @tap="goTo('/pages/counselor/students')">
+          <view class="entry-badge badge-green">👥</view>
+          <text class="entry-name">学生管理</text>
+          <text class="entry-desc">班级学生列表</text>
+        </view>
+        <view class="entry-card" @tap="goTo('/pages/counselor/warnings')">
+          <view class="entry-badge badge-red">⚠</view>
+          <text class="entry-name">预警处理</text>
+          <text class="entry-desc">学业预警管理</text>
+        </view>
+        <view class="entry-card" @tap="goTo('/pages/counselor/assistance')">
+          <view class="entry-badge badge-blue">🎯</view>
+          <text class="entry-name">帮扶计划</text>
+          <text class="entry-desc">制定与跟踪</text>
+        </view>
+        <view class="entry-card" @tap="goTo('/pages/counselor/analytics/index')">
+          <view class="entry-badge badge-purple">📈</view>
+          <text class="entry-name">数据分析</text>
+          <text class="entry-desc">趋势与统计</text>
+        </view>
+        <view class="entry-card" @tap="goTo('/pages/counselor/notifications/index')">
+          <view class="entry-badge badge-orange">📣</view>
+          <text class="entry-name">发送通知</text>
+          <text class="entry-desc">消息与模板</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 待办任务 -->
+    <view class="section">
+      <text class="section-title">待办任务</text>
+      <view v-if="tasks.length" class="task-list">
+        <view v-for="t in tasks" :key="t.id" class="task-card">
+          <view class="task-dot" :class="t.priority"></view>
+          <text class="task-text">{{ t.title }}</text>
+          <text class="task-tag" :class="t.priority">{{ t.priorityName }}</text>
+        </view>
+      </view>
+      <view v-else class="empty-box">
+        <text class="empty-icon">✅</text>
+        <text class="empty-text">暂无待办任务</text>
+      </view>
+    </view>
+
+    <counselor-tab-bar current="pages/counselor/dashboard" />
   </view>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue';
+<script>
+import { counselorAPI } from '@/services/api.js'
 
-const counselorName = ref('李老师');
-const stats = ref({
-  totalStudents: 180,
-  totalWarnings: 25,
-  assistancePlans: 12,
-  totalClasses: 4
-});
-
-const tasks = ref([
-  {
-    id: 1,
-    type: 'warning',
-    title: '处理学生预警',
-    description: '张三同学成绩预警需要及时处理',
-    deadline: '2026-03-31',
-    priority: 'high'
+export default {
+  data() {
+    return {
+      name: '辅导员',
+      stats: { totalStudents: 0, totalWarnings: 0, assistancePlans: 0, totalClasses: 0 },
+      tasks: []
+    }
   },
-  {
-    id: 2,
-    type: 'assistance',
-    title: '跟进帮扶计划',
-    description: '李四同学的英语学习计划进度跟进',
-    deadline: '2026-04-02',
-    priority: 'medium'
-  },
-  {
-    id: 3,
-    type: 'meeting',
-    title: '家长会准备',
-    description: '准备期中家长会材料和PPT',
-    deadline: '2026-04-05',
-    priority: 'low'
+  onShow() { this.loadData() },
+  methods: {
+    async loadData() {
+      try {
+        const uid = uni.getStorageSync('counselorId') || uni.getStorageSync('userId'); if (!uid) return
+        const dash = await counselorAPI.getDashboard(uid)
+        if (dash) {
+          this.name = dash.counselorName || '辅导员'
+          this.stats = {
+            totalStudents: dash.totalStudents || 0,
+            totalWarnings: dash.totalWarnings || 0,
+            assistancePlans: dash.assistancePlans || dash.totalAssistance || 0,
+            totalClasses: dash.totalClasses || 0
+          }
+        }
+        try {
+          const res = await counselorAPI.getPendingTasks(uid)
+          const arr = Array.isArray(res) ? res : (res?.data || [])
+          this.tasks = arr.map(t => ({
+            id: t.id, title: t.title || t.name || '待处理事项',
+            priority: t.priority || 'normal',
+            priorityName: t.priority === 'high' ? '紧急' : t.priority === 'medium' ? '中等' : '普通'
+          }))
+        } catch (e) { this.tasks = [] }
+      } catch (e) { console.error(e) }
+    },
+    goTo(url) { uni.navigateTo({ url }) },
+    handleLogout() {
+      ['token','userId','role','userName','counselorId'].forEach(k => uni.removeStorageSync(k))
+      uni.reLaunch({ url: '/pages/auth/login' })
+    }
   }
-]);
-
-const getTaskIcon = (type) => {
-  const icons = { warning: '⚠️', assistance: '🤝', meeting: '📅' };
-  return icons[type] || '📋';
-};
-
-const getPriorityText = (priority) => {
-  const texts = { high: '紧急', medium: '重要', low: '普通' };
-  return texts[priority] || '普通';
-};
-
-onMounted(() => {
-  loadDashboardData();
-});
-
-const loadDashboardData = async () => {
-  try {
-    console.log('Counselor dashboard data loaded');
-  } catch (error) {
-    console.error('获取辅导员仪表板数据失败:', error);
-  }
-};
-
-const manageStudents = () => {
-  uni.navigateTo({ url: '/pages/counselor/students' });
-};
-
-const manageWarnings = () => {
-  uni.navigateTo({ url: '/pages/counselor/warnings' });
-};
-
-const manageAssistance = () => {
-  uni.navigateTo({ url: '/pages/counselor/assistance' });
-};
-
-const viewReports = () => {
-  uni.showToast({ title: '查看统计报表', icon: 'none' });
-};
-
-const viewAllTasks = () => {
-  uni.showToast({ title: '查看全部任务', icon: 'none' });
-};
+}
 </script>
 
 <style scoped>
-.counselor-dashboard {
-  padding: 20rpx;
-  background-color: #f5f7fa;
-  min-height: 100vh;
-}
+.page { min-height: 100vh; background: #f0f2f8; padding-bottom: 120rpx; }
 
-.header {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border-radius: 24rpx;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 4rpx 16rpx rgba(79, 172, 254, 0.3);
-}
+.hero { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); padding: 44rpx 28rpx 40rpx 32rpx; }
+.hero-row { display: flex; justify-content: space-between; align-items: center; }
+.hero-left { display: flex; align-items: center; gap: 16rpx; }
+.hero-av { width: 72rpx; height: 72rpx; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 30rpx; font-weight: 700; color: #fff; flex-shrink: 0; }
+.hero-name { font-size: 32rpx; font-weight: 700; color: #fff; display: block; }
+.hero-role { font-size: 22rpx; color: rgba(255,255,255,0.65); margin-top: 4rpx; display: block; }
+.hero-logout { width: 60rpx; height: 60rpx; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; }
+.logout-icon { font-size: 40rpx; color: #fff; transform: rotate(180deg); }
 
-.user-info {
-  flex: 1;
-}
+.section-pad { padding: 0 20rpx; margin-top: -16rpx; position: relative; z-index: 2; }
+.section { padding: 0 20rpx; margin-bottom: 24rpx; }
+.section-title { font-size: 28rpx; font-weight: 700; color: #1e293b; display: block; margin-bottom: 16rpx; }
 
-.welcome {
-  font-size: 28rpx;
-  font-weight: 700;
-  display: block;
-  margin-bottom: 8rpx;
-}
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12rpx; }
+.st-card { background: #fff; border-radius: 16rpx; padding: 20rpx 8rpx; text-align: center; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04); }
+.st-num { font-size: 28rpx; font-weight: 800; color: #1e293b; display: block; }
+.st-num.red { color: #ef4444; } .st-num.green { color: #16a34a; }
+.st-lbl { font-size: 20rpx; color: #94a3b8; margin-top: 4rpx; display: block; }
 
-.role {
-  font-size: 16rpx;
-  opacity: 0.9;
-}
+.entry-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14rpx; }
+.entry-card { background: #fff; border-radius: 16rpx; padding: 24rpx 14rpx; text-align: center; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.03); }
+.entry-badge { width: 56rpx; height: 56rpx; border-radius: 14rpx; display: flex; align-items: center; justify-content: center; margin: 0 auto 12rpx; font-size: 26rpx; }
+.badge-green { background: #dcfce7; } .badge-red { background: #fee2e2; } .badge-blue { background: #e0e7ff; } .badge-purple { background: #ede9fe; } .badge-orange { background: #fef3c7; }
+.entry-name { font-size: 26rpx; font-weight: 600; color: #1e293b; display: block; }
+.entry-desc { font-size: 20rpx; color: #94a3b8; margin-top: 4rpx; display: block; }
 
-.avatar {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10rpx);
-}
+.task-list { display: flex; flex-direction: column; gap: 10rpx; }
+.task-card { background: #fff; border-radius: 12rpx; padding: 18rpx 20rpx; display: flex; align-items: center; gap: 12rpx; box-shadow: 0 1rpx 4rpx rgba(0,0,0,0.02); }
+.task-dot { width: 8rpx; height: 8rpx; border-radius: 50%; flex-shrink: 0; background: #94a3b8; }
+.task-dot.high { background: #ef4444; } .task-dot.medium { background: #f59e0b; }
+.task-text { flex: 1; font-size: 26rpx; color: #1e293b; }
+.task-tag { font-size: 20rpx; padding: 3rpx 14rpx; border-radius: 20rpx; font-weight: 500; flex-shrink: 0; background: #f1f5f9; color: #64748b; }
+.task-tag.high { background: #fef2f2; color: #ef4444; } .task-tag.medium { background: #fffbeb; color: #d97706; }
 
-.avatar-text {
-  font-size: 32rpx;
-  font-weight: 700;
-}
-
-.stats-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20rpx;
-  margin-bottom: 24rpx;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  text-align: center;
-  transition: all 0.3s ease;
-  border: 1rpx solid #f0f0f0;
-}
-
-.stat-card-hover {
-  transform: translateY(-4rpx);
-  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.12);
-}
-
-.stat-icon {
-  font-size: 40rpx;
-  margin-bottom: 12rpx;
-  display: block;
-}
-
-.stat-icon.students {
-  color: #4facfe;
-}
-
-.stat-icon.warnings {
-  color: #ff5252;
-}
-
-.stat-icon.assistance {
-  color: #4caf50;
-}
-
-.stat-icon.classes {
-  color: #ff9800;
-}
-
-.stat-value {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #333;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.stat-label {
-  font-size: 16rpx;
-  color: #666;
-  display: block;
-}
-
-.quick-actions {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  border: 1rpx solid #f0f0f0;
-  margin-bottom: 24rpx;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20rpx;
-}
-
-.section-title {
-  font-size: 20rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.more-link {
-  font-size: 16rpx;
-  color: #4facfe;
-}
-
-.action-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20rpx;
-}
-
-.action-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24rpx;
-  background-color: #f9f9f9;
-  border-radius: 16rpx;
-  transition: all 0.3s ease;
-}
-
-.action-item-hover {
-  background-color: #f0f7ff;
-  transform: translateY(-4rpx);
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
-}
-
-.action-icon {
-  font-size: 40rpx;
-  margin-bottom: 12rpx;
-}
-
-.action-label {
-  font-size: 14rpx;
-  color: #333;
-  text-align: center;
-  font-weight: 500;
-}
-
-.recent-tasks {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  border: 1rpx solid #f0f0f0;
-}
-
-.task-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.task-item {
-  display: flex;
-  align-items: flex-start;
-  padding: 20rpx;
-  background-color: #f9f9f9;
-  border-radius: 16rpx;
-  transition: all 0.3s ease;
-}
-
-.task-item-hover {
-  background-color: #f0f7ff;
-  border: 1rpx solid #4facfe;
-}
-
-.task-icon {
-  width: 60rpx;
-  height: 60rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 20rpx;
-  flex-shrink: 0;
-  font-size: 28rpx;
-}
-
-.task-icon.warning {
-  background-color: #ffebee;
-}
-
-.task-icon.assistance {
-  background-color: #e8f5e9;
-}
-
-.task-icon.meeting {
-  background-color: #e3f2fd;
-}
-
-.task-content {
-  flex: 1;
-  margin-right: 16rpx;
-}
-
-.task-title {
-  font-size: 18rpx;
-  font-weight: 600;
-  color: #333;
-  display: block;
-  margin-bottom: 4rpx;
-}
-
-.task-desc {
-  font-size: 14rpx;
-  color: #666;
-  display: block;
-  margin-bottom: 4rpx;
-}
-
-.task-deadline {
-  font-size: 12rpx;
-  color: #999;
-}
-
-.task-priority {
-  padding: 6rpx 16rpx;
-  border-radius: 16rpx;
-  font-size: 14rpx;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.task-priority.high {
-  background-color: #ffebee;
-  color: #d32f2f;
-}
-
-.task-priority.medium {
-  background-color: #fff8e1;
-  color: #f57c00;
-}
-
-.task-priority.low {
-  background-color: #e3f2fd;
-  color: #1976d2;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40rpx 0;
-  color: #999;
-  font-size: 16rpx;
-}
-
-.empty-icon {
-  font-size: 60rpx;
-  margin-bottom: 16rpx;
-  display: block;
-}
-
-/* 动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.counselor-dashboard > * {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-.counselor-dashboard > *:nth-child(1) {
-  animation-delay: 0.1s;
-}
-
-.counselor-dashboard > *:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.counselor-dashboard > *:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-.counselor-dashboard > *:nth-child(4) {
-  animation-delay: 0.4s;
-}
+.empty-box { background: #fff; border-radius: 14rpx; padding: 48rpx; text-align: center; }
+.empty-icon { font-size: 48rpx; display: block; margin-bottom: 12rpx; }
+.empty-text { font-size: 24rpx; color: #94a3b8; }
 </style>

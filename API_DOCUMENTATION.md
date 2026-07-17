@@ -1,965 +1,307 @@
-# 学术预警系统 API 调用文档
+# 智能学习预警服务系统 - API 接口文档
 
-## 1. 认证相关 API
+> Base URL: `http://localhost:8076/api`  
+> 响应格式: `{ code: 200, message: "success", data: ... }` (code=200 表示成功)
 
-### 1.1 用户登录
-- **API路径**: `/auth/login`
-- **请求方法**: `POST`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | username | String | 是 | 用户名/学号/工号 |
-  | password | String | 是 | 密码 |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "token": "token-1234567890",
-        "userId": 1,
-        "username": "2023020616",
-        "name": "张三",
-        "role": 1,
-        "email": "zhangsan@example.com",
-        "phone": "13800138000"
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 400,
-      "message": "用户名或密码错误",
-      "data": null
-    }
-    ```
-- **认证方式**: 无（登录接口本身不需要认证）
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X POST http://localhost:8080/auth/login \
-    -H "Content-Type: application/json" \
-    -d '{"username": "2023020616", "password": "123456"}'
-  ```
+---
 
-### 1.2 学生注册
-- **API路径**: `/auth/register/student`
-- **请求方法**: `POST`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | studentId | String | 是 | 学号（10位数字或10位数字+Z） |
-  | password | String | 是 | 密码 |
-  | name | String | 是 | 姓名 |
-  | phone | String | 是 | 手机号 |
-  | email | String | 是 | 邮箱 |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "success": true,
-        "message": "注册成功",
-        "studentId": "2023020616"
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 400,
-      "message": "学号格式错误：本科学生为10位数字，专升本学生为10位数字加Z",
-      "data": null
-    }
-    ```
-- **认证方式**: 无
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X POST http://localhost:8080/auth/register/student \
-    -H "Content-Type: application/json" \
-    -d '{"studentId": "2023020616", "password": "123456", "name": "张三", "phone": "13800138000", "email": "zhangsan@example.com"}'
-  ```
+## 一、认证服务 (Auth)
 
-### 1.3 教师注册
-- **API路径**: `/auth/register/teacher`
-- **请求方法**: `POST`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | username | String | 是 | 工号（5位） |
-  | password | String | 是 | 密码 |
-  | name | String | 是 | 姓名 |
-  | collegeId | Long | 是 | 学院ID |
-  | phone | String | 是 | 手机号 |
-  | email | String | 是 | 邮箱 |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "userId": 1,
-        "username": "12345",
-        "collegeId": 1
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 400,
-      "message": "工号必须是5位",
-      "data": null
-    }
-    ```
-- **认证方式**: 无
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X POST http://localhost:8080/auth/register/teacher \
-    -H "Content-Type: application/json" \
-    -d '{"username": "12345", "password": "123456", "name": "李老师", "collegeId": 1, "phone": "13900139000", "email": "teacher@example.com"}'
-  ```
+| 方法 | 路径 | 说明 | 请求参数 |
+|------|------|------|----------|
+| POST | `/auth/login` | 登录 | `{ username, password }` |
+| POST | `/auth/logout` | 登出 | `?userId&role` |
+| POST | `/auth/register/student` | 学生注册 | `{ username, password, name, ... }` |
+| POST | `/auth/register/teacher` | 教师注册 | `{ username, password, name, ... }` |
+| POST | `/auth/register/counselor` | 辅导员注册 | `{ username, password, name, ... }` |
+| POST | `/auth/register/admin` | 管理员注册 | `{ username, password, name, ... }` |
+| GET | `/auth/colleges` | 获取学院列表 | - |
+| GET | `/auth/majors` | 按学院获取专业 | `?collegeId` |
+| GET | `/auth/courses` | 获取全部课程 | - |
 
-### 1.4 辅导员注册
-- **API路径**: `/auth/register/counselor`
-- **请求方法**: `POST`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | username | String | 是 | 工号 |
-  | password | String | 是 | 密码 |
-  | name | String | 是 | 姓名 |
-  | majorCode | String | 是 | 专业编码 |
-  | phone | String | 是 | 手机号 |
-  | email | String | 是 | 邮箱 |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "userId": 1,
-        "username": "54321",
-        "majorCode": "02",
-        "collegeId": 1
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 400,
-      "message": "无效的专业编码：00，请联系管理员",
-      "data": null
-    }
-    ```
-- **认证方式**: 无
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X POST http://localhost:8080/auth/register/counselor \
-    -H "Content-Type: application/json" \
-    -d '{"username": "54321", "password": "123456", "name": "王辅导员", "majorCode": "02", "phone": "13700137000", "email": "counselor@example.com"}'
-  ```
+---
 
-### 1.5 管理员注册
-- **API路径**: `/auth/register/admin`
-- **请求方法**: `POST`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | username | String | 是 | 用户名 |
-  | password | String | 是 | 密码 |
-  | name | String | 是 | 姓名 |
-  | department | String | 是 | 部门 |
-  | phone | String | 是 | 手机号 |
-  | email | String | 是 | 邮箱 |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "userId": 0,
-        "username": "admin"
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 400,
-      "message": "注册失败",
-      "data": null
-    }
-    ```
-- **认证方式**: 无
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X POST http://localhost:8080/auth/register/admin \
-    -H "Content-Type: application/json" \
-    -d '{"username": "admin", "password": "123456", "name": "系统管理员", "department": "信息中心", "phone": "13600136000", "email": "admin@example.com"}'
-  ```
+## 二、学生服务 (Student)
 
-### 1.6 用户登出
-- **API路径**: `/auth/logout`
-- **请求方法**: `POST`
-- **请求参数**: 无
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "登出成功",
-      "data": null
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 500,
-      "message": "登出失败",
-      "data": null
-    }
-    ```
-- **认证方式**: JWT token（通过请求头Authorization传递）
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X POST http://localhost:8080/auth/logout \
-    -H "Authorization: Bearer token-1234567890"
-  ```
+| 方法 | 路径 | 说明 | 请求参数 |
+|------|------|------|----------|
+| GET | `/students/register` | 学生注册 | `{ name, studentId, ... }` |
+| GET | `/students/{id}` | 学生信息 | `@PathVariable id` |
+| GET | `/students/student-by-user/{userId}` | 根据userId查学生 | `@PathVariable userId` |
+| GET | `/students/{id}/gpa` | 获取GPA | `@PathVariable id` |
+| GET | `/students/dashboard/{userId}` | 学生仪表盘 | `@PathVariable userId` |
+| GET | `/students/scores/{userId}` | 成绩列表 | `@PathVariable userId, ?semester` |
+| GET | `/students/warnings/{userId}` | 预警列表 | `@PathVariable userId` |
+| GET | `/students/assistance/{userId}` | 帮扶计划 | `@PathVariable userId` |
+| GET | `/students/suggestions/{userId}` | 学习建议 | `@PathVariable userId` |
+| GET | `/students/{id}/class-info` | 班级信息 | `@PathVariable id` |
+| GET | `/students/class-members/{userId}` | 班级成员 | `@PathVariable userId` |
+| GET | `/students/class-ranking/{userId}` | 班级排名 | `@PathVariable userId` |
+| GET | `/students/notification-center/{userId}/unread` | 未读通知 | `@PathVariable userId` |
+| GET | `/students/notification-center/{userId}/list` | 通知列表 | `@PathVariable userId, ?page, pageSize` |
+| POST | `/students/notification-center/{id}/mark-read` | 标记已读 | `@PathVariable id` |
+| POST | `/students/notification-center/{userId}/mark-batch-read` | 批量已读 | `@PathVariable userId, [ids]` |
+| POST | `/students/notification-center/{id}/delete` | 删除通知 | `@PathVariable id` |
+| GET | `/students/notification-center/{userId}/unread-count` | 未读数 | `@PathVariable userId` |
+| POST | `/students/notification-center/{userId}/clear-read` | 清除已读 | `@PathVariable userId` |
+| GET | `/students/subscription/{studentId}/preferences` | 订阅偏好 | `@PathVariable studentId` |
+| POST | `/students/subscription/{studentId}/update` | 更新订阅 | `@PathVariable studentId, body` |
+| POST | `/students/subscription/{studentId}/subscribe-level` | 订阅等级 | `@PathVariable studentId, ?level` |
+| POST | `/students/subscription/{studentId}/unsubscribe-level` | 取消订阅 | `@PathVariable studentId, ?level` |
+| POST | `/students/subscription/{studentId}/set-channel` | 设置推送渠道 | `@PathVariable studentId, ?channel, enabled` |
+| GET | `/students/benchmark/{studentId}/latest` | 最新对标 | `@PathVariable studentId` |
+| GET | `/students/benchmark/{studentId}/semester` | 按学期对标 | `@PathVariable studentId, ?semester` |
+| GET | `/students/benchmark/{studentId}/history` | 历史对标 | `@PathVariable studentId` |
+| GET | `/students/benchmark/{studentId}/class-ranking` | 班级排名 | `@PathVariable studentId, ?classId, semester` |
+| GET | `/students/benchmark/{studentId}/major-ranking` | 专业排名 | `@PathVariable studentId, ?majorId, semester` |
+| GET | `/students/benchmark/class/{classId}/comparison` | 班级对比 | `@PathVariable classId, ?semester` |
+| GET | `/students/benchmark/major/{majorId}/comparison` | 专业对比 | `@PathVariable majorId, ?semester` |
+| GET | `/students/benchmark/{studentId}/progress-report` | 进度报告 | `@PathVariable studentId` |
+| POST | `/students/appeals/submit` | 提交申诉 | `{ studentId, courseId, reason, ... }` |
+| GET | `/students/appeals/{studentId}/list` | 申诉列表 | `@PathVariable studentId` |
+| GET | `/students/appeals/{studentId}/pending` | 待处理申诉 | `@PathVariable studentId` |
+| GET | `/students/appeals/{appealId}/detail` | 申诉详情 | `@PathVariable appealId` |
+| POST | `/students/appeals/{appealId}/withdraw` | 撤回申诉 | `@PathVariable appealId, ?studentId` |
+| POST | `/students/evaluations/submit` | 提交评价 | `{ planId, ... }` |
+| GET | `/students/evaluations/{studentId}/list` | 评价列表 | `@PathVariable studentId` |
+| GET | `/students/evaluations/{planId}/detail` | 评价详情 | `@PathVariable planId` |
+| GET | `/students/settings/{userId}` | 用户设置 | `@PathVariable userId` |
+| PUT | `/students/settings/{userId}` | 更新设置 | `@PathVariable userId, body` |
+| GET | `/students/messages/{userId}` | 消息列表 | `@PathVariable userId` |
+| GET | `/students/messages/{userId}/unread-count` | 未读消息数 | `@PathVariable userId` |
+| POST | `/students/messages` | 发送消息 | `{ teacherId, content, studentId, status }` |
+| POST | `/students/messages/{id}/mark-read` | 标记消息已读 | `@PathVariable id` |
+| GET | `/students/export/scores/{userId}/excel` | 导出成绩 | `@PathVariable userId` |
 
-## 2. 学生相关 API
+---
 
-### 2.1 学生注册
-- **API路径**: `/students/register`
-- **请求方法**: `POST`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | studentId | String | 是 | 学号 |
-  | password | String | 是 | 密码 |
-  | name | String | 是 | 姓名 |
-  | phone | String | 是 | 手机号 |
-  | email | String | 是 | 邮箱 |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "注册成功",
-      "data": null
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 400,
-      "message": "注册失败",
-      "data": null
-    }
-    ```
-- **认证方式**: 无
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X POST http://localhost:8080/students/register \
-    -H "Content-Type: application/json" \
-    -d '{"studentId": "2023020616", "password": "123456", "name": "张三", "phone": "13800138000", "email": "zhangsan@example.com"}'
-  ```
+## 三、教师服务 (Teacher)
 
-### 2.2 获取学生信息
-- **API路径**: `/students/{studentId}`
-- **请求方法**: `GET`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | studentId | String | 是 | 学号 |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "id": 1,
-        "studentId": "2023020616",
-        "name": "张三",
-        "gender": "男",
-        "phone": "13800138000",
-        "email": "zhangsan@example.com",
-        "collegeId": 1,
-        "majorId": 1,
-        "classId": 1
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 404,
-      "message": "学生不存在",
-      "data": null
-    }
-    ```
-- **认证方式**: JWT token
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET http://localhost:8080/students/2023020616 \
-    -H "Authorization: Bearer token-1234567890"
-  ```
+| 方法 | 路径 | 说明 | 请求参数 |
+|------|------|------|----------|
+| POST | `/teachers/register` | 教师注册 | `{ name, userId, ... }` |
+| GET | `/teachers/{id}` | 教师信息 | `@PathVariable id` |
+| PUT | `/teachers/{id}` | 更新信息 | `@PathVariable id, body` |
+| DELETE | `/teachers/{id}` | 删除教师 | `@PathVariable id` |
+| GET | `/teachers/dashboard/{userId}` | 教师仪表盘 | `@PathVariable userId` |
+| GET | `/teachers/students/{teacherId}` | 学生列表 | `@PathVariable teacherId` |
+| GET | `/teachers/courses` | 课程列表 | `?teacher_id` |
+| GET | `/teachers/courses/{id}` | 课程详情 | `@PathVariable id` |
+| POST | `/teachers/courses` | 创建课程 | body |
+| PUT | `/teachers/courses/{id}` | 更新课程 | `@PathVariable id, body` |
+| DELETE | `/teachers/courses/{id}` | 删除课程 | `@PathVariable id` |
+| POST | `/teachers/courses/recommend` | 推荐课程 | `{ teacherId, courseId, reason }` |
+| GET | `/teachers/scores` | 按课程查成绩 | `?course_id` |
+| GET | `/teachers/scores/by-class` | 按班级查成绩 | `?class_name` |
+| POST | `/teachers/scores` | 保存成绩 | `{ scores: [...], teacherId }` |
+| PUT | `/teachers/scores/{id}` | 更新成绩 | `@PathVariable id, { score, remark, modifiedBy }` |
+| DELETE | `/teachers/scores/{id}` | 删除成绩 | `@PathVariable id` |
+| POST | `/teachers/scores/batch-delete` | 批量删除 | `[id1, id2, ...]` |
+| POST | `/teachers/scores/import` | 导入成绩 | `{ scores: [...], teacherId }` |
+| POST | `/teachers/scores/warnings` | 触发预警 | `?course_id` |
+| GET | `/teachers/scores/audit/{teacherId}` | 审计日志 | `@PathVariable teacherId, ?page, size` |
+| GET | `/teachers/enrollments` | 选课记录 | `?teacherId, courseId` |
+| GET | `/teachers/warnings/{teacherId}` | 预警列表 | `@PathVariable teacherId, ?status` |
+| POST | `/teachers/warnings/{id}/process` | 处理预警 | `@PathVariable id, body` |
+| GET | `/teachers/feedbacks` | 反馈列表 | `?teacherId, category` |
+| GET | `/teachers/feedbacks/{teacherId}/list` | 分页反馈 | `@PathVariable teacherId, ?category, page, size` |
+| POST | `/teachers/feedbacks/{id}/reply` | 回复反馈 | `@PathVariable id, body` |
+| POST | `/teachers/communications` | 保存沟通记录 | `{ teacherId, studentId, content, type, studentName }` |
+| GET | `/teachers/todos/{teacherId}` | 待办事项 | `@PathVariable teacherId` |
+| GET | `/teachers/analysis` | 课程分析 | `?course_id` |
+| GET | `/teachers/students/{studentId}/credit-prediction` | 学分预测 | `@PathVariable studentId` |
+| GET | `/teachers/scores/analyze` | 成绩分析 | `?course_id` |
+| GET | `/teachers/scores/anomalies` | 成绩异常 | `?course_id` |
+| GET | `/teachers/scores/student/analyze` | 学生成绩分析 | `?student_id, course_id` |
+| GET | `/teachers/courses/{courseId}/distribution` | 成绩分布 | `@PathVariable courseId` |
+| GET | `/teachers/courses/{courseId}/anomaly` | 课程异常 | `@PathVariable courseId, ?threshold` |
+| GET | `/teachers/courses/{courseId}/students` | 课程学生 | `@PathVariable courseId, ?page, size` |
+| GET | `/teachers/courses/{courseId}/recommendations` | 课程建议 | `@PathVariable courseId, ?limit` |
+| GET | `/teachers/class-management/my-classes` | 我的班级 | `?teacherId` |
+| GET | `/teachers/class-management/search` | 搜索班级 | `?keyword` |
+| GET | `/teachers/class-management/requests` | 班级申请 | `?teacherId` |
+| POST | `/teachers/class-management/apply` | 提交申请 | `{ teacherId, classId, reason, className }` |
+| POST | `/teachers/class-management/cancel` | 取消管理 | `{ teacherId, classId }` |
+| GET | `/teachers/classes/{classId}/analysis` | 班级分析 | `@PathVariable classId` |
+| GET | `/teachers/classes/{classId}/students` | 班级学生 | `@PathVariable classId` |
+| GET | `/teachers/list` | 教师列表 | - |
+| GET | `/teachers/messages/{userId}` | 消息 | `@PathVariable userId` |
+| GET | `/teachers/messages/{userId}/unread-count` | 未读消息数 | `@PathVariable userId` |
+| POST | `/teachers/messages/{id}/mark-read` | 标记已读 | `@PathVariable id` |
+| GET | `/teachers/counselor/by-class` | 获取辅导员 | `?class_name` |
+| POST | `/teachers/students/import` | 导入学生 | MultipartFile |
 
-### 2.3 获取学生GPA
-- **API路径**: `/students/{studentId}/gpa`
-- **请求方法**: `GET`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | studentId | String | 是 | 学号 |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": 3.5
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 404,
-      "message": "学生不存在",
-      "data": null
-    }
-    ```
-- **认证方式**: JWT token
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET http://localhost:8080/students/2023020616/gpa \
-    -H "Authorization: Bearer token-1234567890"
-  ```
+---
 
-### 2.4 获取学业看板数据
-- **API路径**: `/students/dashboard/{userId}`
-- **请求方法**: `GET`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | userId | Long | 是 | 用户ID |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "studentId": 1,
-        "studentName": "张三",
-        "className": "计算机科学与技术2023级1班",
-        "majorName": "计算机科学与技术",
-        "gpa": 3.5,
-        "warningCount": 0,
-        "warningLevel": "正常",
-        "failedCoursesCount": 0,
-        "totalCoursesCount": 10,
-        "completedCredits": 60,
-        "requiredCredits": 120
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 404,
-      "message": "学生不存在",
-      "data": null
-    }
-    ```
-- **认证方式**: JWT token
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET http://localhost:8080/students/dashboard/1 \
-    -H "Authorization: Bearer token-1234567890"
-  ```
+## 四、辅导员服务 (Counselor)
 
-### 2.5 获取学生成绩列表
-- **API路径**: `/students/scores/{userId}`
-- **请求方法**: `GET`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | userId | Long | 是 | 用户ID |
-  | semester | String | 否 | 学期 |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": [
-        {
-          "id": 1,
-          "scoreTotal": 90,
-          "gradePoint": 4.0,
-          "semester": "2023-2024-1",
-          "createdAt": "2023-12-01T00:00:00",
-          "courseName": "高等数学",
-          "credits": 4.0
-        }
-      ]
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 500,
-      "message": "获取成绩失败",
-      "data": []
-    }
-    ```
-- **认证方式**: JWT token
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET "http://localhost:8080/students/scores/1?semester=2023-2024-1" \
-    -H "Authorization: Bearer token-1234567890"
-  ```
+| 方法 | 路径 | 说明 | 请求参数 |
+|------|------|------|----------|
+| POST | `/counselors/register` | 辅导员注册 | body |
+| GET | `/counselors/dashboard/{userId}` | 仪表盘 | `@PathVariable userId` |
+| GET | `/counselors` | 辅导员列表 | `?collegeId` |
+| GET | `/counselors/{counselorId}` | 辅导员信息 | `@PathVariable counselorId` |
+| PUT | `/counselors/{id}` | 更新信息 | `@PathVariable id, body` |
+| DELETE | `/counselors/{id}` | 删除辅导员 | `@PathVariable id` |
+| GET | `/counselors/students` | 学生列表 | `?counselor_id` |
+| GET | `/counselors/{counselorId}/students` | 学生列表(路径) | `@PathVariable counselorId` |
+| GET | `/counselors/students/{studentId}` | 学生详情 | `@PathVariable studentId` |
+| PUT | `/counselors/students/{studentId}` | 更新学生 | `@PathVariable studentId, body` |
+| GET | `/counselors/warnings` | 预警列表 | `?counselor_id, status` |
+| POST | `/counselors/warnings/{id}/process` | 处理预警 | `@PathVariable id, { handleResult }` |
+| POST | `/counselors/warnings/batch-process` | 批量处理 | `[id1, id2, ...]` |
+| POST | `/counselors/students/notify` | 通知学生 | body |
+| GET | `/counselors/enrollments` | 选课信息 | `?counselor_id` |
+| POST | `/counselors/assistance-plans` | 创建帮扶计划 | body |
+| PUT | `/counselors/assistance-plans/{id}` | 更新计划 | `@PathVariable id, body` |
+| DELETE | `/counselors/assistance-plans/{id}` | 删除计划 | `@PathVariable id` |
+| PATCH | `/counselors/assistance-plans/{id}/status` | 更新状态 | `@PathVariable id, { status }` |
+| GET | `/counselors/students/{studentId}/assistance-plans` | 学生计划 | `@PathVariable studentId` |
+| GET | `/counselors/{counselorId}/assistance-plans` | 辅导员计划 | `@PathVariable counselorId` |
+| POST | `/counselors/communication-logs` | 创建沟通记录 | body |
+| GET | `/counselors/students/{studentId}/communication-logs` | 学生沟通记录 | `@PathVariable studentId` |
+| GET | `/counselors/{counselorId}/communication-logs` | 辅导员沟通记录 | `@PathVariable counselorId` |
+| PUT | `/counselors/communication-logs/{id}` | 更新沟通记录 | `@PathVariable id, body` |
+| DELETE | `/counselors/communication-logs/{id}` | 删除沟通记录 | `@PathVariable id` |
+| GET | `/counselors/scores/class/{classId}` | 班级成绩 | `@PathVariable classId, ?counselor_id` |
+| GET | `/counselors/scores/distribution/{courseId}` | 成绩分布 | `@PathVariable courseId, ?counselor_id` |
+| GET | `/counselors/scores/low-score` | 低分学生 | `?counselor_id` |
+| GET | `/counselors/scores/student/{studentId}/trend` | 学生成绩趋势 | `@PathVariable studentId` |
+| GET | `/counselors/credit-monitor` | 学分监控 | `?counselor_id` |
+| GET | `/counselors/credit-insufficient` | 学分不足列表 | `?counselor_id, page, size` |
+| GET | `/counselors/analytics/credit-insufficient` | 学分不足率 | `?counselor_id` |
+| GET | `/counselors/analytics/warning-distribution` | 预警分布 | `?counselor_id` |
+| GET | `/counselors/analytics/handling-efficiency` | 处理效率 | `?counselor_id` |
+| GET | `/counselors/analytics/credit-achievement-ranking` | 学分达标排名 | `?counselor_id` |
+| GET | `/counselors/analytics/warning-trend` | 预警趋势 | `?counselor_id` |
+| GET | `/counselors/analytics/assistance-completion` | 帮扶完成率 | `?counselor_id` |
+| GET | `/counselors/classes` | 班级列表 | `?counselor_id` |
+| GET | `/counselors/classes/activities` | 班级活动 | `?counselor_id` |
+| GET | `/counselors/classes/{classId}/detail` | 班级详情 | `@PathVariable classId` |
+| GET | `/counselors/classes/{classId}/students` | 班级学生 | `@PathVariable classId` |
+| GET | `/counselors/classes/{classId}/warnings` | 班级预警 | `@PathVariable classId` |
+| GET | `/counselors/classes/warnings/compare` | 班级预警对比 | `?counselor_id` |
+| GET | `/counselors/class-management/my-classes` | 我的班级 | `?counselorId` |
+| GET | `/counselors/class-management/search` | 搜索班级 | `?keyword` |
+| GET | `/counselors/class-management/requests` | 班级申请 | `?counselorId` |
+| POST | `/counselors/class-management/apply` | 申请班级 | `{ counselorId, classId, className, reason }` |
+| POST | `/counselors/class-management/cancel` | 解除管理 | `{ counselorId, classId }` |
+| GET | `/counselors/class-management/without-counselor` | 无辅导员班级 | - |
+| GET | `/counselors/class-management/applications` | 申请列表(管理端) | `?status` |
+| POST | `/counselors/class-management/applications/{id}/review` | 审核申请 | `@PathVariable id, { status }` |
+| GET | `/counselors/notifications/history` | 通知历史 | `?counselor_id, page, size` |
+| GET | `/counselors/notifications/templates` | 通知模板 | - |
+| GET | `/counselors/notifications/weekly-count` | 每周通知数 | `?counselor_id` |
+| GET | `/counselors/count-by-college` | 按学院统计 | `?collegeId` |
 
-### 2.6 获取学生预警列表
-- **API路径**: `/students/warnings/{userId}`
-- **请求方法**: `GET`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | userId | Long | 是 | 用户ID |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": [
-        {
-          "id": 1,
-          "studentId": 1,
-          "warningLevel": "high",
-          "warningReason": "挂科超过3门",
-          "status": "pending",
-          "createdAt": "2023-12-01T00:00:00"
-        }
-      ]
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 500,
-      "message": "获取预警失败",
-      "data": []
-    }
-    ```
-- **认证方式**: JWT token
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET http://localhost:8080/students/warnings/1 \
-    -H "Authorization: Bearer token-1234567890"
-  ```
+---
 
-### 2.7 获取学生帮扶计划
-- **API路径**: `/students/assistance/{userId}`
-- **请求方法**: `GET`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | userId | Long | 是 | 用户ID |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": [
-        {
-          "id": 1,
-          "studentId": 1,
-          "planName": "数学辅导计划",
-          "startDate": "2023-12-01",
-          "endDate": "2024-01-31",
-          "progress": 50,
-          "status": "in_progress"
-        }
-      ]
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 500,
-      "message": "获取帮扶计划失败",
-      "data": null
-    }
-    ```
-- **认证方式**: JWT token
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET http://localhost:8080/students/assistance/1 \
-    -H "Authorization: Bearer token-1234567890"
-  ```
+## 五、管理员服务 (Admin)
 
-## 3. 教师相关 API
+| 方法 | 路径 | 说明 | 请求参数 |
+|------|------|------|----------|
+| POST | `/admin/register` | 管理员注册 | body |
+| GET | `/admin/dashboard` | 仪表盘 | - |
+| GET | `/admin/statistics` | 统计数据 | - |
+| GET | `/admin/pending-requests` | 待处理请求 | - |
+| GET | `/admin/colleges` | 学院列表 | - |
+| GET | `/admin/colleges/{id}` | 学院详情 | `@PathVariable id` |
+| POST | `/admin/colleges` | 创建学院 | body |
+| PUT | `/admin/colleges/{id}` | 更新学院 | `@PathVariable id, body` |
+| DELETE | `/admin/colleges/{id}` | 删除学院 | `@PathVariable id` |
+| GET | `/admin/majors` | 专业列表 | - |
+| GET | `/admin/majors/{id}` | 专业详情 | `@PathVariable id` |
+| POST | `/admin/majors` | 创建专业 | body |
+| PUT | `/admin/majors/{id}` | 更新专业 | `@PathVariable id, body` |
+| DELETE | `/admin/majors/{id}` | 删除专业 | `@PathVariable id` |
+| GET | `/admin/users` | 用户列表 | `?page, size, collegeId, role` |
+| GET | `/admin/users/all` | 全部用户 | - |
+| GET | `/admin/users/{id}` | 用户详情 | `@PathVariable id` |
+| POST | `/admin/users` | 创建用户 | body |
+| PUT | `/admin/users/{id}` | 更新用户 | `@PathVariable id, body` |
+| DELETE | `/admin/users/{id}` | 删除用户 | `@PathVariable id` |
+| POST | `/admin/users/{id}/toggle-status` | 禁用/启用 | `@PathVariable id` |
+| PUT | `/admin/users/{id}/approve` | 审核通过 | `@PathVariable id` |
+| POST | `/admin/users/{id}/reset-password` | 重置密码 | `@PathVariable id` |
+| GET | `/admin/login-logs/{userId}` | 登录日志 | `@PathVariable userId` |
+| GET | `/admin/courses` | 课程列表 | - |
+| GET | `/admin/courses/{id}` | 课程详情 | `@PathVariable id` |
+| POST | `/admin/courses` | 创建课程 | body |
+| PUT | `/admin/courses/{id}` | 更新课程 | `@PathVariable id, body` |
+| DELETE | `/admin/courses/{id}` | 删除课程 | `@PathVariable id` |
+| GET | `/admin/rules` | 规则列表 | - |
+| GET | `/admin/rules/{id}` | 规则详情 | `@PathVariable id` |
+| POST | `/admin/rules` | 创建规则 | body |
+| PUT | `/admin/rules/{id}` | 更新规则 | `@PathVariable id, body` |
+| DELETE | `/admin/rules/{id}` | 删除规则 | `@PathVariable id` |
+| GET | `/admin/warnings` | 全部预警 | - |
+| PUT | `/admin/warnings/{id}/handle` | 处理预警 | `@PathVariable id, body` |
+| GET | `/admin/activities` | 操作日志 | - |
+| GET | `/admin/export/statistics` | 导出统计 | - |
+| GET | `/admin/export/insufficient-students` | 导出学分不足 | - |
+| GET | `/admin/export/colleges` | 导出学院 | - |
+| GET | `/admin/export/teachers` | 导出教师 | - |
+| GET | `/admin/export/users` | 导出用户 | `?role` |
+| GET | `/admin/export/students` | 导出学生 | - |
+| GET | `/admin/export/scores` | 导出成绩 | `?course_id` |
+| GET | `/admin/export/warnings` | 导出预警 | - |
+| GET | `/admin/export/history` | 导出历史 | `?page, size` |
+| POST | `/admin/import/students` | 导入学生 | body |
+| POST | `/admin/import/scores` | 导入成绩 | body |
+| GET | `/admin/import/template/{type}` | 下载模板 | `@PathVariable type` |
+| GET | `/admin/reports/templates` | 报表模板 | - |
+| POST | `/admin/reports/generate` | 生成报表 | body |
+| POST | `/admin/backup` | 备份数据 | - |
+| GET | `/admin/backups/list` | 备份列表 | - |
+| POST | `/admin/backup/{id}/restore` | 恢复备份 | `@PathVariable id` |
+| GET | `/admin/permissions/roles` | 角色列表 | - |
+| GET | `/admin/permissions/list` | 权限列表 | - |
+| GET | `/admin/permissions/user/{userId}` | 用户权限 | `@PathVariable userId` |
+| POST | `/admin/permissions/assign-role` | 分配角色 | body |
+| POST | `/admin/messages/broadcast` | 群发消息 | body |
+| POST | `/admin/messages/targeted` | 定向消息 | body |
+| GET | `/admin/messages/list` | 消息列表 | `?page, size` |
+| DELETE | `/admin/messages/{id}` | 删除消息 | `@PathVariable id` |
+| GET | `/admin/tasks/list` | 任务列表 | `?page, size, status` |
+| POST | `/admin/tasks/create` | 创建任务 | body |
+| POST | `/admin/tasks/{id}/status` | 更新任务状态 | `@PathVariable id, { status }` |
+| DELETE | `/admin/tasks/{id}` | 删除任务 | `@PathVariable id` |
+| GET | `/admin/class-management/applications` | 班级申请列表 | `?size` |
+| GET | `/admin/class-management/pending-requests` | 待处理申请 | - |
+| POST | `/admin/class-management/approve/{id}` | 批准申请 | `@PathVariable id, ?type` |
+| POST | `/admin/class-management/reject/{id}` | 拒绝申请 | `@PathVariable id, ?type, { reason }` |
+| POST | `/admin/class-management/remove-teacher/{id}` | 移除教师 | `@PathVariable id` |
+| GET | `/admin/classes` | 全部班级 | - |
 
-### 3.1 教师注册
-- **API路径**: `/teachers/register`
-- **请求方法**: `POST`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | username | String | 是 | 用户名 |
-  | password | String | 是 | 密码 |
-  | college_id | Long | 是 | 学院ID |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "userId": 1,
-        "username": "12345",
-        "college_id": 1
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 400,
-      "message": "注册失败",
-      "data": null
-    }
-    ```
-- **认证方式**: 无
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X POST http://localhost:8080/teachers/register \
-    -H "Content-Type: application/json" \
-    -d '{"username": "12345", "password": "123456", "college_id": 1}'
-  ```
+---
 
-### 3.2 获取教师仪表板数据
-- **API路径**: `/teachers/dashboard/{userId}`
-- **请求方法**: `GET`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | userId | Long | 是 | 用户ID |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "studentCount": 50,
-        "warningCount": 5,
-        "redWarnings": 2,
-        "yellowWarnings": 3
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 404,
-      "message": "教师不存在",
-      "data": null
-    }
-    ```
-- **认证方式**: JWT token
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET http://localhost:8080/teachers/dashboard/1 \
-    -H "Authorization: Bearer token-1234567890"
-  ```
+## 六、AI 服务
 
-### 3.3 查询教师课程列表
-- **API路径**: `/teachers/courses`
-- **请求方法**: `GET`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | teacher_id | Long | 是 | 教师ID |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": [
-        {
-          "id": 1,
-          "name": "高等数学",
-          "credits": 4.0,
-          "type": "必修课"
-        }
-      ]
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 500,
-      "message": "查询课程列表失败",
-      "data": null
-    }
-    ```
-- **认证方式**: JWT token
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET "http://localhost:8080/teachers/courses?teacher_id=1" \
-    -H "Authorization: Bearer token-1234567890"
-  ```
+| 方法 | 路径 | 说明 | 请求参数 |
+|------|------|------|----------|
+| POST | `/ai/chat` | AI对话 | `{ userId, message }` |
+| GET | `/ai/suggestions/{userId}` | 学习建议 | `@PathVariable userId` |
+| GET | `/ai/analyze-scores/{studentId}` | 成绩分析 | `@PathVariable studentId` |
+| POST | `/ai/analyze-behavior` | 行为分析 | body |
+| POST | `/ai/predict-risk` | 风险预测 | body |
+| GET | `/ai/assess-risk/{studentId}` | 风险评估 | `@PathVariable studentId` |
+| POST | `/ai/generate-warning` | 生成预警 | body |
+| GET | `/ai/predict-warnings/{studentId}` | 预测预警 | `@PathVariable studentId` |
+| GET | `/ai/analyze-warning-trend/{counselorId}` | 预警趋势 | `@PathVariable counselorId` |
+| GET | `/ai/analyze-warning/{warningId}` | 预警分析 | `@PathVariable warningId` |
+| GET | `/ai/analyze-class-scores/{classId}` | 班级成绩分析 | `@PathVariable classId` |
+| POST | `/ai/generate-suggestion` | 生成建议 | body |
+| POST | `/ai/generate-plan` | 生成计划 | body |
+| GET | `/ai/analyze/{studentId}` | 综合分析 | `@PathVariable studentId` |
+| GET | `/ai/recommendations/{studentId}` | 推荐 | `@PathVariable studentId` |
+| GET | `/ai/warning-suggestions/{studentId}` | 预警建议 | `@PathVariable studentId` |
 
-## 4. 辅导员相关 API
+---
 
-### 4.1 辅导员注册
-- **API路径**: `/counselors/register`
-- **请求方法**: `POST`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | username | String | 是 | 用户名 |
-  | password | String | 是 | 密码 |
-  | name | String | 是 | 姓名 |
-  | college_id | Long | 是 | 学院ID |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "userId": 1,
-        "username": "54321",
-        "college_id": 1
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 400,
-      "message": "注册失败",
-      "data": null
-    }
-    ```
-- **认证方式**: 无
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X POST http://localhost:8080/counselors/register \
-    -H "Content-Type: application/json" \
-    -d '{"username": "54321", "password": "123456", "name": "王辅导员", "college_id": 1}'
-  ```
+## 通用说明
 
-### 4.2 获取辅导员仪表板数据
-- **API路径**: `/counselors/dashboard/{userId}`
-- **请求方法**: `GET`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | userId | Long | 是 | 用户ID |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "studentCount": 100,
-        "warningCount": 10,
-        "redWarnings": 3,
-        "yellowWarnings": 7
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 404,
-      "message": "辅导员不存在",
-      "data": null
-    }
-    ```
-- **认证方式**: JWT token
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET http://localhost:8080/counselors/dashboard/1 \
-    -H "Authorization: Bearer token-1234567890"
-  ```
-
-## 5. 管理员相关 API
-
-### 5.1 获取管理员仪表板
-- **API路径**: `/admin/dashboard`
-- **请求方法**: `GET`
-- **请求参数**: 无
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "totalColleges": 5,
-        "totalMajors": 20,
-        "totalUsers": 1000,
-        "totalStudents": 800,
-        "totalTeachers": 150,
-        "totalWarnings": 50
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 500,
-      "message": "获取管理员仪表板失败",
-      "data": null
-    }
-    ```
-- **认证方式**: JWT token
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET http://localhost:8080/admin/dashboard \
-    -H "Authorization: Bearer token-1234567890"
-  ```
-
-### 5.2 获取所有学院
-- **API路径**: `/admin/colleges`
-- **请求方法**: `GET`
-- **请求参数**: 无
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": [
-        {
-          "id": 1,
-          "name": "计算机学院",
-          "code": "CS",
-          "description": "计算机科学与技术学院"
-        }
-      ]
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 500,
-      "message": "获取学院列表失败",
-      "data": null
-    }
-    ```
-- **认证方式**: JWT token
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET http://localhost:8080/admin/colleges \
-    -H "Authorization: Bearer token-1234567890"
-  ```
-
-## 6. 微服务相关 API
-
-### 6.1 Student Service API
-
-#### 6.1.1 获取学生仪表板数据
-- **API路径**: `/students/dashboard/{studentId}`
-- **请求方法**: `GET`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | studentId | Long | 是 | 学生ID |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "studentId": 1,
-        "studentName": "张三",
-        "className": "计算机科学与技术2023级1班",
-        "majorName": "计算机科学与技术",
-        "gpa": 3.5,
-        "warningCount": 0,
-        "warningLevel": "正常",
-        "failedCoursesCount": 0,
-        "totalCoursesCount": 10,
-        "completedCredits": 60,
-        "requiredCredits": 120
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 500,
-      "message": "获取学生仪表板失败",
-      "data": null
-    }
-    ```
-- **认证方式**: 无（微服务内部调用）
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET http://localhost:8083/students/dashboard/1
-  ```
-
-#### 6.1.2 获取学生成绩
-- **API路径**: `/students/scores/{studentId}`
-- **请求方法**: `GET`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | studentId | Long | 是 | 学生ID |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": [
-        {
-          "id": 1,
-          "studentId": 1,
-          "courseId": 1,
-          "scoreTotal": 90,
-          "gradePoint": 4.0,
-          "semester": "2023-2024-1",
-          "createdAt": "2023-12-01T00:00:00"
-        }
-      ]
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 500,
-      "message": "获取学生成绩失败",
-      "data": null
-    }
-    ```
-- **认证方式**: 无（微服务内部调用）
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X GET http://localhost:8083/students/scores/1
-  ```
-
-### 6.2 User Service API
-
-#### 6.2.1 用户登录
-- **API路径**: `/users/login`
-- **请求方法**: `POST`
-- **请求参数**:
-  | 参数名 | 数据类型 | 是否必填 | 说明 |
-  | --- | --- | --- | --- |
-  | username | String | 是 | 用户名 |
-  | password | String | 是 | 密码 |
-- **响应格式**:
-  - 成功响应:
-    ```json
-    {
-      "code": 200,
-      "message": "成功",
-      "data": {
-        "token": "token-1234567890",
-        "userId": 1,
-        "username": "2023020616",
-        "name": "张三",
-        "role": 1,
-        "email": "zhangsan@example.com",
-        "phone": "13800138000"
-      }
-    }
-    ```
-  - 错误响应:
-    ```json
-    {
-      "code": 500,
-      "message": "登录失败",
-      "data": null
-    }
-    ```
-- **认证方式**: 无（微服务内部调用）
-- **调用限制**: 无
-- **使用示例**:
-  ```bash
-  curl -X POST http://localhost:8082/users/login \
-    -H "Content-Type: application/json" \
-    -d '{"username": "2023020616", "password": "123456"}'
-  ```
-
-## 7. 通用响应格式
-
-所有API响应均使用统一的格式：
-
-```json
-{
-  "code": 200,
-  "message": "成功",
-  "data": {...}
-}
-```
-
-- **code**: 状态码，200表示成功，其他表示错误
-- **message**: 响应消息
-- **data**: 响应数据
-
-## 8. 认证方式
-
-- **JWT token**: 大多数API需要在请求头中传递Authorization: Bearer {token}
-- **无认证**: 登录、注册等接口不需要认证
-
-## 9. 调用限制
-
-- 无特殊限制
-- 建议合理控制请求频率，避免系统负载过高
-
-## 10. 错误处理
-
-- 所有错误响应均返回统一格式
-- 错误消息清晰明了，便于前端处理
-- 服务器内部错误返回500状态码
-- 客户端错误返回400系列状态码
-
-## 11. 边界条件处理
-
-- 所有API均处理了边界条件
-- 例如：学生不存在、参数为空、格式错误等情况
-- 对于分页查询，处理了页号和每页大小的边界值
+- **认证**: 除 `/auth/*` 外，所有请求需带 `Authorization: Bearer {token}` 头
+- **角色**: 1=学生, 2=教师, 3=辅导员, 4=管理员
+- **状态**: 0=待处理/待审核, 1=已处理/进行中, 2=已完成/已解除
+- **预警等级**: 1=蓝色(轻度), 2=黄色(中度), 3=红色(严重)
+- **分页**: 默认 page=1, size=20

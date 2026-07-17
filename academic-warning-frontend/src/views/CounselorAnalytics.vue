@@ -1,263 +1,178 @@
 <template>
-  <div class="counselor-analytics">
-    <div class="page-header">
-      <h1>数据分析</h1>
-      <p>班级学分不足率、预警分布、处理效率、成绩达标排名</p>
+  <div class="ca-page">
+    <!-- 指标卡 -->
+    <div class="ca-metrics">
+      <div class="cam-card">
+        <div class="cam-icon ic-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+        <div class="cam-val red">{{ stats.creditInsufficientRate }}<span class="cam-unit">%</span></div>
+        <div class="cam-lbl">学分不足率 / {{ stats.totalStudents }}人</div>
+      </div>
+      <div class="cam-card">
+        <div class="cam-icon ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <div class="cam-val">{{ stats.warningHandlingEfficiency }}<span class="cam-unit">天</span></div>
+        <div class="cam-lbl">预警平均处理天数</div>
+      </div>
+      <div class="cam-card">
+        <div class="cam-icon ic-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="cam-val green">{{ stats.assistanceCompletionRate }}<span class="cam-unit">%</span></div>
+        <div class="cam-lbl">帮扶完成率 / {{ stats.completedPlans }}/{{ stats.totalPlans }}</div>
+      </div>
+      <div class="cam-card">
+        <div class="cam-icon ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+        <div class="cam-val blue">{{ stats.creditAchievementRate }}<span class="cam-unit">%</span></div>
+        <div class="cam-lbl">平均学分达标 / {{ stats.classCount }}班</div>
+      </div>
     </div>
 
-    <!-- 关键指标 -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">学分不足率</div>
-        <div class="stat-number">{{ analyticsStats.creditInsufficientRate }}%</div>
+    <!-- 双栏 -->
+    <div class="ca-main">
+      <div class="ca-left">
+        <div class="ca-panel">
+          <div class="cap-head"><span class="cap-title">预警级别分布</span></div>
+          <div ref="warningChart" style="height:300px"></div>
+        </div>
+        <div class="ca-panel">
+          <div class="cap-head"><span class="cap-title">预警处理效率</span><span class="cap-hint">平均天数</span></div>
+          <div ref="efficiencyChart" style="height:200px"></div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">预警处理中位数</div>
-        <div class="stat-number">{{ analyticsStats.warningHandlingEfficiency }}天</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">帮扶完成率</div>
-        <div class="stat-number">{{ analyticsStats.assistanceCompletionRate }}%</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">学分达标率</div>
-        <div class="stat-number">{{ analyticsStats.creditAchievementRate }}%</div>
+      <div class="ca-right">
+        <div class="ca-panel">
+          <div class="cap-head"><span class="cap-title">班级学分达标排名</span></div>
+          <div v-if="classRanking.length">
+            <div v-for="(r, i) in classRanking.slice(0,8)" :key="i" class="car-item">
+              <span class="cari-rank" :class="'r'+Math.min(i+1,4)">{{ i + 1 }}</span>
+              <div class="cari-body">
+                <div class="cari-top">
+                  <span class="cari-name">{{ r.className }}</span>
+                  <span class="cari-val" :class="r.improvementRate>0?'up':'down'">{{ r.creditRate }}分</span>
+                </div>
+                <div class="cari-bar"><div class="carib-fill" :style="{width:r.creditRate+'%',background:r.creditRate>=80?'#16a34a':r.creditRate>=60?'#3b82f6':'#ef4444'}"></div></div>
+                <div class="cari-meta">{{ r.studentCount }}人 · <span :class="r.improvementRate>0?'up':'down'">{{ r.improvementRate>0?'+':'' }}{{ r.improvementRate }}%</span></div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="cap-empty">暂无班级数据</div>
+        </div>
       </div>
     </div>
 
-    <!-- 图表区域 -->
-    <el-row :gutter="20" style="margin-top: 20px;">
-      <el-col :xs="24" :md="12">
-        <el-card>
-          <template #header>预警级别分布（饼图）</template>
-          <div ref="warningChart" style="height: 300px;"></div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :md="12">
-        <el-card>
-          <template #header>预警处理效率</template>
-          <div ref="efficiencyChart" style="height: 300px;"></div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-row :gutter="20" style="margin-top: 20px;">
-      <el-col :xs="24">
-        <el-card>
-          <template #header>班级学分达标率排名</template>
-          <el-table :data="classRanking" stripe>
-            <el-table-column prop="ranking" label="排名" width="80"></el-table-column>
-            <el-table-column prop="className" label="班级" width="100"></el-table-column>
-            <el-table-column prop="creditRate" label="达标率" width="100">
-              <template #default="{ row }">
-                <el-progress :percentage="row.creditRate" :color="creditRateColor"></el-progress>
-              </template>
-            </el-table-column>
-            <el-table-column prop="improvementRate" label="相比上学期" width="120">
-              <template #default="{ row }">
-                <span :style="{ color: row.improvementRate > 0 ? '#67c23a' : '#f56c6c' }">
-                  {{ row.improvementRate > 0 ? '↑' : '↓' }}{{ Math.abs(row.improvementRate) }}%
-                </span>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <el-row :gutter="20" style="margin-top: 20px;">
-      <el-col :xs="24">
-        <el-card>
-          <template #header>近6个月预警趋势</template>
-          <div ref="trendChart" style="height: 300px;"></div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <!-- 预警趋势 - 全宽 -->
+    <div class="ca-panel" style="margin: 0 24px 24px;">
+      <div class="cap-head"><span class="cap-title">近6个月预警趋势</span></div>
+      <div ref="trendChart" style="height:320px"></div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import * as echarts from 'echarts'
 import { counselorAPI } from '@/api/index'
 import { getUserId } from '@/utils/userUtils'
 
-const warningChart = ref(null)
-const efficiencyChart = ref(null)
-const trendChart = ref(null)
-
+const warningChart = ref(null), efficiencyChart = ref(null), trendChart = ref(null)
 const classRanking = ref([])
-const analyticsStats = ref({
-  creditInsufficientRate: 0,
-  warningHandlingEfficiency: 0,
-  assistanceCompletionRate: 0,
-  creditAchievementRate: 0
-})
+const stats = reactive({ creditInsufficientRate:0, totalStudents:0, warningHandlingEfficiency:0, assistanceCompletionRate:0, totalPlans:0, completedPlans:0, creditAchievementRate:0, classCount:0 })
 
-const creditRateColor = computed(() => {
-  return [
-    { color: '#f56c6c', percentage: 60 },
-    { color: '#e6a23c', percentage: 80 },
-    { color: '#67c23a', percentage: 100 }
-  ]
-})
+let wc=null, ec=null, tc=null
+const getCid = () => localStorage.getItem('counselorId') || getUserId()
 
-onMounted(async () => {
-  await loadAnalyticsData()
-  initCharts()
-})
+onMounted(async () => { await loadData() })
+onUnmounted(() => { wc?.dispose(); ec?.dispose(); tc?.dispose() })
 
-const loadAnalyticsData = async () => {
+async function loadData() {
   try {
-    const counselorId = localStorage.getItem('counselorId') || getUserId()
-    if (!counselorId) return
-    
-    // 获取学分不足率
-    const insufficientRateResponse = await counselorAPI.getCreditInsufficientRate(counselorId)
-    if (insufficientRateResponse.data?.code === 200) {
-      analyticsStats.value.creditInsufficientRate = insufficientRateResponse.data.data || 0
-    }
-    
-    // 获取预警处理效率
-    const efficiencyResponse = await counselorAPI.getWarningHandlingEfficiency(counselorId)
-    if (efficiencyResponse.data?.code === 200) {
-      analyticsStats.value.warningHandlingEfficiency = efficiencyResponse.data.data || 0
-    }
-    
-    // 获取帮扶完成率
-    const completionResponse = await counselorAPI.getAssistancePlanCompletionRate(counselorId)
-    if (completionResponse.data?.code === 200) {
-      analyticsStats.value.assistanceCompletionRate = completionResponse.data.data || 0
-    }
-    
-    // 获取班级达标率排名
-    const rankingResponse = await counselorAPI.getClassCreditAchievementRanking(counselorId)
-    if (rankingResponse.data?.code === 200) {
-      const rankingData = rankingResponse.data.data || []
-      classRanking.value = rankingData.map((item, index) => ({
-        ranking: index + 1,
-        className: item.className,
-        creditRate: parseFloat(item.achievementRate) || 0,
-        improvementRate: 0
-      }))
-      
-      // 计算平均学分达标率
-      if (rankingData.length > 0) {
-        const totalRate = rankingData.reduce((sum, item) => sum + (parseFloat(item.achievementRate) || 0), 0)
-        analyticsStats.value.creditAchievementRate = Math.round(totalRate / rankingData.length)
-      }
-    }
-  } catch (error) {
-    console.error('加载数据分析失败:', error)
-  }
+    const cid = getCid(); if (!cid) return
+    const [ir, dr, er, rr, tr, cr] = await Promise.all([
+      counselorAPI.getCreditInsufficientRate(cid),
+      counselorAPI.getWarningLevelDistribution(cid),
+      counselorAPI.getWarningHandlingEfficiency(cid),
+      counselorAPI.getClassCreditAchievementRanking(cid),
+      counselorAPI.getWarningTrend(cid),
+      counselorAPI.getAssistancePlanCompletionRate(cid)
+    ])
+    // 拦截器已解包，res 即为 data 对象
+    const parse = (r) => (r && !r.code) ? r : (r?.data || {})
+    const irData = parse(ir); const erData = parse(er); const crData = parse(cr)
+    stats.creditInsufficientRate = Math.round(irData.insufficientRate || 0)
+    stats.totalStudents = irData.totalStudents || 0
+    stats.warningHandlingEfficiency = Math.round(erData.avg_handle_days || 0)
+    stats.assistanceCompletionRate = Math.round(crData.completionRate || 0)
+    stats.totalPlans = crData.totalPlans || 0
+    stats.completedPlans = crData.completedPlans || 0
+    const rd = parse(rr)
+    const rdList = Array.isArray(rd) ? rd : (rd.list || rd.ranking || [])
+    classRanking.value = rdList.map((item, i) => ({
+      ranking: i+1, className: item.className||item.name||'未知', studentCount: item.studentCount||item.score_count||0,
+      creditRate: Math.min(100, Math.round(parseFloat(item.achievementRate||item.avg_score||0))), improvementRate: item.improvementRate||0
+    }))
+    stats.classCount = classRanking.value.length
+    if (rdList.length) { const t = rdList.reduce((s,it)=>s+Math.min(100,parseFloat(it.achievementRate||it.avg_score||0)),0); stats.creditAchievementRate=Math.round(t/rdList.length) }
+    setTimeout(() => { renderWarn(parse(dr)); renderEfficiency(stats.warningHandlingEfficiency); renderTrend(parse(tr)) }, 200)
+  } catch(e) { console.error(e); setTimeout(() => { renderWarn([]); renderEfficiency(0); renderTrend([]) }, 200) }
 }
 
-const initCharts = () => {
-  // 预警分布饼图
-  if (warningChart.value) {
-    const chart = echarts.init(warningChart.value)
-    const option = {
-      series: [{
-        data: [
-      { value: 0, name: '红色预警' },
-          { value: 0, name: '黄色预警' },
-          { value: 0, name: '蓝色预警' }
-        ],
-        type: 'pie'
-      }]
-    }
-    chart.setOption(option)
-  }
+function renderWarn(data) {
+  if (!warningChart.value) return; wc?.dispose(); wc = echarts.init(warningChart.value)
+  const lm = { 1:'红色', 2:'黄色', 3:'蓝色' }, cm = { 1:'#ef4444', 2:'#3b82f6', 3:'#3b82f6' }
+  const dt = Array.isArray(data) ? data : (data?.list || data?.data || [])
+  const cd = dt.map(i=>({ value:i.count||0, name:lm[i.warning_level||i.level]||'其他', itemStyle:{color:cm[i.warning_level||i.level]||'#94a3b8'} }))
+  if (!cd.length) cd.push({ value:1, name:'暂无数据', itemStyle:{color:'#e2e8f0'} })
+  wc.setOption({ tooltip:{trigger:'item'}, series:[{ type:'pie', radius:['45%','68%'], center:['50%','52%'], data:cd, label:{show:true,fontSize:12}, emphasis:{label:{fontSize:15,fontWeight:'bold'} }}] })
+}
 
-  // 处理效率柱状图
-  if (efficiencyChart.value) {
-    const chart = echarts.init(efficiencyChart.value)
-    const option = {
-      xAxis: { type: 'category', data: ['一班', '二班', '三班'] },
-      yAxis: { type: 'value', name: '平均处理天数' },
-      series: [{
-        data: [],
-        type: 'bar',
-        itemStyle: { color: '#409eff' }
-      }]
-    }
-    chart.setOption(option)
-  }
-
-  // 预警趋势线图
-  if (trendChart.value) {
-    const chart = echarts.init(trendChart.value)
-    const option = {
-      xAxis: { type: 'category', data: ['7月', '8月', '9月', '10月', '11月', '12月'] },
-      yAxis: { type: 'value' },
-      series: [
-        {
-          name: '红色预警',
-          data: [],
-          type: 'line',
-          smooth: true,
-          itemStyle: { color: '#f56c6c' }
-        },
-        {
-          name: '黄色预警',
-          data: [],
-          type: 'line',
-          smooth: true,
-          itemStyle: { color: '#e6a23c' }
-        }
-      ],
-      legend: { data: ['红色预警', '黄色预警'] }
-    }
-    chart.setOption(option)
-  }
+function renderTrend(data) {
+  if (!trendChart.value) return; tc?.dispose(); tc = echarts.init(trendChart.value)
+  const dt = Array.isArray(data) ? data : (data?.list || data?.data || [])
+  const ms=[], r=[], y=[], b=[], map={}
+  dt.forEach(i=>{ const m=i.month||''; if(!m)return; map[m]=map[m]||{r:0,y:0,b:0}; const l=i.warning_level||0,c=i.count||0; l===1?map[m].r+=c:l===2?map[m].y+=c:map[m].b+=c })
+  Object.keys(map).sort().forEach(m=>{ ms.push(m); r.push(map[m].r); y.push(map[m].y); b.push(map[m].b) })
+  tc.setOption({
+    tooltip:{trigger:'axis'}, legend:{data:['红色','黄色','蓝色'],bottom:0}, grid:{left:30,right:10,top:10,bottom:40},
+    xAxis:{type:'category',data:ms.length?ms:['暂无'],axisLabel:{fontSize:10}}, yAxis:{type:'value',min:0,splitLine:{lineStyle:{type:'dashed',color:'#f1f5f9'}}},
+    series:[
+      {name:'红色',type:'line',smooth:true,data:r.length?r:[0],itemStyle:{color:'#ef4444'},lineStyle:{color:'#ef4444',width:2},areaStyle:{color:'rgba(239,68,68,.1)'}},
+      {name:'黄色',type:'line',smooth:true,data:y.length?y:[0],itemStyle:{color:'#3b82f6'},lineStyle:{color:'#3b82f6',width:2},areaStyle:{color:'rgba(245,158,11,.1)'}},
+      {name:'蓝色',type:'line',smooth:true,data:b.length?b:[0],itemStyle:{color:'#3b82f6'},lineStyle:{color:'#3b82f6',width:2},areaStyle:{color:'rgba(59,130,246,.1)'}}
+    ]
+  })
 }
 </script>
 
 <style scoped>
-.counselor-analytics {
-  padding: 20px;
-}
+.ca-page { padding: 0 0 24px; min-height: 100vh; background: #f0f4ff; }
 
-.page-header {
-  margin-bottom: 20px;
-}
+.ca-metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; padding: 20px 24px; }
+.cam-card { background: #fff; border-radius: 14px; padding: 18px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.04); transition: transform .2s; }
+.cam-card:hover { transform: translateY(-2px); }
+.cam-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; }
+.cam-icon svg { width: 18px; height: 18px; }
+.ic-red { background: #fef2f2; color: #ef4444; } .ic-amber { background: #eff6ff; color: #2563eb; }
+.ic-green { background: #ecfdf5; color: #16a34a; } .ic-blue { background: #eff6ff; color: #2563eb; }
+.cam-val { font-size: 26px; font-weight: 700; color: #1e293b; }
+.cam-val.red { color: #ef4444; } .cam-val.green { color: #16a34a; } .cam-val.blue { color: #2563eb; }
+.cam-unit { font-size: 14px; color: #94a3b8; margin-left: 2px; }
+.cam-lbl { font-size: 12px; color: #94a3b8; margin-top: 2px; }
 
-.page-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  color: #333;
-}
+.ca-main { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 0 24px 24px; }
+.ca-panel { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.04); overflow: hidden; }
+.cap-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid #f1f5f9; }
+.cap-title { font-size: 14px; font-weight: 600; color: #1e293b; } .cap-hint { font-size: 12px; color: #94a3b8; }
+.cap-empty { text-align: center; padding: 32px; font-size: 13px; color: #94a3b8; }
 
-.page-header p {
-  margin: 0;
-  color: #999;
-  font-size: 14px;
-}
+.car-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; }
+.car-item:last-child { border-bottom: none; }
+.cari-rank { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.cari-rank.r1 { background: #fef2f2; color: #ef4444; } .cari-rank.r2 { background: #eff6ff; color: #2563eb; }
+.cari-rank.r3 { background: #eff6ff; color: #2563eb; } .cari-rank.r4 { background: #f1f5f9; color: #64748b; }
+.cari-body { flex: 1; min-width: 0; }
+.cari-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.cari-name { font-size: 13px; font-weight: 500; color: #1e293b; }
+.cari-val { font-size: 13px; font-weight: 700; } .cari-val.up { color: #16a34a; } .cari-val.down { color: #ef4444; }
+.cari-bar { height: 5px; background: #f1f5f9; border-radius: 3px; overflow: hidden; margin-bottom: 3px; }
+.carib-fill { height: 100%; border-radius: 3px; transition: width .5s; }
+.cari-meta { font-size: 11px; color: #94a3b8; } .cari-meta .up { color: #16a34a; } .cari-meta .down { color: #ef4444; }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  text-align: center;
-}
-
-.stat-label {
-  color: #999;
-  font-size: 12px;
-  margin-bottom: 8px;
-}
-
-.stat-number {
-  font-size: 32px;
-  font-weight: bold;
-  color: #409eff;
-}
+@media (max-width: 900px) { .ca-metrics { grid-template-columns: repeat(2,1fr); } .ca-main { grid-template-columns: 1fr; } }
 </style>

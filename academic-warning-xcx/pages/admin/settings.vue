@@ -1,91 +1,86 @@
 <template>
-  <view class="settings-container">
-    <view class="header">
-      <text class="title">系统设置</text>
-      <text class="subtitle">配置系统参数和选项</text>
-    </view>
+  <view class="page">
+    <view class="header"><text class="title">系统设置</text><text class="sub">参数与功能配置</text></view>
 
-    <view class="settings-list">
-      <view class="setting-group">
-        <text class="group-title">预警设置</text>
-        <view class="setting-item">
-          <text class="setting-label">预警阈值</text>
-          <input class="setting-input" type="number" v-model="settings.warningThreshold" placeholder="60" />
-        </view>
-        <view class="setting-item">
-          <text class="setting-label">严重预警阈值</text>
-          <input class="setting-input" type="number" v-model="settings.criticalThreshold" placeholder="40" />
-        </view>
-      </view>
-
-      <view class="setting-group">
-        <text class="group-title">通知设置</text>
-        <view class="setting-item">
-          <text class="setting-label">启用邮件通知</text>
-          <switch :checked="settings.enableEmail" @change="toggleSetting('enableEmail')" />
-        </view>
-        <view class="setting-item">
-          <text class="setting-label">启用短信通知</text>
-          <switch :checked="settings.enableSMS" @change="toggleSetting('enableSMS')" />
-        </view>
-      </view>
-
-      <view class="setting-group">
-        <text class="group-title">系统维护</text>
-        <view class="setting-item">
-          <text class="setting-label">系统版本</text>
-          <text class="setting-value">v1.0.0</text>
-        </view>
-        <view class="setting-item">
-          <text class="setting-label">数据备份</text>
-          <button class="action-btn" @click="backupData">立即备份</button>
+    <view class="card">
+      <text class="card-title">预警参数</text>
+      <view class="set-row" v-for="s in warningSettings" :key="s.key">
+        <text class="set-label">{{ s.label }}</text>
+        <view class="set-val">
+          <text class="sv-num">{{ s.value }}</text>
+          <text class="sv-unit">{{ s.unit }}</text>
         </view>
       </view>
     </view>
 
-    <view class="save-section">
-      <button class="save-btn" @click="saveSettings">保存设置</button>
+    <view class="card">
+      <text class="card-title">系统功能</text>
+      <view class="toggle-row" v-for="t in toggles" :key="t.key">
+        <text class="toggle-label">{{ t.label }}</text>
+        <switch :checked="t.enabled" color="#2563eb" />
+      </view>
     </view>
+
+    <view class="card">
+      <text class="card-title">数据维护</text>
+      <button class="maint-btn" @tap="clearCache">清除缓存</button>
+      <button class="maint-btn danger" @tap="rebuildIndex">重建索引</button>
+    </view>
+
+    <view class="version">版本 v1.0.0</view>
   </view>
 </template>
 
-<script setup>
-import { ref } from 'vue';
-
-const settings = ref({
-  warningThreshold: 60,
-  criticalThreshold: 40,
-  enableEmail: true,
-  enableSMS: false
-});
-
-const toggleSetting = (key) => {
-  settings.value[key] = !settings.value[key];
-};
-
-const backupData = () => {
-  uni.showToast({ title: '数据备份成功', icon: 'success' });
-};
-
-const saveSettings = () => {
-  uni.showToast({ title: '设置保存成功', icon: 'success' });
-};
+<script>
+export default {
+  data() {
+    return {
+      warningSettings: [
+        { key:'failCount', label:'挂科数预警阈值', value:2, unit:'门' },
+        { key:'gpaLow', label:'GPA 下限', value:2.0, unit:'分' },
+        { key:'absenceRate', label:'缺勤率预警', value:20, unit:'%' },
+        { key:'scanInterval', label:'扫描间隔', value:30, unit:'分钟' }
+      ],
+      toggles: [
+        { key:'autoWarning', label:'自动预警扫描', enabled:true },
+        { key:'emailNotify', label:'邮件通知', enabled:true },
+        { key:'smsNotify', label:'短信通知', enabled:false },
+        { key:'scoreAudit', label:'成绩修改审计', enabled:true }
+      ]
+    }
+  },
+  methods: {
+    clearCache() { uni.showToast({ title:'缓存已清除', icon:'success' }) },
+    rebuildIndex() {
+      uni.showModal({
+        title:'确认', content:'重建索引可能需要几分钟，确认继续？',
+        success: (r) => { if (r.confirm) uni.showToast({ title:'索引重建中...', icon:'none' }) }
+      })
+    }
+  }
+}
 </script>
 
 <style scoped>
-.settings-container { padding: 20rpx; background-color: #f5f7fa; min-height: 100vh; }
-.header { margin-bottom: 24rpx; }
-.title { font-size: 32rpx; font-weight: 700; color: #333; margin-bottom: 8rpx; display: block; }
-.subtitle { font-size: 18rpx; color: #666; display: block; }
-.settings-list { display: flex; flex-direction: column; gap: 20rpx; }
-.setting-group { background: white; border-radius: 20rpx; padding: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.08); border: 1rpx solid #f0f0f0; }
-.group-title { font-size: 20rpx; font-weight: 600; color: #333; display: block; margin-bottom: 16rpx; padding-bottom: 12rpx; border-bottom: 1rpx solid #f0f0f0; }
-.setting-item { display: flex; justify-content: space-between; align-items: center; padding: 16rpx 0; border-bottom: 1rpx solid #f5f5f5; }
-.setting-item:last-child { border-bottom: none; }
-.setting-label { font-size: 16rpx; color: #333; }
-.setting-input { width: 120rpx; height: 60rpx; padding: 0 16rpx; border: 1rpx solid #e0e0e0; border-radius: 8rpx; font-size: 16rpx; text-align: center; }
-.setting-value { font-size: 16rpx; color: #666; }
-.action-btn { padding: 8rpx 20rpx; background-color: #4facfe; color: white; border: none; border-radius: 8rpx; font-size: 14rpx; }
-.save-section { margin-top: 40rpx; }
-.save-btn { width: 100%; height: 90rpx; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none; border-radius: 16rpx; font-size: 18rpx; font-weight: 600; }
+.page { padding:20rpx; background:#f0f2f8; min-height:100vh; }
+.header { margin-bottom:20rpx; } .title { font-size:36rpx; font-weight:800; color:#1e293b; display:block; } .sub { font-size:24rpx; color:#94a3b8; }
+
+.card { background:#fff; border-radius:16rpx; padding:24rpx; margin-bottom:16rpx; }
+.card-title { font-size:28rpx; font-weight:700; color:#1e293b; display:block; margin-bottom:18rpx; }
+
+.set-row { display:flex; justify-content:space-between; align-items:center; padding:16rpx 0; border-bottom:1rpx solid #f1f5f9; }
+.set-row:last-child { border-bottom:none; }
+.set-label { font-size:26rpx; color:#475569; }
+.set-val { display:flex; align-items:baseline; gap:4rpx; }
+.sv-num { font-size:26rpx; font-weight:700; color:#1e293b; }
+.sv-unit { font-size:20rpx; color:#94a3b8; }
+
+.toggle-row { display:flex; justify-content:space-between; align-items:center; padding:16rpx 0; border-bottom:1rpx solid #f1f5f9; }
+.toggle-row:last-child { border-bottom:none; }
+.toggle-label { font-size:26rpx; color:#475569; }
+
+.maint-btn { width:100%; height:80rpx; background:#f1f5f9; color:#475569; border:none; border-radius:12rpx; font-size:26rpx; display:flex; align-items:center; justify-content:center; margin-bottom:12rpx; }
+.maint-btn.danger { background:#fef2f2; color:#ef4444; }
+
+.version { text-align:center; padding:32rpx; font-size:22rpx; color:#cbd5e1; }
 </style>

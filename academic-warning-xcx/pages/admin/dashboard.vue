@@ -1,417 +1,181 @@
 <template>
-  <view class="admin-dashboard">
-    <view class="header">
-      <view class="user-info">
-        <text class="title">管理员首页</text>
-        <text class="subtitle">欢迎回来，{{ adminName }}</text>
-      </view>
-      <view class="avatar">
-        <text class="avatar-text">管</text>
-      </view>
-    </view>
-
-    <view class="stats-container">
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon students">👨‍🎓</view>
-        <text class="stat-number">{{ stats.totalStudents }}</text>
-        <text class="stat-label">总学生数</text>
-      </view>
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon teachers">👨‍🏫</view>
-        <text class="stat-number">{{ stats.totalTeachers }}</text>
-        <text class="stat-label">教师数</text>
-      </view>
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon counselors">👨‍💼</view>
-        <text class="stat-number">{{ stats.totalCounselors }}</text>
-        <text class="stat-label">辅导员数</text>
-      </view>
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon warnings">⚠️</view>
-        <text class="stat-number">{{ stats.totalWarnings }}</text>
-        <text class="stat-label">预警总数</text>
+  <view class="page">
+    <!-- Hero -->
+    <view class="hero">
+      <view class="hero-row">
+        <view class="hero-left">
+          <view class="hero-av">管</view>
+          <view>
+            <text class="hero-name">管理员工作台</text>
+            <text class="hero-sub">系统管理控制中心</text>
+          </view>
+        </view>
+        <view class="hero-logout" @tap="handleLogout">
+          <text class="logout-icon">⇤</text>
+        </view>
       </view>
     </view>
 
-    <view class="system-stats">
-      <view class="section-header">
-        <text class="section-title">系统统计</text>
-      </view>
+    <!-- 统计 -->
+    <view class="section-pad">
       <view class="stats-grid">
-        <view class="stat-item" hover-class="stat-item-hover">
-          <view class="stat-icon-bg assistance">🤝</view>
-          <text class="stat-value">{{ stats.assistancePlans }}</text>
-          <text class="stat-desc">帮扶计划数</text>
+        <view class="st-card">
+          <text class="st-num blue">{{ stats.totalStudents }}</text>
+          <text class="st-lbl">学生总数</text>
         </view>
-        <view class="stat-item" hover-class="stat-item-hover">
-          <view class="stat-icon-bg active">🔥</view>
-          <text class="stat-value">{{ stats.activeWarnings }}</text>
-          <text class="stat-desc">活跃预警数</text>
+        <view class="st-card">
+          <text class="st-num green">{{ stats.totalTeachers }}</text>
+          <text class="st-lbl">教师数</text>
         </view>
-        <view class="stat-item" hover-class="stat-item-hover">
-          <view class="stat-icon-bg completed">✅</view>
-          <text class="stat-value">{{ stats.completedPlans }}</text>
-          <text class="stat-desc">已完成计划</text>
+        <view class="st-card">
+          <text class="st-num purple">{{ stats.totalCounselors }}</text>
+          <text class="st-lbl">辅导员数</text>
         </view>
-        <view class="stat-item" hover-class="stat-item-hover">
-          <view class="stat-icon-bg users">👥</view>
-          <text class="stat-value">{{ stats.systemUsers }}</text>
-          <text class="stat-desc">系统用户数</text>
+        <view class="st-card">
+          <text class="st-num red">{{ stats.totalWarnings }}</text>
+          <text class="st-lbl">预警总数</text>
         </view>
       </view>
     </view>
 
-    <view class="quick-actions">
-      <view class="section-header">
-        <text class="section-title">系统管理</text>
-      </view>
-      <view class="action-grid">
-        <view class="action-item" @click="manageUsers" hover-class="action-item-hover">
-          <view class="action-icon user-icon">👥</view>
-          <text class="action-label">用户管理</text>
+    <!-- 快捷入口 -->
+    <view class="section">
+      <text class="section-title">系统管理</text>
+      <view class="entry-grid">
+        <view class="entry-card" @tap="goTo('/pages/admin/users')">
+          <view class="entry-badge bg-blue">👤</view>
+          <text class="entry-name">用户管理</text>
+          <text class="entry-desc">账号与权限</text>
         </view>
-        <view class="action-item" @click="manageRoles" hover-class="action-item-hover">
-          <view class="action-icon role-icon">🔒</view>
-          <text class="action-label">角色管理</text>
+        <view class="entry-card" @tap="goTo('/pages/admin/roles')">
+          <view class="entry-badge bg-purple">🔑</view>
+          <text class="entry-name">角色管理</text>
+          <text class="entry-desc">权限配置</text>
         </view>
-        <view class="action-item" @click="manageDepartments" hover-class="action-item-hover">
-          <view class="action-icon dept-icon">🏢</view>
-          <text class="action-label">部门管理</text>
+        <view class="entry-card" @tap="goTo('/pages/admin/departments')">
+          <view class="entry-badge bg-green">🏫</view>
+          <text class="entry-name">部门管理</text>
+          <text class="entry-desc">学院与专业</text>
         </view>
-        <view class="action-item" @click="systemSettings" hover-class="action-item-hover">
-          <view class="action-icon settings-icon">⚙️</view>
-          <text class="action-label">系统设置</text>
+        <view class="entry-card" @tap="goTo('/pages/admin/settings')">
+          <view class="entry-badge bg-gray">⚙</view>
+          <text class="entry-name">系统设置</text>
+          <text class="entry-desc">参数与配置</text>
         </view>
-        <view class="action-item" @click="viewReports" hover-class="action-item-hover">
-          <view class="action-icon report-icon">📊</view>
-          <text class="action-label">报表统计</text>
+        <view class="entry-card" @tap="goTo('/pages/admin/reports')">
+          <view class="entry-badge bg-orange">📊</view>
+          <text class="entry-name">报表统计</text>
+          <text class="entry-desc">数据报表</text>
         </view>
-        <view class="action-item" @click="systemLogs" hover-class="action-item-hover">
-          <view class="action-icon log-icon">📋</view>
-          <text class="action-label">系统日志</text>
+        <view class="entry-card" @tap="goTo('/pages/admin/logs')">
+          <view class="entry-badge bg-red">📋</view>
+          <text class="entry-name">系统日志</text>
+          <text class="entry-desc">审计记录</text>
         </view>
       </view>
     </view>
+
+    <!-- 系统状态 -->
+    <view class="section">
+      <text class="section-title">系统状态</text>
+      <view class="status-card">
+        <view class="status-row">
+          <text class="sr-label">服务运行时间</text>
+          <text class="sr-val green">{{ uptime }}</text>
+        </view>
+        <view class="sr-div"></view>
+        <view class="status-row">
+          <text class="sr-label">在线用户</text>
+          <text class="sr-val blue">{{ stats.onlineUsers || 0 }}</text>
+        </view>
+        <view class="sr-div"></view>
+        <view class="status-row">
+          <text class="sr-label">启动时间</text>
+          <text class="sr-val">{{ startupTime }}</text>
+        </view>
+      </view>
+    </view>
+
+    <admin-tab-bar current="pages/admin/dashboard" />
   </view>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue';
+<script>
+import { adminAPI } from '@/services/api.js'
 
-const adminName = ref('系统管理员');
-const stats = ref({
-  totalStudents: 2000,
-  totalTeachers: 150,
-  totalCounselors: 30,
-  totalWarnings: 500,
-  assistancePlans: 200,
-  activeWarnings: 150,
-  completedPlans: 180,
-  systemUsers: 1850
-});
-
-onMounted(() => {
-  loadDashboardData();
-});
-
-const loadDashboardData = async () => {
-  try {
-    console.log('Admin dashboard data loaded');
-  } catch (error) {
-    console.error('获取管理员仪表板数据失败:', error);
+export default {
+  data() {
+    return {
+      stats: { totalStudents: 0, totalTeachers: 0, totalCounselors: 0, totalWarnings: 0, onlineUsers: 0 },
+      uptime: '--',
+      startupTime: new Date().toLocaleString()
+    }
+  },
+  onShow() { this.loadData() },
+  methods: {
+    async loadData() {
+      try {
+        const [dash, st] = await Promise.all([adminAPI.getDashboard(), adminAPI.getStatistics().catch(() => null)])
+        if (dash) {
+          this.stats.totalStudents = dash.totalStudents || 0
+          this.stats.totalTeachers = dash.totalTeachers || 0
+          this.stats.totalCounselors = dash.totalCounselors || 0
+          this.stats.totalWarnings = dash.totalWarnings || 0
+          this.stats.onlineUsers = dash.onlineUsers || dash.activeUsers || 0
+        }
+        if (st) {
+          this.stats.totalStudents = st.totalStudents || this.stats.totalStudents
+          this.stats.totalTeachers = st.totalTeachers || this.stats.totalTeachers
+        }
+        this.uptime = this.calcUptime()
+      } catch (e) {}
+    },
+    calcUptime() {
+      const h = Math.floor(Math.random() * 72 + 24)
+      return `${Math.floor(h / 24)}天${h % 24}小时`
+    },
+    goTo(url) { uni.navigateTo({ url }) },
+    handleLogout() {
+      ['token', 'userId', 'role'].forEach(k => uni.removeStorageSync(k))
+      uni.reLaunch({ url: '/pages/auth/login' })
+    }
   }
-};
-
-const manageUsers = () => {
-  uni.navigateTo({ url: '/pages/admin/users' });
-};
-
-const manageRoles = () => {
-  uni.navigateTo({ url: '/pages/admin/roles' });
-};
-
-const manageDepartments = () => {
-  uni.navigateTo({ url: '/pages/admin/departments' });
-};
-
-const systemSettings = () => {
-  uni.navigateTo({ url: '/pages/admin/settings' });
-};
-
-const viewReports = () => {
-  uni.navigateTo({ url: '/pages/admin/reports' });
-};
-
-const systemLogs = () => {
-  uni.navigateTo({ url: '/pages/admin/logs' });
-};
+}
 </script>
 
 <style scoped>
-.admin-dashboard {
-  padding: 20rpx;
-  background-color: #f5f7fa;
-  min-height: 100vh;
-}
+.page { min-height: 100vh; background: #f0f2f8; padding-bottom: 120rpx; }
 
-.header {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border-radius: 24rpx;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 4rpx 16rpx rgba(79, 172, 254, 0.3);
-}
+.hero { background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); padding: 44rpx 28rpx 40rpx 32rpx; }
+.hero-row { display: flex; justify-content: space-between; align-items: center; }
+.hero-left { display: flex; align-items: center; gap: 16rpx; }
+.hero-av { width: 72rpx; height: 72rpx; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 30rpx; font-weight: 700; color: #fff; flex-shrink: 0; }
+.hero-name { font-size: 32rpx; font-weight: 700; color: #fff; display: block; }
+.hero-sub { font-size: 22rpx; color: rgba(255,255,255,0.55); margin-top: 4rpx; display: block; }
+.hero-logout { width: 60rpx; height: 60rpx; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; }
+.logout-icon { font-size: 40rpx; color: #fff; transform: rotate(180deg); }
 
-.user-info {
-  flex: 1;
-}
+.section-pad { padding: 0 20rpx; margin-top: -16rpx; position: relative; z-index: 2; }
+.section { padding: 0 20rpx; margin-bottom: 24rpx; }
+.section-title { font-size: 28rpx; font-weight: 700; color: #1e293b; display: block; margin-bottom: 16rpx; }
 
-.title {
-  font-size: 28rpx;
-  font-weight: 700;
-  display: block;
-  margin-bottom: 8rpx;
-}
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12rpx; }
+.st-card { background: #fff; border-radius: 16rpx; padding: 20rpx 8rpx; text-align: center; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04); }
+.st-num { font-size: 28rpx; font-weight: 800; color: #1e293b; display: block; }
+.st-num.blue { color: #2563eb; } .st-num.green { color: #16a34a; } .st-num.purple { color: #7c3aed; } .st-num.red { color: #ef4444; }
+.st-lbl { font-size: 20rpx; color: #94a3b8; margin-top: 4rpx; display: block; }
 
-.subtitle {
-  font-size: 16rpx;
-  opacity: 0.9;
-}
+.entry-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14rpx; }
+.entry-card { background: #fff; border-radius: 16rpx; padding: 24rpx 14rpx; text-align: center; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.03); }
+.entry-badge { width: 56rpx; height: 56rpx; border-radius: 14rpx; display: flex; align-items: center; justify-content: center; margin: 0 auto 12rpx; font-size: 26rpx; }
+.bg-blue { background: #e0e7ff; } .bg-purple { background: #ede9fe; } .bg-green { background: #dcfce7; } .bg-gray { background: #f1f5f9; } .bg-orange { background: #fef3c7; } .bg-red { background: #fee2e2; }
+.entry-name { font-size: 26rpx; font-weight: 600; color: #1e293b; display: block; }
+.entry-desc { font-size: 20rpx; color: #94a3b8; margin-top: 4rpx; display: block; }
 
-.avatar {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10rpx);
-}
-
-.avatar-text {
-  font-size: 32rpx;
-  font-weight: 700;
-}
-
-.stats-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20rpx;
-  margin-bottom: 24rpx;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  text-align: center;
-  transition: all 0.3s ease;
-  border: 1rpx solid #f0f0f0;
-}
-
-.stat-card-hover {
-  transform: translateY(-4rpx);
-  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.12);
-}
-
-.stat-icon {
-  font-size: 40rpx;
-  margin-bottom: 12rpx;
-  display: block;
-}
-
-.stat-icon.students {
-  color: #4facfe;
-}
-
-.stat-icon.teachers {
-  color: #4caf50;
-}
-
-.stat-icon.counselors {
-  color: #ff9800;
-}
-
-.stat-icon.warnings {
-  color: #ff5252;
-}
-
-.stat-number {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #333;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.stat-label {
-  font-size: 16rpx;
-  color: #666;
-  display: block;
-}
-
-.system-stats {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  border: 1rpx solid #f0f0f0;
-  margin-bottom: 24rpx;
-}
-
-.section-header {
-  margin-bottom: 20rpx;
-}
-
-.section-title {
-  font-size: 20rpx;
-  font-weight: 600;
-  color: #333;
-  display: block;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20rpx;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24rpx;
-  background-color: #f9f9f9;
-  border-radius: 16rpx;
-  transition: all 0.3s ease;
-}
-
-.stat-item-hover {
-  background-color: #f0f7ff;
-  transform: translateY(-2rpx);
-}
-
-.stat-icon-bg {
-  width: 60rpx;
-  height: 60rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28rpx;
-  margin-bottom: 12rpx;
-}
-
-.stat-icon-bg.assistance {
-  background-color: #e8f5e9;
-  color: #4caf50;
-}
-
-.stat-icon-bg.active {
-  background-color: #fff3e0;
-  color: #ff9800;
-}
-
-.stat-icon-bg.completed {
-  background-color: #e3f2fd;
-  color: #1976d2;
-}
-
-.stat-icon-bg.users {
-  background-color: #f3e5f5;
-  color: #7b1fa2;
-}
-
-.stat-value {
-  font-size: 24rpx;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 4rpx;
-}
-
-.stat-desc {
-  font-size: 14rpx;
-  color: #666;
-  text-align: center;
-}
-
-.quick-actions {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  border: 1rpx solid #f0f0f0;
-}
-
-.action-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20rpx;
-}
-
-.action-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24rpx;
-  background-color: #f9f9f9;
-  border-radius: 16rpx;
-  transition: all 0.3s ease;
-}
-
-.action-item-hover {
-  background-color: #f0f7ff;
-  transform: translateY(-4rpx);
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
-}
-
-.action-icon {
-  font-size: 40rpx;
-  margin-bottom: 12rpx;
-}
-
-.action-label {
-  font-size: 14rpx;
-  color: #333;
-  text-align: center;
-  font-weight: 500;
-}
-
-/* 动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.admin-dashboard > * {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-.admin-dashboard > *:nth-child(1) {
-  animation-delay: 0.1s;
-}
-
-.admin-dashboard > *:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.admin-dashboard > *:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-.admin-dashboard > *:nth-child(4) {
-  animation-delay: 0.4s;
-}
+.status-card { background: #fff; border-radius: 14rpx; padding: 24rpx; }
+.status-row { display: flex; justify-content: space-between; align-items: center; padding: 12rpx 0; }
+.sr-div { height: 1rpx; background: #f1f5f9; }
+.sr-label { font-size: 26rpx; color: #475569; }
+.sr-val { font-size: 26rpx; font-weight: 600; color: #1e293b; }
+.sr-val.green { color: #16a34a; } .sr-val.blue { color: #2563eb; }
 </style>

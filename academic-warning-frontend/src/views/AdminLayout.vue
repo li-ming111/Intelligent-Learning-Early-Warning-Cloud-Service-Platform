@@ -7,83 +7,33 @@
           <img src="@/assets/logo.png" alt="哈尔滨信息工程学院" class="logo-image">
         </div>
         <nav class="main-nav">
-          <router-link 
-            to="/admin/dashboard" 
-            class="nav-item"
-            :class="{ active: isActive('/admin/dashboard') }"
-          >
-            <span>首页</span>
-          </router-link>
-          <router-link 
-            to="/admin/colleges" 
-            class="nav-item"
-            :class="{ active: isActive('/admin/colleges') }"
-          >
-            <span>学院管理</span>
-          </router-link>
-          <router-link 
-            to="/admin/majors" 
-            class="nav-item"
-            :class="{ active: isActive('/admin/majors') }"
-          >
-            <span>专业管理</span>
-          </router-link>
-          <router-link 
-            to="/admin/courses" 
-            class="nav-item"
-            :class="{ active: isActive('/admin/courses') }"
-          >
-            <span>课程管理</span>
-          </router-link>
-          <router-link 
-            to="/admin/users" 
-            class="nav-item"
-            :class="{ active: isActive('/admin/users') }"
-          >
-            <span>用户管理</span>
-          </router-link>
-          <router-link 
-            to="/admin/rules" 
-            class="nav-item"
-            :class="{ active: isActive('/admin/rules') }"
-          >
-            <span>规则管理</span>
-          </router-link>
-          <router-link 
-            to="/admin/statistics" 
-            class="nav-item"
-            :class="{ active: isActive('/admin/statistics') }"
-          >
-            <span>数据分析</span>
-          </router-link>
-          <router-link 
-            to="/admin/messages" 
-            class="nav-item"
-            :class="{ active: isActive('/admin/messages') }"
-          >
-            <span>消息通知</span>
-          </router-link>
-          <router-link 
-            to="/admin/data-export" 
-            class="nav-item"
-            :class="{ active: isActive('/admin/data-export') }"
-          >
-            <span>数据导出</span>
-          </router-link>
-          <router-link 
-            to="/admin/class-management" 
-            class="nav-item"
-            :class="{ active: isActive('/admin/class-management') }"
-          >
-            <span>班级管理申请</span>
-          </router-link>
-          <router-link 
-            to="/admin/settings" 
-            class="nav-item"
-            :class="{ active: isActive('/admin/settings') }"
-          >
-            <span>个人设置</span>
-          </router-link>
+          <!-- 学校管理员(4)看全菜单 -->
+          <template v-if="!isCollegeAdmin">
+            <router-link to="/admin/dashboard" class="nav-item" :class="{ active: isActive('/admin/dashboard') }"><span>首页</span></router-link>
+            <router-link to="/admin/colleges" class="nav-item" :class="{ active: isActive('/admin/colleges') }"><span>学院管理</span></router-link>
+            <router-link to="/admin/majors" class="nav-item" :class="{ active: isActive('/admin/majors') }"><span>专业管理</span></router-link>
+            <router-link to="/admin/courses" class="nav-item" :class="{ active: isActive('/admin/courses') }"><span>课程管理</span></router-link>
+            <router-link to="/admin/users" class="nav-item" :class="{ active: isActive('/admin/users') }"><span>用户管理</span></router-link>
+            <router-link to="/admin/rules" class="nav-item" :class="{ active: isActive('/admin/rules') }"><span>规则管理</span></router-link>
+            <router-link to="/admin/warnings" class="nav-item" :class="{ active: isActive('/admin/warnings') }"><span>预警管理</span></router-link>
+            <router-link to="/admin/statistics" class="nav-item" :class="{ active: isActive('/admin/statistics') }"><span>数据分析</span></router-link>
+            <router-link to="/admin/messages" class="nav-item" :class="{ active: isActive('/admin/messages') }"><span>消息通知</span></router-link>
+            <router-link to="/admin/data-export" class="nav-item" :class="{ active: isActive('/admin/data-export') }"><span>数据导出</span></router-link>
+            <router-link to="/admin/class-management" class="nav-item" :class="{ active: isActive('/admin/class-management') }"><span>班级管理申请</span></router-link>
+            <router-link to="/admin/settings" class="nav-item" :class="{ active: isActive('/admin/settings') }"><span>个人设置</span></router-link>
+          </template>
+          <!-- 学院管理员(5)菜单 -->
+          <template v-else>
+            <router-link to="/college-admin/dashboard"  class="nav-item" :class="{ active: isActive('/college-admin/dashboard')  }"><span>首页</span></router-link>
+            <router-link to="/college-admin/students"   class="nav-item" :class="{ active: isActive('/college-admin/students')   }"><span>学生管理</span></router-link>
+            <router-link to="/college-admin/teachers"   class="nav-item" :class="{ active: isActive('/college-admin/teachers')   }"><span>教师管理</span></router-link>
+            <router-link to="/college-admin/warnings"   class="nav-item" :class="{ active: isActive('/college-admin/warnings')   }"><span>预警管理</span></router-link>
+            <router-link to="/college-admin/classes"    class="nav-item" :class="{ active: isActive('/college-admin/classes')    }"><span>班级管理</span></router-link>
+            <router-link to="/college-admin/analysis"   class="nav-item" :class="{ active: isActive('/college-admin/analysis')   }"><span>成绩分析</span></router-link>
+            <router-link to="/college-admin/scores"     class="nav-item" :class="{ active: isActive('/college-admin/scores')     }"><span>成绩查询</span></router-link>
+            <router-link to="/college-admin/counselors" class="nav-item" :class="{ active: isActive('/college-admin/counselors') }"><span>辅导员</span></router-link>
+            <router-link to="/college-admin/export"     class="nav-item" :class="{ active: isActive('/college-admin/export')     }"><span>数据导出</span></router-link>
+          </template>
         </nav>
       </div>
       <div class="navbar-right">
@@ -112,12 +62,16 @@
         <router-view />
       </div>
     </div>
+
+    <!-- AI助手 -->
+    <AIAssistant />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AIAssistant from '@/components/AIAssistant.vue'
 import { 
   SwitchButton
 } from '@element-plus/icons-vue'
@@ -126,15 +80,16 @@ import { adminAPI } from '@/api/index'
 const route = useRoute()
 const router = useRouter()
 const storedName = localStorage.getItem('userName')
-const storedRole = localStorage.getItem('role')
+  const storedRole = localStorage.getItem('role')
+const isCollegeAdmin = computed(() => storedRole === '5' || storedRole === 'college_admin')
 let defaultName = '管理员'
-// 检查storedName是否存在且不是纯数字（避免显示用户ID）
 if (storedName && !/^\d+$/.test(storedName)) {
   defaultName = storedName
 } else {
-  // 如果没有userName或userName是纯数字，根据角色显示默认名称
   if (storedRole === '4' || storedRole === 'admin') {
     defaultName = '管理员'
+  } else if (isCollegeAdmin.value) {
+    defaultName = '学院管理员'
   } else {
     defaultName = '用户'
   }
@@ -168,11 +123,21 @@ const pageMap = {
   '/admin/courses': '课程管理',
   '/admin/users': '用户管理',
   '/admin/rules': '规则管理',
+  '/admin/warnings': '预警管理',
   '/admin/statistics': '数据分析',
   '/admin/messages': '消息通知',
   '/admin/data-export': '数据导出',
   '/admin/class-management': '班级管理申请',
-  '/admin/settings': '个人设置'
+  '/admin/settings': '个人设置',
+  '/college-admin/dashboard': '学院控制台',
+  '/college-admin/students': '学生管理',
+  '/college-admin/teachers': '教师管理',
+  '/college-admin/warnings': '预警管理',
+  '/college-admin/classes': '班级管理',
+  '/college-admin/analysis': '成绩分析',
+  '/college-admin/scores': '成绩查询',
+  '/college-admin/counselors': '辅导员管理',
+  '/college-admin/export': '数据导出'
 }
 
 const currentPageTitle = computed(() => {
@@ -180,7 +145,8 @@ const currentPageTitle = computed(() => {
 })
 
 const isActive = (path) => {
-  return route.path === path
+  const base = path.split('#')[0]
+  return route.path === base
 }
 
 const handleLogout = () => {
@@ -201,7 +167,6 @@ const handleLogout = () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
 }
 
 /* 顶部导航栏 */
@@ -216,6 +181,11 @@ const handleLogout = () => {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 20px;
+}
+
+.dark-mode .top-navbar {
+  background: #1f1f1f;
+  border-bottom-color: #333333;
 }
 
 .navbar-left {
@@ -251,6 +221,10 @@ const handleLogout = () => {
   position: relative;
   transition: all 0.3s ease;
   white-space: nowrap;
+}
+
+.dark-mode .nav-item {
+  color: #e5e5e5;
 }
 
 .nav-item:hover {
@@ -297,6 +271,10 @@ const handleLogout = () => {
   background: #f0f0f0;
 }
 
+.dark-mode .user-profile:hover {
+  background: #333;
+}
+
 .user-avatar {
   width: 32px;
   height: 32px;
@@ -309,11 +287,20 @@ const handleLogout = () => {
   font-weight: 600;
 }
 
+.dark-mode .user-avatar {
+  background: #333;
+  color: #e5e5e5;
+}
+
 .user-name {
   font-size: 14px;
   font-weight: 500;
   color: #333;
   white-space: nowrap;
+}
+
+.dark-mode .user-name {
+  color: #e5e5e5;
 }
 
 /* 主体区域 */
@@ -327,9 +314,13 @@ const handleLogout = () => {
 .content-area {
   flex: 1;
   overflow-y: auto;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  background: #f5f7fa;
   padding: 0;
   margin: 0;
+}
+
+.dark-mode .content-area {
+  background: #141414;
 }
 
 .content-area::-webkit-scrollbar {

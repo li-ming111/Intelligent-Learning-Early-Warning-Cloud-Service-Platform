@@ -18,7 +18,7 @@
         <el-table-column label="预警情况" width="150">
           <template #default="{ row }">
             <span style="color: #f56c6c;">{{ row.redWarnings }} </span>
-            <span style="color: #e6a23c;">{{ row.yellowWarnings }}</span>
+            <span style="color: #2563eb;">{{ row.yellowWarnings }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
@@ -60,7 +60,7 @@
         <el-table-column label="预警状态" width="100">
           <template #default="{ row }">
             <el-tag type="danger" v-if="row.warningLevel === 'red'">红色</el-tag>
-            <el-tag type="warning" v-else-if="row.warningLevel === 'yellow'">黄色</el-tag>
+            <el-tag type="warning" v-else-if="row.warningLevel === 'blue'">黄色</el-tag>
             <el-tag type="success" v-else>正常</el-tag>
           </template>
         </el-table-column>
@@ -74,7 +74,7 @@
         <el-table-column prop="warningReason" label="预警原因" width="200"></el-table-column>
         <el-table-column label="级别" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.warningLevel === 'red' ? 'danger' : row.warningLevel === 'yellow' ? 'warning' : 'info'">
+            <el-tag :type="row.warningLevel === 'red' ? 'danger' : row.warningLevel === 'blue' ? 'warning' : 'info'">
               {{ row.warningLevel }}
             </el-tag>
           </template>
@@ -136,7 +136,7 @@ const initChart = () => {
           name: '黄色预警',
           data: [5, 3, 7],
           type: 'bar',
-          itemStyle: { color: '#e6a23c' }
+          itemStyle: { color: '#2563eb' }
         }
       ]
     }

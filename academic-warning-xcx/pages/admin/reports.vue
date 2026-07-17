@@ -1,81 +1,48 @@
 <template>
-  <view class="reports-container">
-    <view class="header">
-      <text class="title">报表统计</text>
-      <text class="subtitle">查看系统数据统计报表</text>
-    </view>
-
-    <view class="report-cards">
-      <view class="report-card" hover-class="report-card-hover">
-        <view class="card-icon">📊</view>
-        <view class="card-info">
-          <text class="card-title">学生统计</text>
-          <text class="card-value">2,000</text>
-          <text class="card-desc">总学生人数</text>
-        </view>
-      </view>
-      <view class="report-card" hover-class="report-card-hover">
-        <view class="card-icon">⚠️</view>
-        <view class="card-info">
-          <text class="card-title">预警统计</text>
-          <text class="card-value">500</text>
-          <text class="card-desc">本月预警数</text>
-        </view>
-      </view>
-      <view class="report-card" hover-class="report-card-hover">
-        <view class="card-icon">🤝</view>
-        <view class="card-info">
-          <text class="card-title">帮扶统计</text>
-          <text class="card-value">200</text>
-          <text class="card-desc">进行中帮扶</text>
-        </view>
-      </view>
-      <view class="report-card" hover-class="report-card-hover">
-        <view class="card-icon">📈</view>
-        <view class="card-info">
-          <text class="card-title">成绩统计</text>
-          <text class="card-value">85.6</text>
-          <text class="card-desc">平均成绩</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="chart-section">
-      <text class="section-title">预警趋势图</text>
-      <view class="chart-placeholder">
-        <text class="chart-text">📊 预警趋势图表区域</text>
-      </view>
-    </view>
-
-    <view class="export-section">
-      <button class="export-btn" @click="exportReport">导出报表</button>
+  <view class="page">
+    <view class="header"><text class="title">报表统计</text><text class="sub">系统数据汇总</text></view>
+    <view class="stats-grid">
+      <view class="st-card"><text class="st-num blue">{{ report.studentCount }}</text><text class="st-lbl">学生总数</text></view>
+      <view class="st-card"><text class="st-num green">{{ report.teacherCount }}</text><text class="st-lbl">教师总数</text></view>
+      <view class="st-card"><text class="st-num purple">{{ report.warningTotal }}</text><text class="st-lbl">预警总数</text></view>
+      <view class="st-card"><text class="st-num red">{{ report.warningRate }}%</text><text class="st-lbl">预警率</text></view>
+      <view class="st-card"><text class="st-num cyan">{{ report.assistanceCount }}</text><text class="st-lbl">帮扶计划</text></view>
+      <view class="st-card"><text class="st-num orange">{{ report.appealCount }}</text><text class="st-lbl">成绩申诉</text></view>
     </view>
   </view>
 </template>
 
-<script setup>
-const exportReport = () => {
-  uni.showToast({ title: '报表导出成功', icon: 'success' });
-};
+<script>
+import { adminAPI } from '@/services/api.js'
+
+export default {
+  data() {
+    return {
+      report: { studentCount:0, teacherCount:0, warningTotal:0, warningRate:0, assistanceCount:0, appealCount:0 }
+    }
+  },
+  onShow() { this.loadData() },
+  methods: {
+    async loadData() {
+      try {
+        const res = await adminAPI.getReports()
+        if (res) Object.assign(this.report, {
+          studentCount: res.totalStudents || 0, teacherCount: res.totalTeachers || 0,
+          warningTotal: res.totalWarnings || 0, warningRate: Math.round(res.warningRate || 0),
+          assistanceCount: res.assistanceCount || 0, appealCount: res.appealCount || 0
+        })
+      } catch (e) {}
+    }
+  }
+}
 </script>
 
 <style scoped>
-.reports-container { padding: 20rpx; background-color: #f5f7fa; min-height: 100vh; }
-.header { margin-bottom: 24rpx; }
-.title { font-size: 32rpx; font-weight: 700; color: #333; margin-bottom: 8rpx; display: block; }
-.subtitle { font-size: 18rpx; color: #666; display: block; }
-.report-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20rpx; margin-bottom: 24rpx; }
-.report-card { background: white; border-radius: 20rpx; padding: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.08); border: 1rpx solid #f0f0f0; display: flex; align-items: center; transition: all 0.3s ease; }
-.report-card-hover { transform: translateY(-4rpx); box-shadow: 0 6rpx 20rpx rgba(0,0,0,0.12); border-color: #4facfe; }
-.card-icon { font-size: 48rpx; margin-right: 16rpx; }
-.card-info { flex: 1; }
-.card-title { font-size: 16rpx; color: #666; display: block; margin-bottom: 4rpx; }
-.card-value { font-size: 28rpx; font-weight: 700; color: #4facfe; display: block; margin-bottom: 4rpx; }
-.card-desc { font-size: 14rpx; color: #999; }
-.chart-section { background: white; border-radius: 20rpx; padding: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.08); border: 1rpx solid #f0f0f0; margin-bottom: 24rpx; }
-.section-title { font-size: 20rpx; font-weight: 600; color: #333; display: block; margin-bottom: 16rpx; }
-.chart-placeholder { height: 300rpx; background-color: #f9f9f9; border-radius: 12rpx; display: flex; align-items: center; justify-content: center; }
-.chart-text { font-size: 16rpx; color: #999; }
-.export-section { margin-top: 40rpx; }
-.export-btn { width: 100%; height: 90rpx; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none; border-radius: 16rpx; font-size: 18rpx; font-weight: 600; }
+.page { padding:20rpx; background:#f0f2f8; min-height:100vh; }
+.header { margin-bottom:20rpx; } .title { font-size:36rpx; font-weight:800; color:#1e293b; display:block; } .sub { font-size:24rpx; color:#94a3b8; }
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:14rpx; }
+.st-card { background:#fff; border-radius:16rpx; padding:28rpx; text-align:center; }
+.st-num { font-size:40rpx; font-weight:800; display:block; margin-bottom:8rpx; }
+.st-num.blue { color:#2563eb; } .st-num.green { color:#16a34a; } .st-num.purple { color:#7c3aed; } .st-num.red { color:#ef4444; } .st-num.cyan { color:#0891b2; } .st-num.orange { color:#f59e0b; }
+.st-lbl { font-size:22rpx; color:#94a3b8; }
 </style>

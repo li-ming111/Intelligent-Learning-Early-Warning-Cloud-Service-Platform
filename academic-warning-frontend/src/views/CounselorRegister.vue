@@ -1,141 +1,128 @@
 <template>
-  <div class="register-page">
-    <div class="register-container">
-      <div class="register-box">
-        <div class="register-header">
-          <h1>辅导员注册</h1>
-          <p>学院管理权限 · 学生情况概览</p>
+  <div class="reg-page">
+    <div class="reg-card">
+      <div class="reg-header">
+        <img src="@/assets/xiaohui.jpg" alt="校徽" class="reg-logo">
+        <h1>辅导员注册</h1>
+        <p>哈尔滨信息工程学院 · 学生管理服务</p>
+      </div>
+
+      <el-form :model="form" :rules="rules" ref="formRef" @submit.prevent>
+        <div class="rg-field">
+          <label>工号</label>
+          <el-input v-model="form.username" placeholder="请输入工号" maxlength="20" clearable>
+            <template #prefix><el-icon><Postcard /></el-icon></template>
+          </el-input>
         </div>
 
-        <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
-          <el-form-item label="工号" prop="username">
-            <el-input 
-              v-model="form.username" 
-              placeholder="请输入10位工号"
-              maxlength="10"
-              clearable
-            >
-              <template #prefix>
-                <el-icon><Postcard /></el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
+        <div class="rg-field">
+          <label>姓名</label>
+          <el-input v-model="form.name" placeholder="请输入真实姓名" clearable>
+            <template #prefix><el-icon><User /></el-icon></template>
+          </el-input>
+        </div>
 
-          <el-form-item label="姓名" prop="name">
-            <el-input 
-              v-model="form.name" 
-              placeholder="请输入真实姓名"
-              clearable
-            >
-              <template #prefix>
-                <el-icon><User /></el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
-
-          <el-form-item label="所属学院" prop="collegeId">
-            <el-select 
-              v-model="form.collegeId" 
-              placeholder="请选择学院"
-              style="width: 100%"
-              clearable
-              @change="handleCollegeChange"
-            >
-              <el-option
-                v-for="college in colleges"
-                :key="college.id"
-                :label="college.name"
-                :value="college.id"
-              />
+        <div class="rg-row">
+          <div class="rg-field" style="flex:1">
+            <label>性别</label>
+            <el-select v-model="form.gender" placeholder="请选择" style="width:100%" clearable>
+              <el-option label="男" value="男" /><el-option label="女" value="女" />
             </el-select>
-          </el-form-item>
-
-          <el-form-item label="所属专业" prop="majorCode">
-            <el-select 
-              v-model="form.majorCode" 
-              placeholder="请选择专业"
-              style="width: 100%"
-              clearable
-              :disabled="!form.collegeId"
-            >
-              <el-option
-                v-for="major in majors"
-                :key="major.code"
-                :label="major.name"
-                :value="major.code"
-              />
+          </div>
+          <div class="rg-field" style="flex:2">
+            <label>所属学院</label>
+            <el-select v-model="form.collegeId" placeholder="请选择学院" style="width:100%" clearable @change="handleCollegeChange">
+              <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-          </el-form-item>
+          </div>
+        </div>
 
-          <el-form-item label="手机号" prop="phone">
-            <el-input 
-              v-model="form.phone" 
-              placeholder="请输入11位手机号"
-              maxlength="11"
-              clearable
-            >
-              <template #prefix>
-                <el-icon><Phone /></el-icon>
-              </template>
+        <div class="rg-row">
+          <div class="rg-field" style="flex:1">
+            <label>部门</label>
+            <el-input v-model="form.department" placeholder="部门名称" clearable>
+              <template #prefix><el-icon><Setting /></el-icon></template>
             </el-input>
-          </el-form-item>
+          </div>
+          <div class="rg-field" style="flex:1">
+            <label>职称</label>
+            <el-select v-model="form.title" placeholder="请选择" style="width:100%" clearable>
+              <el-option label="助教" value="助教" /><el-option label="讲师" value="讲师" />
+              <el-option label="副教授" value="副教授" /><el-option label="教授" value="教授" />
+            </el-select>
+          </div>
+        </div>
 
-          <el-form-item label="邮箱" prop="email">
-            <el-input 
-              v-model="form.email" 
-              placeholder="请输入邮箱地址"
-              clearable
-            >
-              <template #prefix>
-                <el-icon><Message /></el-icon>
-              </template>
+        <div class="rg-row">
+          <div class="rg-field" style="flex:1">
+            <label>学历</label>
+            <el-select v-model="form.education" placeholder="请选择" style="width:100%" clearable>
+              <el-option label="本科" value="本科" /><el-option label="硕士" value="硕士" /><el-option label="博士" value="博士" />
+            </el-select>
+          </div>
+          <div class="rg-field" style="flex:1">
+            <label>办公地点</label>
+            <el-input v-model="form.officeLocation" placeholder="办公地点" clearable>
+              <template #prefix><el-icon><Search /></el-icon></template>
             </el-input>
-          </el-form-item>
+          </div>
+        </div>
 
-          <el-form-item label="密码" prop="password">
-            <el-input 
-              v-model="form.password" 
-              type="password" 
-              placeholder="请输入密码（至少6位）"
-              show-password
-              clearable
-            >
-              <template #prefix>
-                <el-icon><Lock /></el-icon>
-              </template>
+        <div class="rg-field">
+          <label>值班电话</label>
+          <el-input v-model="form.dutyPhone" placeholder="请输入值班电话" clearable>
+            <template #prefix><el-icon><Phone /></el-icon></template>
+          </el-input>
+        </div>
+
+        <div class="rg-row">
+          <div class="rg-field" style="flex:1">
+            <label>手机号</label>
+            <el-input v-model="form.phone" placeholder="请输入手机号" maxlength="11" clearable>
+              <template #prefix><el-icon><Phone /></el-icon></template>
             </el-input>
-            <span class="default-password-hint">默认密码: 123456</span>
-          </el-form-item>
-
-          <el-form-item label="确认密码" prop="confirmPassword">
-            <el-input 
-              v-model="form.confirmPassword" 
-              type="password" 
-              placeholder="请再次输入密码"
-              show-password
-              clearable
-            >
-              <template #prefix>
-                <el-icon><Lock /></el-icon>
-              </template>
+          </div>
+          <div class="rg-field" style="flex:1">
+            <label>邮箱</label>
+            <el-input v-model="form.email" placeholder="请输入邮箱" clearable>
+              <template #prefix><el-icon><Message /></el-icon></template>
             </el-input>
-          </el-form-item>
+          </div>
+        </div>
 
-          <el-form-item>
-            <div class="register-actions">
-              <el-button 
-                type="primary" 
-                @click="handleRegister" 
-                :loading="loading"
-                class="register-btn"
-              >
-                注册账号
-              </el-button>
-              <router-link to="/login" class="login-link">已有账号？返回登录</router-link>
-            </div>
-          </el-form-item>
-        </el-form>
-      </div>
+        <div class="rg-field">
+          <label>个人简介（选填）</label>
+          <el-input v-model="form.introduction" type="textarea" placeholder="请输入个人简介" :rows="2" />
+        </div>
+
+        <div class="rg-row">
+          <div class="rg-field" style="flex:1">
+            <label>密码</label>
+            <el-input v-model="form.password" type="password" placeholder="至少6位" show-password>
+              <template #prefix><el-icon><Lock /></el-icon></template>
+            </el-input>
+            <span class="rg-hint dim">默认: 123456</span>
+          </div>
+          <div class="rg-field" style="flex:1">
+            <label>确认密码</label>
+            <el-input v-model="form.confirmPassword" type="password" placeholder="再次输入" show-password>
+              <template #prefix><el-icon><Lock /></el-icon></template>
+            </el-input>
+          </div>
+        </div>
+
+        <el-button type="primary" class="reg-submit" :loading="loading" @click="handleRegister">
+          {{ loading ? '注册中...' : '注册账号' }}
+        </el-button>
+
+        <div class="reg-footer">
+          <router-link to="/login">← 已有账号？返回登录</router-link>
+          <div class="reg-footer-links">
+            <router-link to="/register">学生注册</router-link>
+            <router-link to="/teacher-register">教师注册</router-link>
+          </div>
+        </div>
+      </el-form>
     </div>
   </div>
 </template>
@@ -144,232 +131,86 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { User, Lock, Phone, Message, Postcard } from '@element-plus/icons-vue'
-import { authAPI } from '../api'
+import { User, Lock, Phone, Message, Postcard, Setting, Search } from '@element-plus/icons-vue'
+import { authAPI } from '@/api/index'
 
 const router = useRouter()
 const formRef = ref()
 const loading = ref(false)
 const colleges = ref([])
-const majors = ref([])
-
 const form = ref({
-  username: '',
-  name: '',
-  collegeId: '',
-  majorCode: '',
-  phone: '',
-  email: '',
-  password: '123456',
-  confirmPassword: '123456'
+  username: '', name: '', gender: '', collegeId: '', department: '', title: '', education: '',
+  officeLocation: '', dutyPhone: '', phone: '', email: '', introduction: '',
+  password: '123456', confirmPassword: '123456'
 })
 
-const validatePhone = (rule, value, callback) => {
-  if (!value) {
-    callback(new Error('请输入手机号'))
-  } else if (!/^1[3-9]\d{9}$/.test(value)) {
-    callback(new Error('请输入正确的手机号'))
-  } else {
-    callback()
-  }
-}
-
-const validateEmail = (rule, value, callback) => {
-  if (!value) {
-    callback(new Error('请输入邮箱'))
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-    callback(new Error('请输入正确的邮箱地址'))
-  } else {
-    callback()
-  }
-}
-
-const validatePassword = (rule, value, callback) => {
-  if (!value) {
-    callback(new Error('请输入密码'))
-  } else if (value.length < 6) {
-    callback(new Error('密码至少6位'))
-  } else {
-    callback()
-  }
-}
-
-const validateConfirmPassword = (rule, value, callback) => {
-  if (!value) {
-    callback(new Error('请再次输入密码'))
-  } else if (value !== form.value.password) {
-    callback(new Error('两次密码不一致'))
-  } else {
-    callback()
-  }
-}
+const vPhone = (_r, v, cb) => !v ? cb(new Error('请输入手机号')) : !/^1[3-9]\d{9}$/.test(v) ? cb(new Error('请输入正确的手机号')) : cb()
+const vEmail = (_r, v, cb) => !v ? cb(new Error('请输入邮箱')) : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? cb(new Error('请输入正确的邮箱地址')) : cb()
+const vPwd = (_r, v, cb) => !v ? cb(new Error('请输入密码')) : v.length < 6 ? cb(new Error('密码至少6位')) : cb()
+const vConfirm = (_r, v, cb) => !v ? cb(new Error('请再次输入密码')) : v !== form.value.password ? cb(new Error('两次密码不一致')) : cb()
 
 const rules = {
-  username: [
-    { required: true, message: '请输入工号', trigger: 'blur' },
-    { pattern: /^\d{10}$/, message: '工号必须为10位数字', trigger: 'blur' }
-  ],
+  username: [{ required: true, message: '请输入工号', trigger: 'blur' }],
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
   collegeId: [{ required: true, message: '请选择学院', trigger: 'change' }],
-  majorCode: [{ required: true, message: '请选择专业', trigger: 'change' }],
-  phone: [{ validator: validatePhone, trigger: 'blur' }],
-  email: [{ validator: validateEmail, trigger: 'blur' }],
-  password: [{ validator: validatePassword, trigger: 'blur' }],
-  confirmPassword: [{ validator: validateConfirmPassword, trigger: 'blur' }]
+  department: [{ required: true, message: '请输入部门', trigger: 'blur' }],
+  phone: [{ validator: vPhone, trigger: 'blur' }],
+  email: [{ validator: vEmail, trigger: 'blur' }],
+  password: [{ validator: vPwd, trigger: 'blur' }],
+  confirmPassword: [{ validator: vConfirm, trigger: 'blur' }],
 }
 
-// 获取专业列表
-const getMajorsByCollege = async (collegeId) => {
-  try {
-    const response = await authAPI.getMajorsByCollege(collegeId)
-    majors.value = response || []
-  } catch (error) {
-    ElMessage.error('加载专业列表失败')
-    majors.value = []
-  }
-}
-
-// 学院变化处理
-const handleCollegeChange = (collegeId) => {
-  form.value.majorCode = '' // 清空专业选择
-  if (collegeId) {
-    getMajorsByCollege(collegeId)
-  } else {
-    majors.value = []
-  }
-}
-
+const handleCollegeChange = () => {}
 onMounted(async () => {
-  try {
-    const response = await authAPI.getColleges()
-    colleges.value = response || []
-  } catch (error) {
-    ElMessage.error('加载学院列表失败')
-  }
+  try { const r = await authAPI.getColleges(); colleges.value = r || [] }
+  catch (e) { ElMessage.error('加载学院列表失败') }
 })
 
-const handleRegister = async () => {
+const handleRegister = () => {
   formRef.value.validate(async (valid) => {
     if (!valid) return
-
     loading.value = true
     try {
-      await authAPI.registerCounselor({
-        username: form.value.username,
-        name: form.value.name,
-        majorCode: form.value.majorCode, // 改为提交专业编码
-        phone: form.value.phone,
-        email: form.value.email,
-        password: form.value.password,
-        role: 4
-      })
-      
+      await authAPI.registerCounselor({ ...form.value, role: 3 })
       ElMessage.success('注册成功，请登录')
       router.push('/login')
-    } catch (error) {
-      ElMessage.error(error.message || '注册失败')
-    } finally {
-      loading.value = false
-    }
+    } catch (e) { ElMessage.error(e.message || '注册失败') }
+    finally { loading.value = false }
   })
 }
 </script>
 
 <style scoped>
-.register-page {
-  min-height: 100vh;
-  background: url('../assets/bj.jpg') center/cover no-repeat;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  position: relative;
-}
+.reg-page { min-height: 100vh; background: #f0f4ff; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+.reg-card { width: 100%; max-width: 520px; background: #fff; border-radius: 20px; padding: 40px 36px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.06); }
+.reg-header { text-align: center; margin-bottom: 28px; }
+.reg-logo { width: 48px; height: 48px; max-width: 48px; border-radius: 12px; margin-bottom: 10px; object-fit: contain;
+  background: #eff6ff; padding: 5px; display: inline-block; flex-shrink: 0; }
+.reg-header h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; color: #1e3a5f; }
+.reg-header p { margin: 0; font-size: 12px; color: #94a3b8; }
+.rg-row { display: flex; gap: 12px; }
+.rg-field { margin-bottom: 14px; }
+.rg-field label { display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 5px; }
+.rg-field :deep(.el-input__wrapper) { border-radius: 10px; background: #fff; border: 1.5px solid #e2e8f0; transition: all .3s; box-shadow: none; }
+.rg-field :deep(.el-input__wrapper:hover) { border-color: #93c5fd; }
+.rg-field :deep(.el-input__wrapper.is-focus) { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+.rg-field :deep(.el-select .el-input__wrapper) { border-radius: 10px; border: 1.5px solid #e2e8f0; }
+.rg-field :deep(.el-select .el-input__wrapper:hover) { border-color: #93c5fd; }
+.rg-field :deep(.el-textarea__inner) { border-radius: 10px; border: 1.5px solid #e2e8f0; font-size: 13px; }
+.rg-field :deep(.el-textarea__inner:focus) { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+.rg-hint { font-size: 11px; margin-top: 3px; display: block; }
+.rg-hint.dim { color: #94a3b8; }
+.reg-submit { width: 100%; height: 44px; font-size: 15px; font-weight: 700; letter-spacing: 1px; border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb, #3b82f6); border: none; box-shadow: 0 4px 14px rgba(37,99,235,.3); transition: all .3s; margin-top: 4px; }
+.reg-submit:hover { background: linear-gradient(135deg, #1d4ed8, #2563eb); box-shadow: 0 6px 20px rgba(37,99,235,.4); transform: translateY(-1px); }
+.reg-footer { text-align: center; margin-top: 18px; }
+.reg-footer a { display: inline-block; color: #2563eb; font-size: 13px; text-decoration: none; transition: color .2s; }
+.reg-footer a:hover { color: #1d4ed8; }
+.reg-footer-links { margin-top: 8px; display: flex; gap: 12px; justify-content: center; }
+.reg-footer-links a { font-size: 12px; color: #94a3b8; }
+.reg-footer-links a:hover { color: #2563eb; }
 
-.register-page::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.2);
-  z-index: 0;
-}
-
-.register-container {
-  width: 100%;
-  max-width: 500px;
-  position: relative;
-  z-index: 1;
-}
-
-.register-box {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  padding: 40px;
-}
-
-.register-header {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.register-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 26px;
-  color: #333;
-  font-weight: bold;
-}
-
-.register-header p {
-  margin: 0;
-  font-size: 13px;
-  color: #999;
-}
-
-.login-link {
-  margin-left: 20px;
-  color: #409eff;
-  text-decoration: none;
-}
-
-.login-link:hover {
-  text-decoration: underline;
-}
-
-.register-actions {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.register-btn {
-  background-color: #409eff;
-  border-color: #409eff;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 14px;
-  width: auto;
-}
-
-.register-btn:hover {
-  background-color: #66b1ff;
-  border-color: #66b1ff;
-}
-
-.login-link {
-  color: #409eff;
-  text-decoration: none;
-  font-size: 14px;
-  margin-left: 0;
-}
-
-.default-password-hint {
-  color: #909399;
-  font-size: 12px;
-  margin-top: 5px;
-  display: block;
-}
+@media (max-width: 560px) { .rg-row { flex-direction: column; gap: 0; } }
 </style>

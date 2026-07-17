@@ -1,114 +1,164 @@
 <template>
-  <div class="scores-container">
-    <!-- 筛选器 -->
-    <div class="filter-section">
-      <el-select v-model="selectedSemester" placeholder="选择学期" style="width: 200px;">
-        <el-option v-for="sem in availableSemesters" :key="sem" :label="sem" :value="sem"></el-option>
-      </el-select>
-      <el-button type="primary" @click="loadScores">查询</el-button>
-      <el-button @click="exportScores">导出成绩</el-button>
+  <div class="scores-page">
+    <!-- 顶部工具栏 -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <el-select v-model="selectedSemester" placeholder="全部学期" clearable style="width:200px">
+          <el-option v-for="s in availableSemesters" :key="s" :label="s" :value="s" />
+        </el-select>
+      </div>
+      <div class="toolbar-right">
+        <span class="total-label">共 {{ scoresList.length }} 门课程</span>
+      </div>
     </div>
 
-    <!-- 成绩趋势图 -->
-    <el-card style="margin-bottom: 20px;">
-      <template #header>
-        <div class="card-header">成绩趋势分析</div>
-      </template>
-      <!-- 统计卡片 -->
-      <div class="stats-cards" style="margin-bottom: 20px; display: flex; gap: 20px;">
-        <div class="stat-card" style="flex: 1; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px;">
-          <div style="font-size: 12px; opacity: 0.9;">当前学期GPA</div>
-          <div style="font-size: 28px; font-weight: bold; margin-top: 10px;">{{ currentGpa }}</div>
-          <div style="font-size: 12px; margin-top: 5px;">{{ gpaLevel }}</div>
+    <!-- 统计卡片行 -->
+    <div class="stat-row">
+      <div class="stat-card gpa">
+        <div class="stat-icon">📊</div>
+        <div class="stat-body">
+          <div class="stat-value">{{ currentGpa }}</div>
+          <div class="stat-label">当前GPA</div>
         </div>
-        <div class="stat-card" style="flex: 1; padding: 15px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border-radius: 8px;">
-          <div style="font-size: 12px; opacity: 0.9;">最高GPA</div>
-          <div style="font-size: 28px; font-weight: bold; margin-top: 10px;">{{ maxGpa }}</div>
-          <div style="font-size: 12px; margin-top: 5px;">历史最佳</div>
-        </div>
-        <div class="stat-card" style="flex: 1; padding: 15px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border-radius: 8px;">
-          <div style="font-size: 12px; opacity: 0.9;">平均GPA</div>
-          <div style="font-size: 28px; font-weight: bold; margin-top: 10px;">{{ avgGpa }}</div>
-          <div style="font-size: 12px; margin-top: 5px;">全周期平均</div>
-        </div>
-        <div class="stat-card" style="flex: 1; padding: 15px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; border-radius: 8px;">
-          <div style="font-size: 12px; opacity: 0.9;">挂科课程</div>
-          <div style="font-size: 28px; font-weight: bold; margin-top: 10px;">{{ failedCourses }}</div>
-          <div style="font-size: 12px; margin-top: 5px;" :style="{ color: failedCourses > 5 ? '#ff4444' : failedCourses > 3 ? '#ffaa00' : '#44ff44' }">{{ warnLevel }}</div>
+        <div class="stat-tag" :class="gpaTagClass">{{ gpaLevel }}</div>
+      </div>
+      <div class="stat-card best">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-body">
+          <div class="stat-value">{{ maxGpa }}</div>
+          <div class="stat-label">历史最高</div>
         </div>
       </div>
-    </el-card>
+      <div class="stat-card avg">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ avgGpa }}</div>
+          <div class="stat-label">全周期均分</div>
+        </div>
+      </div>
+      <div class="stat-card fail" :class="{ danger: failedCourses > 0 }">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ failedCourses }}</div>
+          <div class="stat-label">挂科数</div>
+        </div>
+        <div class="stat-tag warn" v-if="failedCourses > 0">{{ warnLevel }}</div>
+      </div>
+    </div>
 
-    <!-- 成绩列表 -->
-    <el-card>
-      <template #header>
-        <div class="card-header">{{ selectedSemester }} 成绩明细</div>
-      </template>
-      
-      <el-table :data="scoresList" stripe>
-        <el-table-column prop="courseName" label="课程名称" width="200"></el-table-column>
-        <el-table-column prop="credits" label="学分" width="80"></el-table-column>
-        <el-table-column prop="scoreTotal" label="总分" width="80">
+    <!-- 图表区 -->
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-title">GPA 趋势</div>
+        <div ref="gpaChartRef" class="chart-box"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">成绩分布</div>
+        <div ref="distChartRef" class="chart-box"></div>
+      </div>
+    </div>
+
+    <!-- 成绩表格 -->
+    <div class="table-card">
+      <div class="table-header">
+        <span>{{ selectedSemester || '全部学期' }} 成绩明细</span>
+        <el-button size="small" type="primary" plain @click="exportScores">导出 Excel</el-button>
+      </div>
+      <el-table :data="scoresList" stripe :default-sort="{prop:'semester',order:'descending'}" row-class-name="score-row">
+        <el-table-column prop="semester" label="学期" width="130" sortable>
           <template #default="{ row }">
-            <span :style="{ color: row.scoreTotal < 70 ? '#f56c6c' : '#67c23a' }">{{ row.scoreTotal }}</span>
+            <el-tag size="small" effect="plain" type="info">{{ semesterLabel(row.semester) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="gradePoint" label="绩点" width="80"></el-table-column>
-        <el-table-column prop="grade" label="等级" width="80"></el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="courseName" label="课程名称" min-width="160" />
+        <el-table-column prop="credits" label="学分" width="65" align="center" />
+        <el-table-column prop="scoreTotal" label="总分" width="75" align="center" sortable>
           <template #default="{ row }">
-            <el-tag v-if="row.status === 'normal'" type="success">正常</el-tag>
-            <el-tag v-else-if="row.status === 'warning'" type="warning">预警</el-tag>
-            <el-tag v-else type="danger">待处理</el-tag>
+            <span :class="scoreClass(row.scoreTotal)">{{ row.scoreTotal }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column prop="gradePoint" label="绩点" width="65" align="center" />
+        <el-table-column prop="grade" label="等级" width="65" align="center">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="openAppealDialog(row)">申诉</el-button>
+            <el-tag :type="gradeTagType(row.grade)" size="small" effect="dark">{{ row.grade }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="75" align="center">
+          <template #default="{ row }">
+            <span v-if="row.scoreTotal >= 60" class="pass-dot">✔ 通过</span>
+            <span v-else class="fail-dot">✘ 挂科</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" align="center" fixed="right">
+          <template #default="{ row }">
+            <div class="action-btns">
+              <el-button link type="primary" size="small" @click="openDetail(row)">详情</el-button>
+              <el-button link type="danger" size="small" @click="openAppeal(row)" v-if="row.scoreTotal < 60">申诉</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </div>
 
-    <!-- 申诉对话框 -->
-    <el-dialog v-model="appealDialogVisible" title="成绩申诉" width="500px">
-      <el-form :model="appealForm" label-width="100px">
+    <!-- 课程详情弹窗 -->
+    <el-dialog v-model="detailVisible" title="成绩详情" width="420px" :close-on-click-modal="true">
+      <div class="detail-card" v-if="detailRow">
+        <div class="detail-header">
+          <span class="detail-course">{{ detailRow.courseName }}</span>
+          <el-tag size="small">{{ semesterLabel(detailRow.semester) }}</el-tag>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">总分</span>
+            <span class="detail-val" :class="scoreClass(detailRow.scoreTotal)">{{ detailRow.scoreTotal }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">绩点</span>
+            <span class="detail-val">{{ detailRow.gradePoint }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">等级</span>
+            <el-tag :type="gradeTagType(detailRow.grade)" size="small">{{ detailRow.grade }}</el-tag>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">学分</span>
+            <span class="detail-val">{{ detailRow.credits }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">平时分</span>
+            <span class="detail-val">{{ detailRow.regularScore || '-' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">期末分</span>
+            <span class="detail-val">{{ detailRow.finalScore || '-' }}</span>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- 申诉弹窗 -->
+    <el-dialog v-model="appealVisible" title="成绩申诉" width="460px">
+      <el-form label-width="80px">
         <el-form-item label="课程">
-          <el-input v-model="appealForm.courseName" disabled></el-input>
+          <span>{{ appealForm.courseName }}</span>
         </el-form-item>
         <el-form-item label="当前成绩">
-          <el-input v-model="appealForm.currentScore" disabled></el-input>
+          <span class="score-red">{{ appealForm.currentScore }} 分</span>
         </el-form-item>
-        <el-form-item label="申诉原因">
-          <el-select v-model="appealForm.reason" placeholder="请选择申诉原因">
-            <el-option label="成绩录入错误" value="entry_error"></el-option>
-            <el-option label="缓考未同步" value="makeup_not_sync"></el-option>
-            <el-option label="阅卷有问题" value="grading_issue"></el-option>
-            <el-option label="其他" value="other"></el-option>
+        <el-form-item label="申诉原因" required>
+          <el-select v-model="appealForm.reason" placeholder="选择原因" style="width:100%">
+            <el-option label="成绩录入错误" value="entry_error" />
+            <el-option label="缓考未同步" value="makeup_not_sync" />
+            <el-option label="阅卷有误" value="grading_issue" />
+            <el-option label="其他原因" value="other" />
           </el-select>
         </el-form-item>
-        <el-form-item label="申诉说明">
-          <el-input v-model="appealForm.description" type="textarea" rows="4" placeholder="请详细说明申诉理由"></el-input>
-        </el-form-item>
-        <el-form-item label="附件">
-          <el-upload
-            v-model:file-list="appealForm.attachments"
-            action="#"
-            :auto-upload="false"
-            :limit="3"
-          >
-            <template #trigger>
-              <el-button type="primary">选择文件</el-button>
-            </template>
-            <template #tip>
-              <div class="el-upload__tip">可上传截图或PDF作为证据</div>
-            </template>
-          </el-upload>
+        <el-form-item label="详情说明" required>
+          <el-input v-model="appealForm.description" type="textarea" :rows="3" placeholder="请详细描述申诉理由" />
         </el-form-item>
       </el-form>
-
       <template #footer>
-        <el-button @click="appealDialogVisible = false">取消</el-button>
+        <el-button @click="appealVisible = false">取消</el-button>
         <el-button type="primary" @click="submitAppeal">提交申诉</el-button>
       </template>
     </el-dialog>
@@ -116,268 +166,332 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import { studentAPI } from '@/api/index'
 import { getUserId } from '@/utils/userUtils'
 
+// ---- 学期编号 → "2023-2024-1" 格式 ----
+const entranceYear = computedEntranceYear()
+
+function computedEntranceYear() {
+  const sid = localStorage.getItem('studentId') || localStorage.getItem('username') || '2023'
+  const y = parseInt(sid.substring(0, 4))
+  return (!isNaN(y) && y >= 2000) ? y : 2023
+}
+
+function semesterLabel(n) {
+  if (n === null || n === undefined) return '-'
+  const num = parseInt(n)
+  if (isNaN(num) || num < 1) return n
+  const y = entranceYear + Math.floor((num - 1) / 2)
+  const half = (num - 1) % 2 + 1
+  return `${y}-${y + 1}-${half}`
+}
+
+/** 将 "2025-2026-2" 转为后端需要的 semester 参数 "2025-2026-2" */
+function toSemesterParam(label) {
+  if (!label) return null
+  return label  // 直接传完整标签，后端解析 year=2025, semester=2
+}
+
+// ---- 响应式数据 ----
 const selectedSemester = ref('')
 const availableSemesters = ref([])
 const scoresList = ref([])
-const historyBenchmarks = ref([])
-const appealDialogVisible = ref(false)
-const appealForm = ref({
-  courseId: null,
-  courseName: '',
-  currentScore: '',
-  reason: '',
-  description: '',
-  attachments: [],
-  warningId: null
-})
-
-onMounted(async () => {
-  // 根据学号生成可用的学期列表
-  generateAvailableSemesters()
-  if (availableSemesters.value.length > 0) {
-    selectedSemester.value = availableSemesters.value[0]
-  }
-  // 先加载历史GPA数据，然后再加载成绩
-  await loadHistoryBenchmark()
-  await loadScores()
-})
-
-// 根据学号前四位（入学年份）生成可用的学期
-const generateAvailableSemesters = () => {
-  const currentYear = new Date().getFullYear()
-  const userId = getUserId()
-  
-  // 从 localStorage 中获取学号（学号为 10 位数字）
-  let entranceYear = 2023  // 默认值
-  const studentId = localStorage.getItem('studentId') || localStorage.getItem('username')
-  if (studentId && studentId.length >= 4) {
-    const yearPrefix = parseInt(studentId.substring(0, 4))
-    if (!isNaN(yearPrefix) && yearPrefix >= 2000 && yearPrefix <= currentYear) {
-      entranceYear = yearPrefix
-    }
-  }
-  
-  const semesters = []
-  for (let year = entranceYear; year <= currentYear; year++) {
-    semesters.push(`${year}-${year + 1}-1`)  // 秋季
-    if (year < currentYear) {
-      semesters.push(`${year}-${year + 1}-2`)  // 春季（除了当前年度）
-    }
-  }
-  
-  availableSemesters.value = semesters.reverse()  // 值倒序，最新学期优先
-}
-
-// 监听学期变化，自动重新加载成绩
-watch(selectedSemester, async (newVal) => {
-  await loadScores()
-})
-
-// 加载成绩列表
-const loadScores = async () => {
-  try {
-    const userId = getUserId()
-    console.log('userId (number):', userId)
-    if (!userId) {
-      ElMessage.error('请先登录')
-      return
-    }
-    console.log('selectedSemester:', selectedSemester.value)
-    console.log('发送API请求:', {userId, semester: selectedSemester.value})
-    // 清空旧数据
-    scoresList.value = []
-    // 强制添加时间戳避免缓存
-    const response = await studentAPI.getScores(userId, selectedSemester.value)
-    console.log('成绩响应:', response)
-    console.log('响应类型:', typeof response, '是否数组:', Array.isArray(response))
-    if (response) {
-      console.log('响应长度:', response.length)
-      if (response.length > 0) {
-        console.log('第一条数据:', JSON.stringify(response[0]))
-      }
-    }
-    if (Array.isArray(response) && response.length > 0) {
-      scoresList.value = response.map(score => {
-        console.log('处理成绩:', {id: score.id, courseName: score.courseName, credits: score.credits, scoreTotal: score.scoreTotal})
-        return {
-          ...score,
-          status: 'normal',
-          grade: calculateGrade(score.scoreTotal || 0)
-        }
-      })
-      console.log('最终scoresList长度:', scoresList.value.length)
-    } else {
-      scoresList.value = []
-    }
-    calculateStats()
-  } catch (error) {
-    console.error('加载成绩失败:', error)
-    console.error('错误详情:', error.response?.data || error.message)
-    scoresList.value = []
-  }
-}
-
-// 计算等级
-const calculateGrade = (score) => {
-  if (score >= 90) return 'A'
-  if (score >= 80) return 'A-'
-  if (score >= 70) return 'B'
-  if (score >= 60) return 'C'
-  return 'D'
-}
-
-// 加载历史GPA数据
-const loadHistoryBenchmark = async () => {
-  try {
-    const userId = getUserId()
-    if (!userId) return
-    const response = await studentAPI.getHistoryBenchmark(userId)
-    if (response && Array.isArray(response)) {
-      // 响应直接是数组
-      historyBenchmarks.value = response
-    } else if (response?.data?.code === 200) {
-      historyBenchmarks.value = response.data.data || []
-    } else {
-      historyBenchmarks.value = []
-    }
-    console.log('加载的历史GPA数据:', historyBenchmarks.value)
-    calculateStats()
-  } catch (error) {
-    console.error('加载历史GPA数据失败:', error)
-    historyBenchmarks.value = []
-  }
-}
-
-// 统计数据
+const historyGpa = ref([])
 const currentGpa = ref('0.00')
 const maxGpa = ref('0.00')
 const avgGpa = ref('0.00')
 const failedCourses = ref(0)
 const gpaLevel = ref('--')
-const warnLevel = ref('--')
+const gpaTagClass = ref('')
+const warnLevel = ref('')
+const detailVisible = ref(false)
+const detailRow = ref(null)
+const appealVisible = ref(false)
+const appealForm = ref({ courseName: '', currentScore: '', reason: '', description: '' })
+const gpaChartRef = ref(null)
+const distChartRef = ref(null)
+let gpaChart = null
+let distChart = null
 
-// 计算统计数据
-const calculateStats = () => {
-  // 计算当前学朞的GPA（使用加权平均）
-  if (scoresList.value.length > 0) {
-    const totalWeightedGradePoints = scoresList.value.reduce((sum, c) => sum + (c.gradePoint || 0) * (c.credits || 0), 0)
-    const totalCredits = scoresList.value.reduce((sum, c) => sum + (c.credits || 0), 0)
-    currentGpa.value = totalCredits > 0 ? (totalWeightedGradePoints / totalCredits).toFixed(2) : '0.00'
-    gpaLevel.value = currentGpa.value >= 3.5 ? '优秀' : currentGpa.value >= 3.0 ? '良好' : currentGpa.value >= 2.0 ? '中等' : '需改进'
-  } else {
-    currentGpa.value = '0.00'
-    gpaLevel.value = '––'
+// ---- 生命周期 ----
+onMounted(async () => {
+  await loadScores()
+  await loadHistoryBenchmark()
+  nextTick(() => { renderCharts() })
+})
+
+watch(selectedSemester, () => loadScores())
+
+// ---- 数据加载 ----
+async function loadScores() {
+  const uid = getUserId()
+  if (!uid) return
+  scoresList.value = []
+  try {
+    // 将 "2024-2025-1" 格式转为数字学期号传给后端
+    const semParam = selectedSemester.value ? toSemesterParam(selectedSemester.value) : null
+    const res = await studentAPI.getScores(uid, semParam)
+    if (Array.isArray(res) && res.length) {
+      scoresList.value = res.map(s => ({
+        ...s,
+        grade: gradeLabel(s.scoreTotal),
+        status: s.scoreTotal >= 60 ? 'pass' : 'fail'
+      }))
+      if (!selectedSemester.value) {
+        const set = new Set()
+        scoresList.value.forEach(s => {
+          if (s.year && s.semester) {
+            set.add(`${s.year}-${s.year + 1}-${s.semester}`)
+          }
+        })
+        availableSemesters.value = Array.from(set).sort((a, b) => b.localeCompare(a))
+      }
+    }
+    calcStats()
+    nextTick(renderCharts)
+  } catch (e) {
+    console.error('加载成绩失败', e)
   }
-  
-  // 计算最高GPA和平均GPA介绿整个学业
-  if (historyBenchmarks.value && historyBenchmarks.value.length > 0) {
-    const sorted = [...historyBenchmarks.value].sort((a, b) => b.studentGpa - a.studentGpa)
+}
+
+async function loadHistoryBenchmark() {
+  const uid = getUserId()
+  if (!uid) return
+  try {
+    const res = await studentAPI.getHistoryBenchmark(uid)
+    historyGpa.value = Array.isArray(res) ? res : (res?.data?.data || [])
+  } catch (e) {
+    historyGpa.value = []
+  }
+}
+
+// ---- 统计计算 ----
+function calcStats() {
+  const list = scoresList.value
+  if (list.length) {
+    let gpaSum = 0, creditSum = 0
+    list.forEach(c => {
+      const gp = c.gradePoint || 0
+      const cr = c.credits || 0
+      gpaSum += gp * cr
+      creditSum += cr
+    })
+    const gpa = creditSum > 0 ? gpaSum / creditSum : 0
+    currentGpa.value = gpa.toFixed(2)
+    if (gpa >= 3.5) { gpaLevel.value = '优秀'; gpaTagClass.value = 'excellent' }
+    else if (gpa >= 3.0) { gpaLevel.value = '良好'; gpaTagClass.value = 'good' }
+    else if (gpa >= 2.0) { gpaLevel.value = '中等'; gpaTagClass.value = 'mid' }
+    else { gpaLevel.value = '需改进'; gpaTagClass.value = 'bad' }
+  }
+  // history
+  const h = historyGpa.value
+  if (h?.length) {
+    const sorted = [...h].sort((a, b) => (b.studentGpa || 0) - (a.studentGpa || 0))
     maxGpa.value = (sorted[0]?.studentGpa || 0).toFixed(2)
-    
-    const sum = historyBenchmarks.value.reduce((acc, item) => acc + (item.studentGpa || 0), 0)
-    avgGpa.value = (sum / historyBenchmarks.value.length).toFixed(2)
+    avgGpa.value = (h.reduce((s, x) => s + (x.studentGpa || 0), 0) / h.length).toFixed(2)
   } else {
     maxGpa.value = currentGpa.value
     avgGpa.value = currentGpa.value
   }
-  
-  // 计算挂科课程数
-  failedCourses.value = scoresList.value.filter(c => c.scoreTotal < 60).length
-  if (failedCourses.value < 3) warnLevel.value = '低级预警'
-  else if (failedCourses.value <= 5) warnLevel.value = '中级预警'
-  else warnLevel.value = '高级预警'
+  const fc = list.filter(c => c.scoreTotal < 60).length
+  failedCourses.value = fc
+  warnLevel.value = fc >= 6 ? '严重预警' : fc >= 3 ? '中度预警' : fc > 0 ? '轻度预警' : ''
 }
 
-// 打开申诉对话框
-const openAppealDialog = (row) => {
-  appealForm.value = {
-    courseId: row.id,
-    courseName: row.courseName,
-    currentScore: row.scoreTotal,
-    reason: '',
-    description: '',
-    attachments: [],
-    warningId: null
-  }
-  appealDialogVisible.value = true
+// ---- 图表渲染 ----
+function renderCharts() {
+  renderGpaChart()
+  renderDistChart()
 }
 
-// 提交申诉
-const submitAppeal = async () => {
-  if (!appealForm.value.reason) {
-    ElMessage.error('请选择申诉原因')
-    return
-  }
-  if (!appealForm.value.description) {
-    ElMessage.error('请填写申诉说明')
-    return
-  }
+function renderGpaChart() {
+  const dom = gpaChartRef.value
+  if (!dom) return
+  if (!gpaChart) gpaChart = echarts.init(dom)
+  const data = historyGpa.value?.length
+    ? historyGpa.value
+        .filter(x => x.semester)
+        .map(x => [semesterLabel(x.semester), Number(x.studentGpa || 0)])
+        .sort((a, b) => a[0].localeCompare(b[0]))
+    : scoresList.value.length
+      ? (() => {
+          const map = {}
+          scoresList.value.forEach(s => {
+            const lb = semesterLabel(s.semester)
+            if (!map[lb]) map[lb] = { sum: 0, cr: 0 }
+            map[lb].sum += (s.gradePoint || 0) * (s.credits || 0)
+            map[lb].cr += (s.credits || 0)
+          })
+          return Object.entries(map).map(([lb, v]) => [lb, v.cr > 0 ? +(v.sum / v.cr).toFixed(2) : 0]).sort((a, b) => a[0].localeCompare(b[0]))
+        })()
+      : []
+  if (!data.length) { gpaChart.setOption({ title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999', fontSize: 13 } } }); return }
 
+  const gpaVals = data.map(d => d[1])
+  const yMin = Math.floor(Math.min(...gpaVals, 2.0) * 2) / 2
+  gpaChart.setOption({
+    tooltip: {
+      trigger: 'axis', backgroundColor: '#fff', borderColor: '#eee',
+      textStyle: { color: '#333', fontSize: 12 },
+      formatter: (p) => `<strong>${p[0].name}</strong><br/>GPA: <b style="color:#7c3aed;font-size:16px">${p[0].value}</b>`
+    },
+    grid: { left: 50, right: 25, top: 30, bottom: 45 },
+    xAxis: { type: 'category', data: data.map(d => d[0]), axisLabel: { fontSize: 11, color: '#666' }, axisTick: { show: false }, boundaryGap: false },
+    yAxis: { type: 'value', min: Math.min(yMin, 1.5), max: 4, interval: 0.5, name: 'GPA', nameTextStyle: { fontSize: 11 } },
+    series: [{
+      type: 'line', smooth: true, data: gpaVals,
+      lineStyle: { color: '#7c3aed', width: 3 },
+      symbol: 'circle', symbolSize: 8,
+      itemStyle: { color: '#7c3aed', borderColor: '#fff', borderWidth: 2 },
+      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: 'rgba(124,58,237,0.25)' },
+        { offset: 0.5, color: 'rgba(124,58,237,0.08)' },
+        { offset: 1, color: 'rgba(124,58,237,0.01)' }
+      ])},
+      label: { show: true, position: 'top', fontSize: 10, color: '#7c3aed', fontWeight: 600 },
+      markLine: {
+        silent: true, symbol: 'none',
+        data: [
+          { yAxis: 2.0, label: { formatter: '及格线', fontSize: 10, color: '#ef6666' }, lineStyle: { color: '#fca5a5', type: 'dashed', width: 1.5 } },
+          { yAxis: 3.0, label: { formatter: '良好线', fontSize: 10, color: '#f59e0b' }, lineStyle: { color: '#fcd34d', type: 'dashed', width: 1.5 } }
+        ]
+      }
+    }]
+  })
+}
+
+function renderDistChart() {
+  const dom = distChartRef.value
+  if (!dom) return
+  if (!distChart) distChart = echarts.init(dom)
+  const list = scoresList.value
+  if (!list.length) { distChart.setOption({ title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999', fontSize: 13 } } }); return }
+  const buckets = { '优秀(≥90)': 0, '良好(80-89)': 0, '中等(70-79)': 0, '及格(60-69)': 0, '不及格(<60)': 0 }
+  list.forEach(s => {
+    const sc = s.scoreTotal || 0
+    if (sc >= 90) buckets['优秀(≥90)']++
+    else if (sc >= 80) buckets['良好(80-89)']++
+    else if (sc >= 70) buckets['中等(70-79)']++
+    else if (sc >= 60) buckets['及格(60-69)']++
+    else buckets['不及格(<60)']++
+  })
+  const items = Object.entries(buckets).filter(([_, v]) => v > 0)
+  const colors = { '优秀(≥90)': '#16a34a', '良好(80-89)': '#7c3aed', '中等(70-79)': '#3b82f6', '及格(60-69)': '#f59e0b', '不及格(<60)': '#ef4444' }
+  distChart.setOption({
+    tooltip: { trigger: 'item', formatter: (p) => `<strong style="font-size:14px">${p.name}</strong><br/>${p.value}门 (${p.percent}%)` },
+    legend: { bottom: 0, textStyle: { fontSize: 11, color: '#666' } },
+    series: [{
+      type: 'pie', radius: ['45%', '75%'], center: ['50%', '45%'],
+      data: items.map(([n, v]) => ({ name: n, value: v, itemStyle: { color: colors[n] } })),
+      label: { show: false },
+      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' }, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.15)' } }
+    }]
+  })
+}
+
+// ---- 辅助函数 ----
+function gradeLabel(score) {
+  const s = Number(score || 0)
+  if (s >= 90) return 'A'
+  if (s >= 80) return 'A-'
+  if (s >= 70) return 'B'
+  if (s >= 60) return 'C'
+  return 'D'
+}
+function scoreClass(s) { return Number(s || 0) >= 60 ? 'score-ok' : 'score-ng' }
+function gradeTagType(g) {
+  switch (g) { case 'A': case 'A-': return 'success'; case 'B': return ''; case 'C': return 'warning'; default: return 'danger' }
+}
+
+// ---- 申诉 ----
+function openAppeal(row) {
+  appealForm.value = { courseName: row.courseName, currentScore: row.scoreTotal, reason: '', description: '' }
+  appealVisible.value = true
+}
+function openDetail(row) { detailRow.value = row; detailVisible.value = true }
+async function submitAppeal() {
+  if (!appealForm.value.reason || !appealForm.value.description) {
+    ElMessage.warning('请完善申诉信息'); return
+  }
   try {
-    const userId = localStorage.getItem('userId')
-    const appealData = {
-      studentId: userId,
-      scoreId: appealForm.value.courseId,
+    await studentAPI.submitAppeal({
+      studentId: localStorage.getItem('userId'),
       reason: appealForm.value.reason,
       description: appealForm.value.description
-    }
-    await studentAPI.submitAppeal(appealData)
-    ElMessage.success('申诉已提交，请等待教师处理')
-    appealDialogVisible.value = false
-  } catch (error) {
-    console.error('提交申诉失败:', error)
-    ElMessage.error('提交申诉失败')
-  }
+    })
+    ElMessage.success('申诉已提交')
+    appealVisible.value = false
+  } catch (e) { ElMessage.error('提交失败') }
 }
 
-// 导出成绩
-const exportScores = async () => {
+// ---- 导出 ----
+async function exportScores() {
   try {
-    const userId = localStorage.getItem('userId')
-    await studentAPI.exportScoresExcel(userId)
-    ElMessage.info('成绩导出成功，即将下载')
-    // 下载文件
-    const blob = await studentAPI.downloadScoresExcel(userId)
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `scores_${Date.now()}.xlsx`
-    link.click()
-    window.URL.revokeObjectURL(url)
-  } catch (error) {
-    console.error('导出成绩失败:', error)
-    ElMessage.error('导出成绩失败')
-  }
+    await studentAPI.exportScoresExcel(getUserId())
+    ElMessage.success('导出成功')
+  } catch (e) { ElMessage.error('导出失败') }
 }
 </script>
 
 <style scoped>
-.scores-container {
-  padding: 20px;
-  background-color: #f5f7fa;
-  min-height: 100vh;
-}
+.scores-page { padding: 20px; min-height: 100vh; background: #f5f7fb; }
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.toolbar-right .total-label { font-size: 13px; color: #71717a; }
 
-.filter-section {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
+/* 统计卡片 */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+.stat-card { background: #fff; border-radius: 12px; padding: 18px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); transition: transform .2s; }
+.stat-card:hover { transform: translateY(-2px); }
+.stat-icon { font-size: 28px; }
+.stat-body { flex: 1; }
+.stat-value { font-size: 26px; font-weight: 700; color: #18181b; }
+.stat-label { font-size: 12px; color: #71717a; margin-top: 2px; }
+.stat-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.stat-tag.excellent { background: #dcfce7; color: #16a34a; }
+.stat-tag.good { background: #dbeafe; color: #2563eb; }
+.stat-tag.mid { background: #fef9c3; color: #ca8a04; }
+.stat-tag.bad { background: #fee2e2; color: #dc2626; }
+.stat-tag.warn { background: #fee2e2; color: #dc2626; }
+.stat-card.danger { border-left: 3px solid #ef4444; }
+.stat-card.fail .stat-value { color: #ef4444; }
 
-.card-header {
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
-}
+/* 图表 */
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.chart-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.chart-title { font-size: 14px; font-weight: 600; color: #18181b; margin-bottom: 8px; }
+.chart-box { width: 100%; height: 320px; }
 
-.el-upload__tip {
-  color: #666;
-  font-size: 12px;
+/* 表格 */
+.table-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 15px; font-weight: 600; color: #18181b; }
+/* 表头文字和图标在一行 */
+:deep(.el-table th .cell) { display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+:deep(.el-table th .cell .el-table__sort-icon) { margin-left: 4px; flex-shrink: 0; }
+.score-ok { color: #16a34a; font-weight: 600; }
+.score-ng { color: #ef4444; font-weight: 600; }
+.pass-dot { color: #16a34a; font-size: 12px; }
+.fail-dot { color: #ef4444; font-size: 12px; }
+.action-btns { display: inline-flex; gap: 4px; align-items: center; white-space: nowrap; }
+.action-btns .el-button + .el-button { margin-left: 0 !important; }
+.score-ng-row { background: #fef2f2 !important; }
+
+/* 详情弹窗 */
+.detail-card { padding: 8px 0; }
+.detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.detail-course { font-size: 16px; font-weight: 600; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.detail-item { display: flex; flex-direction: column; gap: 4px; padding: 10px; background: #f8f9fb; border-radius: 8px; }
+.detail-label { font-size: 11px; color: #71717a; }
+.detail-val { font-size: 16px; font-weight: 600; color: #18181b; }
+
+.score-red { color: #ef4444; font-weight: 600; }
+
+@media (max-width: 768px) {
+  .stat-row { grid-template-columns: 1fr 1fr; }
+  .chart-row { grid-template-columns: 1fr; }
 }
 </style>

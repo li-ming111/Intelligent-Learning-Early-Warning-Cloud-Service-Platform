@@ -12,15 +12,23 @@
         <div class="tab-content">
           <el-card style="margin-bottom: 20px;">
             <template #header>
-              <div class="card-header">系统角色</div>
+              <div class="card-header">
+                <span>系统角色</span>
+                <span class="role-count">共 {{ roles.length }} 个角色</span>
+              </div>
             </template>
 
-            <el-table :data="roles" stripe>
+            <div v-if="roles.length === 0" style="padding: 20px; text-align: center; color: #999;">
+              暂无角色数据
+            </div>
+            <el-table v-else :data="roles" stripe>
+              <el-table-column type="selection" width="55" />
+              <el-table-column prop="id" label="角色ID" width="100" sortable></el-table-column>
               <el-table-column prop="name" label="角色名称" width="120"></el-table-column>
-              <el-table-column prop="description" label="角色描述" min-width="200"></el-table-column>
-              <el-table-column label="权限数" width="80">
+              <el-table-column prop="description" label="角色描述" min-width="200" show-overflow-tooltip></el-table-column>
+              <el-table-column label="权限数" width="100">
                 <template #default="{ row }">
-                  <el-badge :value="row.permissions.length" class="item" />
+                  <el-tag type="success">{{ row.permissions.length }}</el-tag>
                 </template>
               </el-table-column>
               <el-table-column label="权限列表" min-width="300">
@@ -32,16 +40,29 @@
                   </div>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="120" fixed="right">
+              <el-table-column label="操作" width="150" fixed="right">
                 <template #default="{ row }">
-                  <el-button type="primary" size="small" link @click="editRole(row)">编辑</el-button>
-                  <el-button type="danger" size="small" link @click="deleteRole(row.id)">删除</el-button>
+                  <el-button type="primary" size="small" @click="editRole(row)">
+                    <el-icon><Edit /></el-icon> 编辑
+                  </el-button>
+                  <el-button type="danger" size="small" @click="deleteRole(row.id)">
+                    <el-icon><Delete /></el-icon> 删除
+                  </el-button>
                 </template>
               </el-table-column>
             </el-table>
+
+            <div class="table-footer">
+              <div class="selection-info" v-if="selectedRoles.length > 0">
+                已选择 {{ selectedRoles.length }} 项
+                <el-button type="danger" size="small" @click="batchDeleteRoles">批量删除</el-button>
+              </div>
+            </div>
           </el-card>
 
-          <el-button type="primary" @click="showCreateRoleDialog = true">创建新角色</el-button>
+          <el-button type="primary" @click="showCreateRoleDialog = true">
+            <el-icon><Plus /></el-icon> 创建新角色
+          </el-button>
         </div>
       </el-tab-pane>
 
@@ -50,7 +71,10 @@
         <div class="tab-content">
           <el-card>
             <template #header>
-              <div class="card-header">用户权限分配</div>
+              <div class="card-header">
+                <span>用户权限分配</span>
+                <span class="user-count">共 {{ totalUsers }} 个用户</span>
+              </div>
             </template>
 
             <div style="margin-bottom: 20px;">
@@ -58,55 +82,70 @@
                 v-model="searchUsername"
                 placeholder="搜索用户名..."
                 style="width: 250px; margin-right: 10px;"
+                @input="searchUsers"
+                clearable
               />
-              <el-button @click="searchUsers">搜索</el-button>
+              <el-button @click="loadUsers">
+                <el-icon><Refresh /></el-icon> 刷新
+              </el-button>
             </div>
 
-            <el-table :data="filteredUsers" stripe v-loading="loading">
+            <div v-if="filteredUsers.length === 0" style="padding: 20px; text-align: center; color: #999;">
+              暂无用户数据
+            </div>
+            <el-table v-else :data="filteredUsers" stripe v-loading="loading">
+              <el-table-column type="selection" width="55" />
+              <el-table-column prop="id" label="用户ID" width="100" sortable></el-table-column>
               <el-table-column prop="username" label="用户名" width="150"></el-table-column>
+              <el-table-column prop="name" label="姓名" width="120"></el-table-column>
               <el-table-column label="当前角色" width="150">
                 <template #default="{ row }">
                   <el-select v-model="row.role" size="small" @change="updateUserRole(row)">
                     <el-option :value="1" label="学生"></el-option>
                     <el-option :value="2" label="教师"></el-option>
-                    <el-option :value="4" label="辅导员"></el-option>
-                    <el-option :value="3" label="管理员"></el-option>
+                    <el-option :value="3" label="辅导员"></el-option>
+                    <el-option :value="4" label="管理员"></el-option>
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column label="权限数" width="80">
+              <el-table-column label="权限数" width="100">
                 <template #default="{ row }">
-                  <el-badge v-if="row.permissions" :value="row.permissions.length" class="item" />
+                  <el-tag v-if="row.permissions" type="info">{{ row.permissions.length }}</el-tag>
+                  <span v-else style="color: #999;">-</span>
                 </template>
               </el-table-column>
               <el-table-column label="状态" width="100">
                 <template #default="{ row }">
-                  <el-switch
-                    v-model="row.enabled"
-                    :active-value="1"
-                    :inactive-value="0"
-                    @change="toggleUserStatus(row)"
-                  />
+                  <el-tag :type="row.enabled === 1 ? 'success' : 'danger'">
+                    {{ row.enabled === 1 ? '启用' : '禁用' }}
+                  </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="120" fixed="right">
+              <el-table-column label="操作" width="200" fixed="right">
                 <template #default="{ row }">
-                  <el-button type="primary" size="small" link @click="viewUserPermissions(row)">查看权限</el-button>
+                  <div class="action-buttons">
+                    <el-button type="primary" size="small" @click="viewUserPermissions(row)">查看权限</el-button>
+                    <el-button :type="row.enabled === 1 ? 'danger' : 'success'" size="small" @click="toggleUserStatus(row)">{{ row.enabled === 1 ? '禁用' : '启用' }}</el-button>
+                  </div>
                 </template>
               </el-table-column>
             </el-table>
 
             <!-- 分页 -->
-            <el-pagination
-              v-model:current-page="currentPage"
-              v-model:page-size="pageSize"
-              :page-sizes="[10, 20, 50]"
-              :total="totalUsers"
-              layout="total, sizes, prev, pager, next"
-              style="margin-top: 20px;"
-              @size-change="handlePageSizeChange"
-              @current-change="handlePageChange"
-            />
+            <div class="table-footer">
+              <div class="selection-info" v-if="selectedUsers.length > 0">
+                已选择 {{ selectedUsers.length }} 项
+              </div>
+              <el-pagination
+                v-model:current-page="currentPage"
+                v-model:page-size="pageSize"
+                :page-sizes="[10, 20, 50]"
+                :total="totalUsers"
+                layout="total, sizes, prev, pager, next"
+                @size-change="handlePageSizeChange"
+                @current-change="handlePageChange"
+              />
+            </div>
           </el-card>
         </div>
       </el-tab-pane>
@@ -116,10 +155,18 @@
         <div class="tab-content">
           <el-card>
             <template #header>
-              <div class="card-header">系统权限配置</div>
+              <div class="card-header">
+                <span>系统权限配置</span>
+                <span class="permission-count">共 {{ permissions.length }} 项权限</span>
+              </div>
             </template>
 
-            <el-table :data="permissions" stripe>
+            <div v-if="permissions.length === 0" style="padding: 20px; text-align: center; color: #999;">
+              暂无权限数据
+            </div>
+            <el-table v-else :data="permissions" stripe>
+              <el-table-column type="selection" width="55" />
+              <el-table-column prop="id" label="权限ID" width="100" sortable></el-table-column>
               <el-table-column prop="code" label="权限码" width="150"></el-table-column>
               <el-table-column prop="name" label="权限名称" min-width="150"></el-table-column>
               <el-table-column label="适用角色" min-width="250">
@@ -136,12 +183,20 @@
                   </div>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="120" fixed="right">
+              <el-table-column label="操作" width="150" fixed="right">
                 <template #default="{ row }">
-                  <el-button type="primary" size="small" link @click="editPermission(row)">编辑</el-button>
+                  <el-button type="primary" size="small" @click="editPermission(row)">
+                    <el-icon><Edit /></el-icon> 编辑
+                  </el-button>
                 </template>
               </el-table-column>
             </el-table>
+
+            <div class="table-footer">
+              <div class="selection-info" v-if="selectedPermissions.length > 0">
+                已选择 {{ selectedPermissions.length }} 项
+              </div>
+            </div>
           </el-card>
         </div>
       </el-tab-pane>
@@ -170,7 +225,7 @@
     <!-- 创建角色对话框 -->
     <el-dialog v-model="showCreateRoleDialog" title="创建新角色" width="600px">
       <el-form :model="newRole" label-width="100px">
-        <el-form-item label="角色名称">
+        <el-form-item label="角色名称" prop="name">
           <el-input v-model="newRole.name" placeholder="输入角色名称"></el-input>
         </el-form-item>
         <el-form-item label="角色描述">
@@ -189,6 +244,19 @@
         <el-button type="primary" @click="createRole">创建</el-button>
       </template>
     </el-dialog>
+
+    <!-- 删除确认弹窗 -->
+    <el-dialog v-model="deleteDialogVisible" title="确认删除" width="400px">
+      <div class="delete-warning">
+        <el-icon color="#F56C6C" size="20"><WarningFilled /></el-icon>
+        <p>确定要删除选中的 <strong>{{ deleteCount }} 项</strong> 吗？</p>
+        <p class="warning-text">此操作不可逆，删除后将无法恢复！</p>
+      </div>
+      <template #footer>
+        <el-button @click="deleteDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="confirmDelete" :loading="deleteLoading">确认删除</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -196,6 +264,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { adminAPI } from '@/api/index'
 import { ElMessage } from 'element-plus'
+import { Plus, Refresh, Edit, Delete, WarningFilled } from '@element-plus/icons-vue'
 
 // 数据
 const roles = ref([])
@@ -206,6 +275,12 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(20)
 const totalUsers = ref(0)
+const selectedRoles = ref([])
+const selectedUsers = ref([])
+const selectedPermissions = ref([])
+const deleteDialogVisible = ref(false)
+const deleteLoading = ref(false)
+const deleteCount = ref(0)
 
 const permissionDetailVisible = ref(false)
 const selectedUser = ref(null)
@@ -221,10 +296,19 @@ const availablePermissions = ref([])
 
 // 计算属性
 const filteredUsers = computed(() => {
-  if (!searchUsername.value) return users.value
-  return users.value.filter(u =>
-    u.username.toLowerCase().includes(searchUsername.value.toLowerCase())
-  )
+  let filtered = users.value
+  
+  if (searchUsername.value) {
+    const searchLower = searchUsername.value.toLowerCase()
+    filtered = filtered.filter(u =>
+      u.username.toLowerCase().includes(searchLower) ||
+      (u.name && u.name.toLowerCase().includes(searchLower))
+    )
+  }
+
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filtered.slice(start, end)
 })
 
 onMounted(async () => {
@@ -279,11 +363,8 @@ const loadUsers = async () => {
 }
 
 // 搜索用户
-const searchUsers = async () => {
-  // 前端过滤
-  if (!searchUsername.value) {
-    await loadUsers()
-  }
+const searchUsers = () => {
+  currentPage.value = 1
 }
 
 // 更新用户角色
@@ -303,7 +384,8 @@ const updateUserRole = async (user) => {
 const toggleUserStatus = async (user) => {
   try {
     await adminAPI.toggleUserStatus(user.id)
-    ElMessage.success('用户状态已更新')
+    user.enabled = user.enabled === 1 ? 0 : 1
+    ElMessage.success(user.enabled === 1 ? '用户已启用' : '用户已禁用')
   } catch (error) {
     ElMessage.error('更新用户状态失败')
   }
@@ -327,8 +409,8 @@ const getRoleName = (roleId) => {
   const roleMap = {
     1: '学生',
     2: '教师',
-    3: '管理员',
-    4: '辅导员'
+    3: '辅导员',
+    4: '管理员'
   }
   return roleMap[roleId] || '未知'
 }
@@ -355,7 +437,18 @@ const editRole = (role) => {
 
 // 删除角色
 const deleteRole = (roleId) => {
-  ElMessage.warning('删除功能开发中...')
+  deleteCount.value = 1
+  deleteDialogVisible.value = true
+}
+
+// 批量删除角色
+const batchDeleteRoles = () => {
+  if (selectedRoles.value.length === 0) {
+    ElMessage.warning('请先选择要删除的角色')
+    return
+  }
+  deleteCount.value = selectedRoles.value.length
+  deleteDialogVisible.value = true
 }
 
 // 编辑权限
@@ -378,6 +471,19 @@ const createRole = async () => {
   showCreateRoleDialog.value = false
   newRole.value = { name: '', description: '', permissions: [] }
   await loadRoles()
+}
+
+// 确认删除
+const confirmDelete = async () => {
+  deleteLoading.value = true
+  try {
+    ElMessage.info('删除功能开发中...')
+    deleteDialogVisible.value = false
+  } catch (error) {
+    ElMessage.error('删除失败')
+  } finally {
+    deleteLoading.value = false
+  }
 }
 
 // 分页处理
@@ -422,6 +528,15 @@ const handlePageSizeChange = () => {
   font-size: 16px;
   font-weight: bold;
   color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.role-count, .user-count, .permission-count {
+  font-size: 14px;
+  color: #909399;
+  font-weight: normal;
 }
 
 .permission-tags {
@@ -438,28 +553,73 @@ const handlePageSizeChange = () => {
   margin: 10px 0;
 }
 
-:deep(.el-checkbox-group) {
+.table-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.selection-info {
+  color: #606266;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.delete-warning {
+  text-align: center;
+  padding: 20px;
+}
+
+.delete-warning p {
+  margin: 10px 0;
+  color: #606266;
+}
+
+.delete-warning .warning-text {
+  color: #F56C6C;
+  font-size: 14px;
+}
+
+.admin-permissions :deep(.el-card) {
+  border: 1px solid #e9ecef !important;
+}
+
+.admin-permissions :deep(.el-button--primary) {
+  background-color: #667eea !important;
+  border-color: #667eea !important;
+}
+
+.admin-permissions :deep(.el-button--primary:hover) {
+  background-color: #5568d3 !important;
+  border-color: #5568d3 !important;
+}
+
+.admin-permissions :deep(.el-button--danger) {
+  background-color: #f56c6c !important;
+  border-color: #f56c6c !important;
+}
+
+.admin-permissions :deep(.el-button--danger:hover) {
+  background-color: #e64141 !important;
+  border-color: #e64141 !important;
+}
+
+.admin-permissions :deep(.el-checkbox-group) {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* 全局样式覆盖 */
-.admin-permissions :deep(.el-card) {
-  border: 1px solid #e9ecef !important;
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
 }
-.admin-permissions :deep(.el-button--primary) {
-  background-color: #667eea !important;
-  border-color: #667eea !important;
-}
-.admin-permissions :deep(.el-button--primary:hover) {
-  background-color: #5568d3 !important;
-  border-color: #5568d3 !important;
-}
-.admin-permissions :deep(.el-tabs__active-bar) {
-  background-color: #667eea !important;
-}
-.admin-permissions :deep(.el-tabs__item.is-active) {
-  color: #667eea !important;
+
+.action-buttons .el-button {
+  margin: 0;
 }
 </style>

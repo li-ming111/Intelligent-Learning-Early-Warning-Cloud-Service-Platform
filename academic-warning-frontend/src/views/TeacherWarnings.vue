@@ -1,505 +1,227 @@
 <template>
-  <div class="teacher-warnings">
-    <div class="page-header">
-      <h1>学业预警管理</h1>
-      <p>处理学生预警、帮扶和沟通记录</p>
-    </div>
-
-    <!-- 预警统计 -->
-    <div class="stats-grid">
-      <div class="stat-card red">
-        <div class="stat-number">{{ warningStats.highWarnings || 0 }}</div>
-        <div class="stat-label">红色预警</div>
+  <div class="tw-page">
+    <!-- 统计卡片 -->
+    <div class="tw-stats">
+      <div class="tw-stat danger">
+        <div class="ts-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div class="ts-body"><div class="ts-num">{{ warnings.filter(w=>w.warningLevel==='严重').length }}</div><div class="ts-lbl">严重预警</div></div>
       </div>
-      <div class="stat-card yellow">
-        <div class="stat-number">{{ warningStats.mediumWarnings || 0 }}</div>
-        <div class="stat-label">黄色预警</div>
+      <div class="tw-stat warning">
+        <div class="ts-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <div class="ts-body"><div class="ts-num">{{ warnings.filter(w=>w.warningLevel==='中度').length }}</div><div class="ts-lbl">中度预警</div></div>
       </div>
-      <div class="stat-card blue">
-        <div class="stat-number">{{ warningStats.lowWarnings || 0 }}</div>
-        <div class="stat-label">蓝色预警</div>
+      <div class="tw-stat info">
+        <div class="ts-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+        <div class="ts-body"><div class="ts-num">{{ warnings.filter(w=>w.warningLevel==='轻度').length }}</div><div class="ts-lbl">轻度预警</div></div>
       </div>
-      <div class="stat-card gray">
-        <div class="stat-number">{{ warningStats.processedWarnings || 0 }}</div>
-        <div class="stat-label">已处理</div>
+      <div class="tw-stat done">
+        <div class="ts-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <div class="ts-body"><div class="ts-num">{{ warnings.filter(w=>w.status==='已处理').length }}</div><div class="ts-lbl">已处理</div></div>
       </div>
     </div>
 
-    <!-- 预警列表 -->
-    <el-card>
-      <template #header>
-        <div class="card-header">预警学生列表</div>
-      </template>
+    <!-- 工具栏 -->
+    <div class="tw-toolbar">
+      <span class="tw-title">预警列表</span>
+      <el-select v-model="filterLevel" placeholder="全部等级" clearable style="width:140px">
+        <el-option label="严重" value="严重" />
+        <el-option label="中度" value="中度" />
+        <el-option label="轻度" value="轻度" />
+      </el-select>
+    </div>
 
-      <el-tabs>
-        <el-tab-pane :label="`红色预警 (${warningStats.highWarnings || 0})`">
-          <div class="warning-list">
-            <div v-if="warnings.high.length === 0" class="empty-state">暂无红色预警</div>
-            <div v-for="warning in warnings.high" :key="warning.id" class="warning-item">
-              <div class="warning-header">
-                <span class="level red">红色</span>
-                <span class="student-info">{{ warning.studentName }} - {{ warning.courseName }}</span>
-              </div>
-              <div class="warning-body">
-                <p><strong>成绩：</strong>{{ warning.score }}分</p>
-                <p><strong>原因：</strong>{{ warning.description }}</p>
-              </div>
-              <div class="warning-actions">
-                <el-button type="primary" size="small" @click="handleWarning(warning)">处理</el-button>
-                <el-button size="small" @click="viewDetails(warning)">详情</el-button>
-              </div>
+    <!-- 预警卡片 -->
+    <div class="tw-list" v-if="filtered.length">
+      <div v-for="(w,i) in filtered" :key="w.id" class="tw-card" :class="'lvl-' + lvlKey(w.warningLevel)" :style="{animationDelay:i*0.06+'s'}">
+        <div class="twc-left">
+          <div class="twc-avatar" :style="{background:grad(w.studentId)}">{{ (w.studentName||'?').charAt(0) }}</div>
+          <div class="twc-info">
+            <div class="twc-name">{{ w.studentName }}
+              <span class="twc-badge" :class="'bg-' + lvlKey(w.warningLevel)">{{ w.warningLevel }}</span>
+            </div>
+            <div class="twc-title">{{ w.title || '学业预警' }}</div>
+            <div class="twc-desc">{{ w.description }}</div>
+            <div class="twc-meta">
+              <span>{{ w.className }}</span>
+              <span>{{ fmtDate(w.createdAt) }}</span>
+              <el-tag size="small" :type="w.status==='待处理'?'danger':'success'">{{ w.status }}</el-tag>
             </div>
           </div>
-        </el-tab-pane>
+        </div>
+        <div class="twc-right">
+          <el-button size="small" @click="viewDetail(w)">详情</el-button>
+          <el-button size="small" type="primary" @click="openHandle(w)" :disabled="w.status==='已处理'">处理</el-button>
+        </div>
+      </div>
+    </div>
+    <div v-else class="tw-empty">暂无预警记录</div>
 
-        <el-tab-pane :label="`黄色预警 (${warningStats.mediumWarnings || 0})`">
-          <div class="warning-list">
-            <div v-if="warnings.medium.length === 0" class="empty-state">暂无黄色预警</div>
-            <div v-for="warning in warnings.medium" :key="warning.id" class="warning-item">
-              <div class="warning-header">
-                <span class="level yellow">黄色</span>
-                <span class="student-info">{{ warning.studentName }} - {{ warning.courseName }}</span>
-              </div>
-              <div class="warning-body">
-                <p><strong>成绩：</strong>{{ warning.score }}分</p>
-                <p><strong>提醒：</strong>需要关注该生成绩发展趋势</p>
-              </div>
-              <div class="warning-actions">
-                <el-button type="warning" size="small" link @click="handleWarning(warning)">关注</el-button>
-              </div>
-            </div>
-          </div>
-        </el-tab-pane>
-
-        <el-tab-pane :label="`蓝色预警 (${warningStats.lowWarnings || 0})`">
-          <div v-if="warnings.low.length === 0" class="empty-state">暂无蓝色预警</div>
-        </el-tab-pane>
-      </el-tabs>
-    </el-card>
-
-    <!-- 处理对话框 -->
-    <el-dialog v-model="handleDialogVisible" title="处理预警" width="600px">
-      <el-form :model="handleForm" label-width="120px">
-        <el-form-item label="学生姓名">
-          <el-input :value="handleForm.studentName" disabled></el-input>
-        </el-form-item>
-        <el-form-item label="课程">
-          <el-input :value="handleForm.course" disabled></el-input>
-        </el-form-item>
-        <el-form-item label="帮扶措施">
-          <el-select v-model="handleForm.measure" placeholder="选择帮扶措施">
-            <el-option label="加课辅导" value="tutoring"></el-option>
-            <el-option label="定期答疑" value="qa"></el-option>
-            <el-option label="学习小组" value="group"></el-option>
-            <el-option label="心理疏导" value="psychology"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="沟通内容">
-          <el-input v-model="handleForm.communication" type="textarea" rows="4" placeholder="记录与学生的沟通内容"></el-input>
-          <el-button type="primary" plain @click="generateCommunication" style="margin-top: 10px;">生成沟通内容</el-button>
-        </el-form-item>
-        <el-form-item label="跟踪进度">
-          <el-input-number v-model="handleForm.progress" :min="0" :max="100" :step="10"></el-input-number>
-          <span style="margin-left: 10px;">%</span>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="handleDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitHandle">确认处理</el-button>
-      </template>
+    <!-- 详情弹窗 -->
+    <el-dialog v-model="detailVisible" title="预警详情" width="500px" destroy-on-close>
+      <div v-if="detailRow" class="det-body">
+        <div class="det-head" :class="'dl-' + lvlKey(detailRow.warningLevel)">
+          <span class="dh-badge">{{ detailRow.warningLevel }}</span>
+          <span class="dh-name">{{ detailRow.studentName }}</span>
+          <span class="dh-class">{{ detailRow.className }}</span>
+        </div>
+        <div class="det-grid">
+          <div class="dg"><label>预警标题</label><span>{{ detailRow.title }}</span></div>
+          <div class="dg"><label>创建时间</label><span>{{ fmtDate(detailRow.createdAt) }}</span></div>
+          <div class="dg full"><label>详细说明</label><span>{{ detailRow.description }}</span></div>
+        </div>
+        <div class="det-tip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>建议及时联系该学生了解情况，制定针对性帮扶方案。</span>
+        </div>
+      </div>
     </el-dialog>
 
-    <!-- 详情对话框 -->
-    <el-dialog v-model="detailDialogVisible" title="预警详情" width="600px">
-      <div class="detail-content">
-        <p><strong>学生：</strong>{{ detailForm.studentName }}</p>
-        <p><strong>课程：</strong>{{ detailForm.course }}</p>
-        <p><strong>当前成绩：</strong>{{ detailForm.score }}</p>
-        <p><strong>预警级别：</strong>{{ detailForm.level }}</p>
-        <p><strong>历史沟通：</strong></p>
-        <el-timeline>
-          <el-timeline-item v-for="(record, index) in communicationRecords" :key="index" :timestamp="record.timestamp">
-            <p>{{ record.content }}</p>
-          </el-timeline-item>
-          <el-timeline-item v-if="communicationRecords.length === 0">
-            <p>暂无沟通记录</p>
-          </el-timeline-item>
-        </el-timeline>
+    <!-- 处理弹窗 -->
+    <el-dialog v-model="handleVisible" title="处理预警" width="480px" destroy-on-close>
+      <div v-if="handleRow">
+        <div class="hdr-info">
+          <span>{{ handleRow.studentName }}</span>
+          <span class="hdr-title">{{ handleRow.title }}</span>
+        </div>
+        <el-form label-width="80px" style="margin-top:16px">
+          <el-form-item label="帮扶措施">
+            <el-select v-model="handleForm.measure" placeholder="选择措施" style="width:100%">
+              <el-option label="个别辅导" value="个别辅导" />
+              <el-option label="安排补课" value="安排补课" />
+              <el-option label="学习小组" value="学习小组" />
+              <el-option label="辅导员约谈" value="辅导员约谈" />
+              <el-option label="心理疏导" value="心理疏导" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="沟通记录">
+            <el-input v-model="handleForm.communication" type="textarea" rows="3" placeholder="记录沟通内容..." />
+          </el-form-item>
+        </el-form>
       </div>
+      <template #footer>
+        <el-button @click="handleVisible=false">取消</el-button>
+        <el-button type="primary" @click="submitHandle">确认处理</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage, ElLoading } from 'element-plus'
-import { teacherAPI, aiAPI } from '@/api/index'
+import { ref, computed, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import { teacherAPI } from '@/api/index'
 import { getUserId } from '@/utils/userUtils'
 
-const handleDialogVisible = ref(false)
-const detailDialogVisible = ref(false)
-const warningStats = ref({
-  highWarnings: 0,
-  mediumWarnings: 0,
-  lowWarnings: 0,
-  processedWarnings: 0
-})
-const warnings = ref({
-  high: [],
-  medium: [],
-  low: []
-})
+const warnings = ref([])
+const filterLevel = ref('')
+const detailVisible = ref(false)
+const handleVisible = ref(false)
+const detailRow = ref(null)
+const handleRow = ref(null)
+const handleForm = ref({ measure: '', communication: '' })
 
-const handleForm = ref({
-  warningId: '',
-  studentName: '',
-  course: '',
-  measure: '',
-  communication: '',
-  progress: 0
+const filtered = computed(() => {
+  if (!filterLevel.value) return warnings.value
+  return warnings.value.filter(w => w.warningLevel === filterLevel.value)
 })
 
-const detailForm = ref({
-  studentName: '',
-  course: '',
-  score: '',
-  level: ''
-})
+onMounted(() => loadWarnings())
 
-const communicationRecords = ref([])
-
-onMounted(async () => {
-  await loadWarnings()
-})
-
-// 加载预警数据
-const loadWarnings = async () => {
+async function loadWarnings() {
   try {
-    const teacherId = localStorage.getItem('teacherId') || getUserId()
-    if (!teacherId) return
-    const response = await teacherAPI.getWarnings(teacherId)
-    if (response && Array.isArray(response)) {
-      // 分类预警
-      const high = response.filter(w => w.warningLevel === 'high')
-      const medium = response.filter(w => w.warningLevel === 'medium')
-      const low = response.filter(w => w.warningLevel === 'low')
-      
-      warnings.value = { high, medium, low }
-      warningStats.value = {
-        highWarnings: high.length,
-        mediumWarnings: medium.length,
-        lowWarnings: low.length,
-        processedWarnings: response.filter(w => w.status === 'processed').length
-      }
-    }
-  } catch (error) {
-    console.error('加载预警失败:', error)
-  }
+    const tid = localStorage.getItem('teacherId') || getUserId() || '9'
+    const res = await teacherAPI.getWarnings(tid)
+    if (Array.isArray(res)) warnings.value = res
+  } catch (e) { console.error('加载预警失败', e) }
 }
 
-// 处理预警
-const handleWarning = (warning) => {
-  handleForm.value = {
-    warningId: warning.id,
-    studentName: warning.studentName,
-    course: warning.courseName,
-    measure: '',
-    communication: '',
-    progress: 0
-  }
-  handleDialogVisible.value = true
+function lvlKey(l) { if (l === '严重') return 'danger'; if (l === '中度') return 'warning'; return 'info' }
+function fmtDate(d) { if (!d) return '--'; return String(d).replace('T', ' ').substring(0, 16) }
+const colors = ['#7c3aed','#2563eb','#16a34a','#f59e0b','#ef4444','#8b5cf6','#db2777','#ea580c']
+function grad(id) {
+  const c = colors[(id || 1) % colors.length]
+  return `linear-gradient(135deg,${c},${c}cc)`
 }
 
-// 查看详情
-const viewDetails = async (warning) => {
-  detailForm.value = {
-    studentName: warning.studentName,
-    course: warning.courseName,
-    score: warning.score,
-    level: warning.level
-  }
-  // 加载沟通记录
-  communicationRecords.value = [] // 暂时设置为空数组
-  detailDialogVisible.value = true
-}
-
-// 提交预警处理
-const submitHandle = async () => {
+function viewDetail(w) { detailRow.value = w; detailVisible.value = true }
+function openHandle(w) { handleRow.value = w; handleForm.value = { measure: '', communication: '' }; handleVisible.value = true }
+async function submitHandle() {
+  if (!handleForm.value.measure) { ElMessage.error('请选择帮扶措施'); return }
   try {
-    if (!handleForm.value.measure) {
-      ElMessage.error('请选择帮扶措施')
-      return
-    }
-    
-    const userId = getUserId()
-    
-    // 保存沟通记录
-    if (handleForm.value.communication) {
-      await teacherAPI.saveCommunication({
-        teacherId: userId,
-        studentId: handleForm.value.warningId,
-        content: handleForm.value.communication
-      })
-    }
-    
-    // 处理预警
-    await teacherAPI.processWarning(handleForm.value.warningId, {
-      measures: handleForm.value.measure
-    })
-    
-    ElMessage.success('预警已处理，沟通记录已保存')
-    handleDialogVisible.value = false
+    await teacherAPI.processWarning(handleRow.value.id, { measures: handleForm.value.measure, remark: handleForm.value.communication })
+    ElMessage.success('已处理')
+    handleVisible.value = false
     await loadWarnings()
-  } catch (error) {
-    console.error('处理预警失败:', error)
-    ElMessage.error('处理预警失败')
-  }
-}
-
-// 生成沟通内容
-const generateCommunication = async () => {
-  if (!handleForm.value.warningId) {
-    ElMessage.error('请选择预警记录')
-    return
-  }
-  
-  const loading = ElLoading.service({
-    lock: true,
-    text: 'AI生成沟通内容中...',
-    background: 'rgba(0, 0, 0, 0.7)'
-  })
-  
-  try {
-    const userId = getUserId()
-    // 构建AI提示词
-    const prompt = `作为高校教师，为与学生${handleForm.value.studentName}的沟通生成一份专业的沟通记录。学生在课程${handleForm.value.course}中表现不佳，需要进行沟通辅导。请生成一段专业、关怀的沟通内容，内容应包括：1. 对学生当前学习情况的关心 2. 针对课程学习的具体建议 3. 鼓励和支持的话语。生成的内容要符合教师的专业身份，语言要正式、温暖。`
-    
-    const response = await aiAPI.getResponse(userId, prompt)
-    if (response && response.code === 0 && response.data) {
-      handleForm.value.communication = response.data
-      ElMessage.success('沟通内容生成成功')
-    } else {
-      ElMessage.error('生成沟通内容失败')
-    }
-  } catch (error) {
-    console.error('生成沟通内容失败:', error)
-    ElMessage.error('生成沟通内容失败，请稍后重试')
-  } finally {
-    loading.close()
-  }
+  } catch (e) { ElMessage.error('处理失败') }
 }
 </script>
 
 <style scoped>
-.teacher-warnings {
-  padding: 24px;
-  background: #f5f7fa;
-  min-height: 100vh;
-}
+.tw-page { padding: 20px 24px; min-height: 100vh; background: #f5f7fb; }
 
-.page-header {
-  margin-bottom: 28px;
-  padding: 32px;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border-radius: 16px;
-  color: white;
-  box-shadow: 0 8px 24px rgba(79, 172, 254, 0.4);
-  animation: slideDown 0.6s ease-out;
-}
+/* 统计 */
+.tw-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+.tw-stat { background: #fff; border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.04); border-left: 4px solid #ddd; }
+.tw-stat.danger { border-left-color: #ef4444; }
+.tw-stat.warning { border-left-color: #f59e0b; }
+.tw-stat.info { border-left-color: #3b82f6; }
+.tw-stat.done { border-left-color: #16a34a; }
+.ts-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.tw-stat.danger .ts-icon { background: #fef2f2; color: #ef4444; }
+.tw-stat.warning .ts-icon { background: #fffbeb; color: #f59e0b; }
+.tw-stat.info .ts-icon { background: #eff6ff; color: #3b82f6; }
+.tw-stat.done .ts-icon { background: #ecfdf5; color: #16a34a; }
+.ts-icon svg { width: 20px; height: 20px; }
+.ts-num { font-size: 26px; font-weight: 700; color: #18181b; }
+.ts-lbl { font-size: 13px; color: #71717a; }
 
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+/* 工具栏 */
+.tw-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.tw-title { font-size: 16px; font-weight: 600; color: #18181b; }
 
-.page-header h1 {
-  margin: 0 0 10px 0;
-  font-size: 28px;
-  font-weight: bold;
-  color: white;
-}
+/* 预警卡片 */
+.tw-list { display: flex; flex-direction: column; gap: 10px; }
+.tw-card { background: #fff; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); border-left: 4px solid #ddd; animation: fadeUp .4s ease both; transition: box-shadow .2s; }
+.tw-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.tw-card.lvl-danger { border-left-color: #ef4444; }
+.tw-card.lvl-warning { border-left-color: #f59e0b; }
+.tw-card.lvl-info { border-left-color: #3b82f6; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{} }
 
-.page-header p {
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.95;
-  color: white;
-}
+.twc-left { display: flex; align-items: flex-start; gap: 14px; flex: 1; min-width: 0; }
+.twc-avatar { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; font-weight: 700; flex-shrink: 0; }
+.twc-info { flex: 1; min-width: 0; }
+.twc-name { font-size: 15px; font-weight: 600; color: #18181b; display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.twc-badge { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 10px; }
+.twc-badge.bg-danger { background: #fef2f2; color: #ef4444; }
+.twc-badge.bg-warning { background: #fffbeb; color: #f59e0b; }
+.twc-badge.bg-info { background: #eff6ff; color: #3b82f6; }
+.twc-title { font-size: 13px; color: #52525b; margin-bottom: 2px; }
+.twc-desc { font-size: 12px; color: #a1a1aa; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.twc-meta { display: flex; gap: 12px; align-items: center; margin-top: 6px; font-size: 12px; color: #a1a1aa; }
+.twc-right { flex-shrink: 0; display: flex; gap: 8px; }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
+.tw-empty { text-align: center; padding: 60px 20px; color: #a1a1aa; font-size: 15px; }
 
-.stat-card {
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  text-align: center;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border-top: 4px solid;
-}
+/* 详情 */
+.det-head { padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.det-head.dl-danger { background: #fef2f2; }
+.det-head.dl-warning { background: #fffbeb; }
+.det-head.dl-info { background: #eff6ff; }
+.dh-badge { padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #fff; }
+.dl-danger .dh-badge { background: #ef4444; }
+.dl-warning .dh-badge { background: #f59e0b; }
+.dl-info .dh-badge { background: #3b82f6; }
+.dh-name { font-size: 16px; font-weight: 600; }
+.dh-class { font-size: 13px; color: #a1a1aa; margin-left: auto; }
+.det-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dg.full { grid-column: span 2; }
+.dg label { display: block; font-size: 12px; color: #a1a1aa; margin-bottom: 2px; }
+.dg span { font-size: 14px; color: #3f3f46; }
+.det-tip { margin-top: 16px; background: #fffbeb; border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #92400e; }
 
-.stat-card.red { border-top-color: #f56c6c; }
-.stat-card.yellow { border-top-color: #e6a23c; }
-.stat-card.blue { border-top-color: #409eff; }
-.stat-card.gray { border-top-color: #909399; }
+.hdr-info { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f5f5f5; border-radius: 8px; font-size: 15px; font-weight: 600; }
+.hdr-title { font-size: 13px; color: #71717a; font-weight: 400; }
 
-.stat-card:hover {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-  transform: translateY(-8px);
-}
-
-.stat-number {
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #666;
-  font-weight: 500;
-}
-
-.card-header {
-  font-size: 18px;
-  font-weight: bold;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.warning-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.warning-item {
-  background: white;
-  padding: 20px;
-  border-radius: 16px;
-  border-left: 4px solid #667eea;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: fadeInUp 0.6s ease-out;
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.warning-item:hover {
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
-  transform: translateY(-4px);
-  border-left-color: #764ba2;
-}
-
-.warning-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.level {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  color: white;
-  display: inline-block;
-}
-
-.level.red {
-  background: linear-gradient(135deg, #f56c6c 0%, #ef4040 100%);
-}
-
-.level.yellow {
-  background: linear-gradient(135deg, #e6a23c 0%, #d89216 100%);
-}
-
-.student-info {
-  font-weight: 600;
-  color: #333;
-  font-size: 15px;
-}
-
-.warning-body {
-  margin-bottom: 16px;
-}
-
-.warning-body p {
-  margin: 8px 0;
-  font-size: 14px;
-  color: #666;
-  line-height: 1.6;
-}
-
-.warning-body strong {
-  color: #333;
-  font-weight: 600;
-}
-
-.warning-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.empty-state {
-  padding: 40px 20px;
-  text-align: center;
-  color: #999;
-}
-
-.detail-content {
-  line-height: 1.8;
-}
-
-.detail-content p {
-  margin: 12px 0;
-  color: #333;
-  font-size: 15px;
-}
-
-:deep(.el-card) {
-  border-radius: 16px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-card:hover) {
-  border-color: #e8ecf1;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-:deep(.el-tabs__header) {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e8ecf1 100%);
-  border-radius: 12px;
-  padding: 8px;
-}
-
-:deep(.el-tabs__nav-wrap::after) {
-  background: none;
-}
-
-:deep(.el-button) {
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-button:hover) {
-  transform: translateY(-2px);
-}
+@media (max-width: 768px) { .tw-stats { grid-template-columns: repeat(2,1fr); } .tw-card { flex-direction: column; } .twc-right { width: 100%; justify-content: flex-end; } }
 </style>

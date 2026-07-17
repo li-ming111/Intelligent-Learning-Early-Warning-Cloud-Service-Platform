@@ -206,6 +206,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { User, Lock, Setting, Warning } from '@element-plus/icons-vue'
 import { adminAPI } from '@/api/index'
+import { applyThemeMode } from '@/config/theme'
 
 const activeMenu = ref('account')
 const logsLoading = ref(false)
@@ -243,7 +244,7 @@ const preferencesForm = ref({
 })
 
 const securityLogs = ref([])
-const lastLoginTime = ref('2025-12-22 12:59:00')
+const lastLoginTime = ref('')
 
 onMounted(async () => {
   await loadAdminInfo()
@@ -256,13 +257,26 @@ const loadAdminInfo = async () => {
   try {
     const username = localStorage.getItem('username') || '管理员'
     const name = localStorage.getItem('userName') || '系统管理员'
-    const email = localStorage.getItem('email') || 'admin@system.com'
+    const email = localStorage.getItem('email') || ''
+    const userId = localStorage.getItem('userId')
+    
+    // 从后端获取准确信息
+    let createdAt = ''
+    if (userId) {
+      try {
+        const userInfo = await adminAPI.getUserById(parseInt(userId))
+        if (userInfo) {
+          createdAt = userInfo.createdAt || ''
+        }
+      } catch (e) { console.warn('获取用户信息失败:', e.message) }
+    }
+    
     accountInfo.value = {
       username: username,
       name: name,
       email: email,
       phone: localStorage.getItem('phone') || '',
-      createdAt: '2023-01-01'
+      createdAt: createdAt || new Date().toISOString().split('T')[0]
     }
     accountInfoBackup.value = JSON.parse(JSON.stringify(accountInfo.value))
   } catch (error) {
@@ -361,8 +375,8 @@ const updatePreferences = async () => {
     // 保存到 localStorage
     localStorage.setItem('adminPreferences', JSON.stringify(preferencesForm.value))
     
-    // 应用主题设置
-    applyTheme(preferencesForm.value.theme)
+    // 应用主题设置（使用统一的主题切换函数）
+    applyThemeMode(preferencesForm.value.theme)
     
     // 应用语言设置
     applyLanguage(preferencesForm.value.language)
@@ -370,23 +384,10 @@ const updatePreferences = async () => {
     // 保存页面大小设置
     localStorage.setItem('pageSize', preferencesForm.value.pageSize)
     
-    ElMessage.success('系统偏好已保存，部分设置需要刷新后生效')
+    ElMessage.success('系统偏好已保存')
   } catch (error) {
     console.error('保存偏好失败:', error)
     ElMessage.error('保存失败')
-  }
-}
-
-// 应用主题
-const applyTheme = (theme) => {
-  if (theme === 'dark') {
-    document.documentElement.style.colorScheme = 'dark'
-    document.body.classList.add('dark-theme')
-    document.body.classList.remove('light-theme')
-  } else {
-    document.documentElement.style.colorScheme = 'light'
-    document.body.classList.add('light-theme')
-    document.body.classList.remove('dark-theme')
   }
 }
 
@@ -412,35 +413,28 @@ const resetPreferencesForm = () => {
 const loadSecurityLogs = async () => {
   logsLoading.value = true
   try {
-    securityLogs.value = [
-      {
-        loginTime: '2025-12-22 12:59:00',
-        device: 'Windows 10 (Chrome)',
-        ipAddress: '192.168.1.100',
-        location: '校园网',
-        status: 'success'
-      },
-      {
-        loginTime: '2025-12-21 15:30:00',
-        device: 'Mac OS (Safari)',
-        ipAddress: '192.168.1.101',
-        location: '校园网',
-        status: 'success'
-      },
-      {
-        loginTime: '2025-12-20 10:15:00',
-        device: 'Windows 10 (Chrome)',
-        ipAddress: '192.168.1.100',
-        location: '校园网',
-        status: 'success'
+    const userId = localStorage.getItem('userId')
+    if (userId) {
+      const response = await adminAPI.getLoginLogs(parseInt(userId))
+      if (Array.isArray(response)) {
+        securityLogs.value = response
+        if (response.length > 0) {
+          lastLoginTime.value = formatDateTime(response[0].loginTime)
+        }
       }
-    ]
+    }
   } catch (error) {
     console.error('加载安全日志失败:', error)
     securityLogs.value = []
   } finally {
     logsLoading.value = false
   }
+}
+
+const formatDateTime = (dt) => {
+  if (!dt) return ''
+  const d = new Date(dt)
+  return d.toLocaleString('zh-CN')
 }
 
 // 邮箱验证
@@ -457,6 +451,10 @@ const isValidEmail = (email) => {
   min-height: 100vh;
 }
 
+.dark-mode .admin-settings-container {
+  background-color: #141414 !important;
+}
+
 .page-header {
   margin-bottom: 30px;
 }
@@ -468,10 +466,18 @@ const isValidEmail = (email) => {
   font-weight: bold;
 }
 
+.dark-mode .page-header h1 {
+  color: #e5e5e5;
+}
+
 .page-header p {
   margin: 0;
   color: #999;
   font-size: 14px;
+}
+
+.dark-mode .page-header p {
+  color: #999;
 }
 
 .settings-menu {
@@ -481,6 +487,11 @@ const isValidEmail = (email) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   position: sticky;
   top: 20px;
+}
+
+.dark-mode .settings-menu {
+  background: #1f1f1f;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .menu-item {
@@ -495,6 +506,10 @@ const isValidEmail = (email) => {
   gap: 10px;
 }
 
+.dark-mode .menu-item {
+  color: #ccc;
+}
+
 .menu-icon {
   font-size: 18px;
 }
@@ -504,11 +519,22 @@ const isValidEmail = (email) => {
   color: #409eff;
 }
 
+.dark-mode .menu-item:hover {
+  background-color: #2a2a2a;
+  color: #66b1ff;
+}
+
 .menu-item.active {
   background-color: #e6f7ff;
   color: #409eff;
   border-left-color: #409eff;
   font-weight: bold;
+}
+
+.dark-mode .menu-item.active {
+  background-color: #1e3a5f;
+  color: #66b1ff;
+  border-left-color: #66b1ff;
 }
 
 .settings-card {
@@ -526,6 +552,10 @@ const isValidEmail = (email) => {
   gap: 10px;
 }
 
+.dark-mode .card-header {
+  color: #e5e5e5;
+}
+
 .card-header :deep(.el-icon) {
   font-size: 18px;
 }
@@ -537,6 +567,10 @@ const isValidEmail = (email) => {
   margin-top: 20px;
 }
 
+.dark-mode .password-tips {
+  background-color: #2a2a2a;
+}
+
 .password-tips h4 {
   margin: 0 0 12px 0;
   color: #333;
@@ -544,11 +578,19 @@ const isValidEmail = (email) => {
   font-weight: bold;
 }
 
+.dark-mode .password-tips h4 {
+  color: #e5e5e5;
+}
+
 .password-tips ul {
   margin: 0;
   padding-left: 20px;
   color: #666;
   font-size: 13px;
+}
+
+.dark-mode .password-tips ul {
+  color: #ccc;
 }
 
 .password-tips li {
@@ -563,11 +605,20 @@ const isValidEmail = (email) => {
   margin-bottom: 20px;
 }
 
+.dark-mode .security-summary {
+  background-color: #2a2a2a;
+}
+
 .summary-item {
   background: white;
   padding: 15px;
   border-radius: 4px;
   border: 1px solid #e9ecef;
+}
+
+.dark-mode .summary-item {
+  background: #1f1f1f;
+  border-color: #333;
 }
 
 .summary-label {
@@ -578,10 +629,18 @@ const isValidEmail = (email) => {
   letter-spacing: 0.5px;
 }
 
+.dark-mode .summary-label {
+  color: #888;
+}
+
 .summary-value {
   color: #333;
   font-size: 16px;
   font-weight: bold;
+}
+
+.dark-mode .summary-value {
+  color: #e5e5e5;
 }
 
 h4 {
@@ -589,5 +648,9 @@ h4 {
   color: #333;
   font-size: 14px;
   font-weight: bold;
+}
+
+.dark-mode h4 {
+  color: #e5e5e5;
 }
 </style>

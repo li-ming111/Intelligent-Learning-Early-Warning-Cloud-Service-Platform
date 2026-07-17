@@ -1,125 +1,135 @@
 <template>
-  <view class="students-container">
+  <view class="page">
     <view class="header">
       <text class="title">学生管理</text>
-      <text class="subtitle">管理班级学生信息</text>
+      <text class="sub">{{ students.length }} 名学生</text>
     </view>
 
-    <view class="filter-section">
-      <view class="search-box">
-        <input class="search-input" type="text" v-model="searchKeyword" placeholder="搜索学生姓名或学号" @confirm="handleSearch" />
-        <button class="search-btn" @click="handleSearch">搜索</button>
+    <view class="filter-bar">
+      <view class="search-wrap">
+        <text class="search-icon">🔍</text>
+        <input v-model="keyword" class="search-inp" placeholder="搜索姓名或学号" @confirm="applyFilter" />
+        <text v-if="keyword" class="clear-btn" @tap="keyword='';applyFilter()">✕</text>
       </view>
-      <picker :range="classOptions" :value="selectedClassIndex" @change="handleClassChange" class="class-picker">
-        <view class="picker-label">
-          <text class="picker-text">{{ selectedClass }}</text>
-          <text class="picker-arrow">▼</text>
+      <picker :value="classIdx" :range="classNames" @change="onClassChange">
+        <view class="picker-btn">
+          <text class="picker-label">{{ classNames[classIdx] || '全部班级' }}</text>
+          <text class="picker-arrow">▾</text>
         </view>
       </picker>
     </view>
 
-    <view class="students-list">
-      <view v-if="filteredStudents.length > 0" class="students-content">
-        <view v-for="student in filteredStudents" :key="student.id" class="student-item" hover-class="student-item-hover">
-          <view class="student-avatar">
-            <text class="avatar-text">{{ student.name.charAt(0) }}</text>
+    <scroll-view v-if="filtered.length" scroll-y class="list">
+      <view v-for="s in filtered" :key="s.id || s.studentId" class="card">
+        <view class="av" :style="{background:avGrad((s.id||s.studentId)||1)}">{{ (s.name || s.studentName || '?')[0] }}</view>
+        <view class="info">
+          <view class="name-row">
+            <text class="name">{{ s.name || s.studentName }}</text>
+            <text class="tag" :class="s.warnLevel >= 3 ? 'tag-red' : s.warnLevel >= 2 ? 'tag-yellow' : 'tag-green'">
+              {{ s.warnLevel >= 3 ? '预警' : s.warnLevel >= 2 ? '关注' : '正常' }}
+            </text>
           </view>
-          <view class="student-info">
-            <text class="student-name">{{ student.name }}</text>
-            <text class="student-id">学号: {{ student.id }}</text>
-            <view class="student-meta">
-              <text class="meta-item">班级: {{ student.class }}</text>
-              <text class="meta-item">专业: {{ student.major }}</text>
-            </view>
-          </view>
-          <view class="student-actions">
-            <button class="action-btn view-btn" @click="viewStudent(student)">查看</button>
-            <button class="action-btn warning-btn" @click="addWarning(student)">预警</button>
-          </view>
+          <text class="meta">学号: {{ s.studentId || s.studentNo }}</text>
+          <text class="meta">班级: {{ s.className || s.class_name || '--' }}</text>
+        </view>
+        <view class="actions">
+          <text class="act-link" @tap="viewDetail(s)">详情</text>
         </view>
       </view>
-      <view v-else class="empty-state">
-        <view class="empty-icon">👨‍🎓</view>
-        <text>暂无学生数据</text>
-      </view>
+    </scroll-view>
+    <view v-else class="empty">
+      <text class="empty-icon">👨‍🎓</text>
+      <text class="empty-text">暂无学生数据</text>
     </view>
+
+    <teacher-tab-bar current="pages/teacher/students" />
   </view>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue';
+<script>
+import { teacherAPI } from '@/services/api.js'
 
-const searchKeyword = ref('');
-const selectedClass = ref('全部班级');
-const selectedClassIndex = ref(0);
-const classOptions = ['全部班级', '计算机1班', '计算机2班', '软件工程1班', '软件工程2班'];
-
-const students = ref([
-  { id: '2021001', name: '张三', class: '计算机1班', major: '计算机科学与技术' },
-  { id: '2021002', name: '李四', class: '计算机1班', major: '计算机科学与技术' },
-  { id: '2021003', name: '王五', class: '计算机2班', major: '计算机科学与技术' },
-  { id: '2021004', name: '赵六', class: '软件工程1班', major: '软件工程' },
-  { id: '2021005', name: '钱七', class: '软件工程2班', major: '软件工程' }
-]);
-
-const filteredStudents = computed(() => {
-  let result = students.value;
-  if (selectedClass.value !== '全部班级') {
-    result = result.filter(s => s.class === selectedClass.value);
+export default {
+  data() {
+    return {
+      keyword: '',
+      classIdx: 0,
+      classes: [],
+      students: []
+    }
+  },
+  computed: {
+    classNames() { return ['全部班级', ...this.classes.map(c => c.name || c.className)] },
+    filtered() {
+      let arr = this.students
+      if (this.classIdx > 0) {
+        const cn = this.classes[this.classIdx - 1]?.name
+        if (cn) arr = arr.filter(s => (s.className || s.class_name) === cn)
+      }
+      if (this.keyword) {
+        const kw = this.keyword.toLowerCase()
+        arr = arr.filter(s => (s.name || s.studentName || '').toLowerCase().includes(kw) || String(s.studentId || '').includes(kw))
+      }
+      return arr
+    }
+  },
+  onShow() { this.loadData() },
+  methods: {
+    async loadData() {
+      try {
+        const uid = uni.getStorageSync('teacherId') || uni.getStorageSync('userId'); if (!uid) return
+        const [sRes, cRes] = await Promise.all([teacherAPI.getStudents(uid), teacherAPI.getMyClasses(uid).catch(() => [])])
+        this.students = Array.isArray(sRes) ? sRes : (sRes?.data || [])
+        this.classes = Array.isArray(cRes) ? cRes : (cRes?.data || [])
+      } catch (e) {}
+    },
+    onClassChange(e) { this.classIdx = Number(e.detail.value) },
+    applyFilter() {},
+    avGrad(id) {
+      const cs = ['#2563eb,#1d4ed8','#7c3aed,#6d28d9','#16a34a,#15803d','#f59e0b,#d97706','#ef4444,#dc2626','#0891b2,#0e7490']
+      return `linear-gradient(135deg,${cs[(id||1) % cs.length]})`
+    },
+    viewDetail(s) {
+      uni.showModal({
+        title: s.name || s.studentName,
+        content: `学号: ${s.studentId || s.studentNo}\n班级: ${s.className || '--'}\n专业: ${s.major || '--'}\n成绩: ${s.avgScore || '--'}`,
+        showCancel: false
+      })
+    }
   }
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(s => s.name.toLowerCase().includes(keyword) || s.id.toLowerCase().includes(keyword));
-  }
-  return result;
-});
-
-const handleSearch = () => {
-  console.log('搜索:', searchKeyword.value);
-};
-
-const handleClassChange = (e) => {
-  selectedClassIndex.value = e.detail.value;
-  selectedClass.value = classOptions[e.detail.value];
-};
-
-const viewStudent = (student) => {
-  uni.showToast({ title: `查看学生: ${student.name}`, icon: 'none' });
-};
-
-const addWarning = (student) => {
-  uni.showToast({ title: `为学生 ${student.name} 添加预警`, icon: 'none' });
-};
+}
 </script>
 
 <style scoped>
-.students-container { padding: 20rpx; background-color: #f5f7fa; min-height: 100vh; }
-.header { margin-bottom: 24rpx; }
-.title { font-size: 32rpx; font-weight: 700; color: #333; margin-bottom: 8rpx; display: block; }
-.subtitle { font-size: 18rpx; color: #666; display: block; }
-.filter-section { background: white; border-radius: 20rpx; padding: 24rpx; margin-bottom: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.08); border: 1rpx solid #f0f0f0; }
-.search-box { display: flex; gap: 16rpx; margin-bottom: 20rpx; }
-.search-input { flex: 1; height: 80rpx; padding: 0 24rpx; border: 1rpx solid #e0e0e0; border-radius: 12rpx; font-size: 16rpx; background-color: #f9f9f9; }
-.search-btn { width: 120rpx; height: 80rpx; background-color: #4facfe; color: white; border: none; border-radius: 12rpx; font-size: 16rpx; font-weight: 500; }
-.class-picker { width: 100%; }
-.picker-label { display: flex; justify-content: space-between; align-items: center; padding: 20rpx 24rpx; background-color: #f9f9f9; border: 1rpx solid #e0e0e0; border-radius: 12rpx; }
-.picker-text { font-size: 16rpx; color: #333; }
-.picker-arrow { font-size: 14rpx; color: #999; }
-.students-list { margin-bottom: 24rpx; }
-.students-content { display: flex; flex-direction: column; gap: 16rpx; }
-.student-item { background: white; border-radius: 20rpx; padding: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.08); border: 1rpx solid #f0f0f0; display: flex; align-items: center; transition: all 0.3s ease; }
-.student-item-hover { transform: translateY(-4rpx); box-shadow: 0 6rpx 20rpx rgba(0,0,0,0.12); border-color: #4facfe; }
-.student-avatar { width: 80rpx; height: 80rpx; border-radius: 50%; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); display: flex; align-items: center; justify-content: center; margin-right: 20rpx; flex-shrink: 0; }
-.avatar-text { font-size: 32rpx; font-weight: 700; color: white; }
-.student-info { flex: 1; }
-.student-name { font-size: 20rpx; font-weight: 600; color: #333; display: block; margin-bottom: 4rpx; }
-.student-id { font-size: 14rpx; color: #666; display: block; margin-bottom: 8rpx; }
-.student-meta { display: flex; gap: 16rpx; }
-.meta-item { font-size: 14rpx; color: #999; background-color: #f5f5f5; padding: 4rpx 12rpx; border-radius: 8rpx; }
-.student-actions { display: flex; flex-direction: column; gap: 8rpx; flex-shrink: 0; }
-.action-btn { padding: 8rpx 16rpx; border: none; border-radius: 8rpx; font-size: 14rpx; font-weight: 500; }
-.view-btn { background-color: #e3f2fd; color: #1976d2; }
-.warning-btn { background-color: #fff3cd; color: #856404; }
-.empty-state { text-align: center; padding: 60rpx 0; color: #999; font-size: 16rpx; background-color: #fff; border-radius: 20rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.08); border: 1rpx solid #f0f0f0; }
-.empty-icon { font-size: 60rpx; margin-bottom: 16rpx; display: block; }
+.page { padding: 20rpx; background: #f0f2f8; min-height: 100vh; padding-bottom: 120rpx; }
+.header { margin-bottom: 20rpx; display: flex; justify-content: space-between; align-items: flex-end; }
+.title { font-size: 36rpx; font-weight: 800; color: #1e293b; }
+.sub { font-size: 24rpx; color: #94a3b8; }
+
+.filter-bar { display: flex; gap: 14rpx; margin-bottom: 16rpx; }
+.search-wrap { flex: 1; position: relative; display: flex; align-items: center; background: #fff; border-radius: 14rpx; padding: 0 16rpx; }
+.search-icon { font-size: 28rpx; margin-right: 8rpx; }
+.search-inp { flex: 1; height: 72rpx; font-size: 26rpx; }
+.clear-btn { font-size: 26rpx; color: #94a3b8; padding: 4rpx; }
+.picker-btn { background: #fff; border-radius: 14rpx; height: 72rpx; padding: 0 20rpx; display: flex; align-items: center; gap: 8rpx; white-space: nowrap; }
+.picker-label { font-size: 24rpx; color: #475569; max-width: 140rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-arrow { font-size: 20rpx; color: #94a3b8; }
+
+.list { max-height: calc(100vh - 220rpx); }
+.card { background: #fff; border-radius: 16rpx; padding: 20rpx; margin-bottom: 12rpx; display: flex; align-items: center; gap: 16rpx; box-shadow: 0 1rpx 4rpx rgba(0,0,0,0.03); }
+.av { width: 72rpx; height: 72rpx; border-radius: 50%; color: #fff; font-size: 30rpx; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.info { flex: 1; min-width: 0; }
+.name-row { display: flex; align-items: center; gap: 10rpx; }
+.name { font-size: 28rpx; font-weight: 600; color: #1e293b; }
+.tag { font-size: 18rpx; padding: 2rpx 12rpx; border-radius: 10rpx; font-weight: 500; }
+.tag-green { background: #ecfdf5; color: #16a34a; }
+.tag-yellow { background: #fef3c7; color: #d97706; }
+.tag-red { background: #fef2f2; color: #ef4444; }
+.meta { font-size: 22rpx; color: #94a3b8; display: block; margin-top: 2rpx; }
+.actions { display: flex; flex-direction: column; gap: 8rpx; }
+.act-link { font-size: 24rpx; color: #2563eb; font-weight: 500; padding: 8rpx 16rpx; }
+
+.empty { text-align: center; padding: 120rpx 0; }
+.empty-icon { font-size: 72rpx; display: block; margin-bottom: 16rpx; }
+.empty-text { font-size: 26rpx; color: #94a3b8; }
 </style>

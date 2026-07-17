@@ -25,7 +25,7 @@
       "path": "pages/student/scores",
       "style": {
         "navigationBarTitleText": "成绩查询",
-        "navigationStyle": "custom"
+        "navigationStyle": "default"
       }
     },
     {
@@ -40,6 +40,41 @@
       "style": {
         "navigationBarTitleText": "帮扶计划",
         "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/student/profile",
+      "style": {
+        "navigationBarTitleText": "个人中心",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/student/appeals/index",
+      "style": {
+        "navigationBarTitleText": "成绩申诉",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/student/messages/index",
+      "style": {
+        "navigationBarTitleText": "消息中心",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/student/settings/index",
+      "style": {
+        "navigationBarTitleText": "个人设置",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/student/analysis/index",
+      "style": {
+        "navigationBarTitleText": "数据分析",
+        "navigationStyle": "default"
       }
     },
     {
@@ -78,6 +113,27 @@
       }
     },
     {
+      "path": "pages/teacher/analysis/index",
+      "style": {
+        "navigationBarTitleText": "班级分析",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/teacher/messages/index",
+      "style": {
+        "navigationBarTitleText": "消息中心",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/teacher/profile",
+      "style": {
+        "navigationBarTitleText": "个人主页",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/counselor/dashboard",
       "style": {
         "navigationBarTitleText": "辅导员首页",
@@ -106,9 +162,30 @@
       }
     },
     {
+      "path": "pages/counselor/analytics/index",
+      "style": {
+        "navigationBarTitleText": "数据分析",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/counselor/notifications/index",
+      "style": {
+        "navigationBarTitleText": "通知管理",
+        "navigationStyle": "default"
+      }
+    },
+    {
       "path": "pages/admin/dashboard",
       "style": {
         "navigationBarTitleText": "管理员首页",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/college-admin/dashboard",
+      "style": {
+        "navigationBarTitleText": "学院管理",
         "navigationStyle": "custom"
       }
     },
@@ -153,19 +230,41 @@
         "navigationBarTitleText": "系统日志",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/counselor/profile",
+      "style": {
+        "navigationBarTitleText": "个人主页",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/college-admin/profile",
+      "style": {
+        "navigationBarTitleText": "个人主页",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/admin/profile",
+      "style": {
+        "navigationBarTitleText": "个人主页",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "globalStyle": {
-    "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "智学预警云服务平台",
-    "navigationBarBackgroundColor": "#3498db",
-    "backgroundColor": "#f5f5f5"
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "智能学习预警",
+    "navigationBarBackgroundColor": "#3b5ce8",
+    "backgroundColor": "#f0f2f8",
+    "disableScroll": false
   },
   "tabBar": {
-    "color": "#666",
-    "selectedColor": "#4facfe",
-    "backgroundColor": "#fff",
-    "borderStyle": "black",
+    "color": "#8e99a8",
+    "selectedColor": "#3b5ce8",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/student/dashboard",
@@ -175,7 +274,7 @@
       },
       {
         "pagePath": "pages/student/scores",
-        "text": "教务",
+        "text": "成绩",
         "iconPath": "static/tab-edu.png",
         "selectedIconPath": "static/tab-edu-active.png"
       },
@@ -186,8 +285,8 @@
         "selectedIconPath": "static/tab-warning-active.png"
       },
       {
-        "pagePath": "pages/student/assistance",
-        "text": "帮扶",
+        "pagePath": "pages/student/profile",
+        "text": "我的",
         "iconPath": "static/tab-help.png",
         "selectedIconPath": "static/tab-help-active.png"
       }

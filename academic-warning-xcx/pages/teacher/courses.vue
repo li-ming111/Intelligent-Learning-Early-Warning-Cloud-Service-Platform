@@ -1,105 +1,110 @@
 <template>
-  <view class="courses-container">
+  <view class="page">
     <view class="header">
       <text class="title">课程管理</text>
-      <text class="subtitle">管理您的教学课程</text>
+      <text class="sub">{{ courses.length }} 门课程</text>
     </view>
 
-    <view class="courses-list">
-      <view v-for="course in courses" :key="course.id" class="course-item" hover-class="course-item-hover">
-        <view class="course-icon">📚</view>
-        <view class="course-info">
-          <text class="course-name">{{ course.name }}</text>
-          <view class="course-meta">
-            <text class="meta-item">{{ course.class }}</text>
-            <text class="meta-item">{{ course.students }}人</text>
-            <text class="meta-item">{{ course.semester }}</text>
-          </view>
-          <view class="course-schedule">
-            <text class="schedule-item">{{ course.schedule }}</text>
-            <text class="schedule-item">{{ course.classroom }}</text>
+    <scroll-view v-if="courses.length" scroll-y class="list">
+      <view v-for="c in courses" :key="c.courseId || c.id" class="card">
+        <view class="card-top">
+          <view class="cv" :style="{background:avGrad((c.courseId||c.id)||1)}">{{ (c.courseName || c.name || '课')[0] }}</view>
+          <view class="cinfo">
+            <text class="cname">{{ c.courseName || c.name }}</text>
+            <view class="ctags">
+              <text class="ctag" :class="c.type === '选修' ? 'tag-elective' : 'tag-required'">{{ c.type || '必修' }}</text>
+              <text class="ccr">{{ c.credits || '--' }} 学分</text>
+            </view>
           </view>
         </view>
-        <view class="course-actions">
-          <button class="action-btn" @click="viewCourse(course)">查看</button>
+        <view class="card-stats">
+          <view class="cs-item">
+            <text class="cs-val">{{ c.enrollmentCount || 0 }}</text>
+            <text class="cs-lbl">选课人数</text>
+          </view>
+          <view class="cs-div"></view>
+          <view class="cs-item">
+            <text class="cs-val" :class="(c.passRate || 0) >= 80 ? 'good' : 'warn'">{{ c.passRate || '--' }}{{ c.passRate ? '%' : '' }}</text>
+            <text class="cs-lbl">及格率</text>
+          </view>
+          <view class="cs-div"></view>
+          <view class="cs-item">
+            <text class="cs-val">{{ c.className || '--' }}</text>
+            <text class="cs-lbl">授课班级</text>
+          </view>
+        </view>
+        <view class="card-foot">
+          <text class="foot-link" @tap="viewDetail(c)">查看详情</text>
+          <text class="foot-link" @tap="goScores(c)">管理成绩</text>
         </view>
       </view>
+    </scroll-view>
+    <view v-else class="empty">
+      <text class="empty-icon">📖</text>
+      <text class="empty-text">暂无课程数据</text>
     </view>
 
-    <view class="add-section">
-      <button class="add-btn" @click="addCourse">+ 添加课程</button>
-    </view>
+    <teacher-tab-bar current="pages/teacher/courses" />
   </view>
 </template>
 
-<script setup>
-import { ref } from 'vue';
+<script>
+import { teacherAPI } from '@/services/api.js'
 
-const courses = ref([
-  {
-    id: 1,
-    name: '高等数学',
-    class: '计算机1班',
-    students: 45,
-    semester: '2025-2026学年第一学期',
-    schedule: '周一 8:00-9:40',
-    classroom: '教学楼A101'
-  },
-  {
-    id: 2,
-    name: '高等数学',
-    class: '计算机2班',
-    students: 42,
-    semester: '2025-2026学年第一学期',
-    schedule: '周二 8:00-9:40',
-    classroom: '教学楼A102'
-  },
-  {
-    id: 3,
-    name: '线性代数',
-    class: '软件工程1班',
-    students: 38,
-    semester: '2025-2026学年第一学期',
-    schedule: '周三 10:00-11:40',
-    classroom: '教学楼B201'
-  },
-  {
-    id: 4,
-    name: '概率论与数理统计',
-    class: '计算机1班',
-    students: 45,
-    semester: '2025-2026学年第一学期',
-    schedule: '周四 14:00-15:40',
-    classroom: '教学楼A103'
+export default {
+  data() { return { courses: [] } },
+  onShow() { this.loadData() },
+  methods: {
+    async loadData() {
+      try {
+        const uid = uni.getStorageSync('teacherId') || uni.getStorageSync('userId'); if (!uid) return
+        const res = await teacherAPI.getCourses(uid)
+        this.courses = Array.isArray(res) ? res : (res?.data || [])
+      } catch (e) {}
+    },
+    avGrad(id) {
+      const cs = ['#2563eb,#1d4ed8','#7c3aed,#6d28d9','#16a34a,#15803d','#f59e0b,#d97706','#ef4444,#dc2626','#0891b2,#0e7490']
+      return `linear-gradient(135deg,${cs[(id||1) % cs.length]})`
+    },
+    goScores(c) { uni.navigateTo({ url: '/pages/teacher/scores' }) },
+    viewDetail(c) {
+      uni.showModal({
+        title: c.courseName || c.name,
+        content: `类型: ${c.type || '必修'}\n学分: ${c.credits || '--'}\n选课人数: ${c.enrollmentCount || 0}\n${c.description || ''}`,
+        showCancel: false
+      })
+    }
   }
-]);
-
-const viewCourse = (course) => {
-  uni.showToast({ title: `查看课程: ${course.name}`, icon: 'none' });
-};
-
-const addCourse = () => {
-  uni.showToast({ title: '添加新课程', icon: 'none' });
-};
+}
 </script>
 
 <style scoped>
-.courses-container { padding: 20rpx; background-color: #f5f7fa; min-height: 100vh; }
-.header { margin-bottom: 24rpx; }
-.title { font-size: 32rpx; font-weight: 700; color: #333; margin-bottom: 8rpx; display: block; }
-.subtitle { font-size: 18rpx; color: #666; display: block; }
-.courses-list { display: flex; flex-direction: column; gap: 16rpx; margin-bottom: 24rpx; }
-.course-item { background: white; border-radius: 20rpx; padding: 24rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.08); border: 1rpx solid #f0f0f0; display: flex; align-items: flex-start; transition: all 0.3s ease; }
-.course-item-hover { transform: translateY(-4rpx); box-shadow: 0 6rpx 20rpx rgba(0,0,0,0.12); border-color: #4facfe; }
-.course-icon { font-size: 48rpx; margin-right: 20rpx; flex-shrink: 0; }
-.course-info { flex: 1; }
-.course-name { font-size: 20rpx; font-weight: 600; color: #333; display: block; margin-bottom: 12rpx; }
-.course-meta { display: flex; gap: 12rpx; margin-bottom: 8rpx; flex-wrap: wrap; }
-.meta-item { font-size: 14rpx; color: #666; background-color: #f5f5f5; padding: 4rpx 12rpx; border-radius: 8rpx; }
-.course-schedule { display: flex; gap: 12rpx; flex-wrap: wrap; }
-.schedule-item { font-size: 14rpx; color: #999; }
-.course-actions { flex-shrink: 0; }
-.action-btn { padding: 12rpx 24rpx; background-color: #4facfe; color: white; border: none; border-radius: 12rpx; font-size: 14rpx; font-weight: 500; }
-.add-section { margin-top: 40rpx; }
-.add-btn { width: 100%; height: 90rpx; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none; border-radius: 16rpx; font-size: 18rpx; font-weight: 600; }
+.page { padding: 20rpx; background: #f0f2f8; min-height: 100vh; padding-bottom: 120rpx; }
+.header { margin-bottom: 20rpx; display: flex; justify-content: space-between; align-items: flex-end; }
+.title { font-size: 36rpx; font-weight: 800; color: #1e293b; }
+.sub { font-size: 24rpx; color: #94a3b8; }
+.list { max-height: calc(100vh - 140rpx); }
+.card { background: #fff; border-radius: 18rpx; padding: 24rpx; margin-bottom: 16rpx; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.03); }
+.card-top { display: flex; align-items: center; gap: 16rpx; margin-bottom: 18rpx; }
+.cv { width: 80rpx; height: 80rpx; border-radius: 18rpx; color: #fff; font-size: 32rpx; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.cinfo { flex: 1; }
+.cname { font-size: 30rpx; font-weight: 700; color: #1e293b; display: block; }
+.ctags { display: flex; gap: 10rpx; margin-top: 6rpx; align-items: center; }
+.ctag { font-size: 20rpx; padding: 3rpx 14rpx; border-radius: 8rpx; font-weight: 500; }
+.tag-required { background: #e0e7ff; color: #2563eb; }
+.tag-elective { background: #fef3c7; color: #d97706; }
+.ccr { font-size: 20rpx; color: #94a3b8; }
+.card-stats { display: flex; align-items: center; background: #f8fafc; border-radius: 12rpx; padding: 16rpx; margin-bottom: 16rpx; }
+.cs-item { flex: 1; text-align: center; }
+.cs-val { font-size: 26rpx; font-weight: 700; color: #1e293b; display: block; margin-bottom: 2rpx; }
+.cs-val.good { color: #16a34a; }
+.cs-val.warn { color: #f59e0b; }
+.cs-lbl { font-size: 20rpx; color: #94a3b8; }
+.cs-div { width: 2rpx; height: 36rpx; background: #e2e8f0; }
+.card-foot { display: flex; gap: 24rpx; }
+.foot-link { font-size: 24rpx; color: #2563eb; font-weight: 500; padding: 8rpx 0; }
+
+.empty { text-align: center; padding: 120rpx 0; }
+.empty-icon { font-size: 72rpx; display: block; margin-bottom: 16rpx; }
+.empty-text { font-size: 26rpx; color: #94a3b8; }
 </style>

@@ -9,10 +9,7 @@
     <div class="filter-bar">
       <el-input v-model="searchName" placeholder="搜索学生姓名或学号" style="width: 250px;"></el-input>
       <el-select v-model="selectedClass" placeholder="选择班级" style="width: 200px;">
-        <el-option label="班级A" value="A"></el-option>
-        <el-option label="班级B" value="B"></el-option>
-        <el-option label="班级C" value="C"></el-option>
-        <el-option label="班级D" value="D"></el-option>
+        <el-option v-for="c in classOptions" :key="c.id" :label="c.name" :value="c.name" />
       </el-select>
       <el-button type="primary" @click="searchStudents">搜索</el-button>
       <el-button @click="exportStudents">导出</el-button>
@@ -24,18 +21,20 @@
         <div class="card-header">学生列表 ({{ studentList.length }})</div>
       </template>
 
-      <el-table :data="studentList" stripe>
-        <el-table-column prop="studentId" label="学号" width="120"></el-table-column>
-        <el-table-column prop="studentName" label="姓名" width="100"></el-table-column>
-        <el-table-column prop="className" label="班级" width="80"></el-table-column>
-        <el-table-column prop="phone" label="联系电话" width="130"></el-table-column>
-        <el-table-column prop="email" label="邮箱" width="150"></el-table-column>
-        <el-table-column label="状态" width="100">
+      <el-table :data="studentList" stripe style="width: 100%">
+        <el-table-column prop="studentId" label="学号" min-width="120" align="center"></el-table-column>
+        <el-table-column label="姓名" min-width="100" align="center">
+          <template #default="{ row }">{{ row.studentName || row.name || '--' }}</template>
+        </el-table-column>
+        <el-table-column prop="className" label="班级" min-width="120" show-overflow-tooltip></el-table-column>
+        <el-table-column prop="phone" label="联系电话" min-width="130"></el-table-column>
+        <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip></el-table-column>
+        <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag type="success">正常</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right" align="center">
           <template #default="{ row }">
             <el-button type="primary" size="small" link @click="viewStudent(row)">查看详情</el-button>
             <el-button type="warning" size="small" link @click="sendNotification(row)">发送通知</el-button>
@@ -52,8 +51,8 @@
         <p><strong>班级：</strong>{{ selectedStudent.className }}</p>
         <p><strong>联系电话：</strong>{{ selectedStudent.phone }}</p>
         <p><strong>邮箱：</strong>{{ selectedStudent.email }}</p>
-        <p><strong>获取学分：</strong>7.2/8.0</p>
-        <p><strong>当前预警：</strong><el-tag type="warning">黄色预警</el-tag></p>
+        <p><strong>获取学分：</strong>{{ selectedStudent.credits || '--' }} / {{ selectedStudent.requiredCredits || '--' }}</p>
+        <p><strong>GPA：</strong>{{ selectedStudent.gpa || '--' }}</p>
       </div>
     </el-dialog>
 
@@ -76,9 +75,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { counselorAPI } from '@/api/index'
+import { counselorAPI, adminAPI } from '@/api/index'
 import { getUserId } from '@/utils/userUtils'
 
 const searchName = ref('')
@@ -86,7 +85,8 @@ const selectedClass = ref('')
 const detailDialogVisible = ref(false)
 const notificationDialogVisible = ref(false)
 const selectedStudent = ref({})
-const studentList = ref([])
+const classOptions = ref([])
+const allStudents = ref([])
 
 const notificationForm = ref({
   receiver: '',
@@ -95,6 +95,7 @@ const notificationForm = ref({
 
 onMounted(async () => {
   await loadStudents()
+  await loadClasses()
 })
 
 const loadStudents = async () => {
@@ -103,29 +104,45 @@ const loadStudents = async () => {
     const counselorId = localStorage.getItem('counselorId') || userId
     if (!counselorId) return
     const response = await counselorAPI.getStudents(counselorId)
+    let rawData = []
     if (response && response.code === 200) {
-      studentList.value = response.data || []
+      rawData = response.data || []
     } else if (Array.isArray(response)) {
-      studentList.value = response
+      rawData = response
     }
+    // 统一字段名：后端返回 name，前端统一使用 studentName
+    allStudents.value = rawData.map(s => ({
+      ...s,
+      studentName: s.studentName || s.name || ''
+    }))
   } catch (error) {
     console.error('加载学生列表失败:', error)
   }
 }
 
-const searchStudents = async () => {
-  if (!searchName.value && !selectedClass.value) {
-    await loadStudents()
-    return
+const loadClasses = async () => {
+  try {
+    const uid = getUserId()
+    if (!uid) return
+    const res = await counselorAPI.getMyClasses(uid)
+    classOptions.value = Array.isArray(res) ? res : (res?.data || [])
+  } catch (e) { console.error(e) }
+}
+
+const studentList = computed(() => {
+  let list = allStudents.value
+  if (searchName.value) {
+    const kw = searchName.value.toLowerCase()
+    list = list.filter(s => (s.studentName || s.name || '').toLowerCase().includes(kw) || String(s.studentId || '').includes(kw))
   }
-  // 前端客户端过滤（后端不提供search接口）
-  const filtered = studentList.value.filter(s => {
-    const matchName = !searchName.value || s.name?.includes(searchName.value) || s.studentId?.includes(searchName.value)
-    const matchClass = !selectedClass.value || s.className === selectedClass.value
-    return matchName && matchClass
-  })
-  studentList.value = filtered
-  ElMessage.success('搜索成功')
+  if (selectedClass.value) {
+    list = list.filter(s => s.className === selectedClass.value || s.class_name === selectedClass.value)
+  }
+  return list
+})
+
+const searchStudents = () => {
+  ElMessage.success('搜索完成，共 ' + studentList.value.length + ' 条结果')
 }
 
 const exportStudents = async () => {
@@ -144,7 +161,7 @@ const viewStudent = (row) => {
 const sendNotification = (row) => {
   console.log('学生数据:', row)
   selectedStudent.value = row
-  notificationForm.value.receiver = row.name || row.studentName
+  notificationForm.value.receiver = row.studentName || row.name || ''
   notificationDialogVisible.value = true
 }
 

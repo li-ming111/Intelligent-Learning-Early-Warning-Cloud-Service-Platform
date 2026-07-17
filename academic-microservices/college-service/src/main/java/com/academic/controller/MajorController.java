@@ -1,0 +1,202 @@
+package com.academic.controller;
+
+import com.academic.common.dto.ApiResponse;
+import com.academic.common.entity.Major;
+import com.academic.service.MajorService;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+/**
+ * 专业控制器
+ */
+@Slf4j
+@RestController
+@RequestMapping("/majors")
+public class MajorController {
+
+    private final MajorService majorService;
+
+    public MajorController(MajorService majorService) {
+        this.majorService = majorService;
+    }
+
+    /**
+     * 获取专业列表
+     */
+    @GetMapping("/list")
+    public ApiResponse<Map<String, Object>> getMajors(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) Long collegeId) {
+        try {
+            log.info("Get majors request: page={}, size={}, collegeId={}", page, size, collegeId);
+            QueryWrapper<Major> queryWrapper = new QueryWrapper<>();
+            if (collegeId != null) {
+                queryWrapper.eq("college_id", collegeId);
+            }
+            queryWrapper.orderByDesc("created_at");
+            
+            Page<Major> majorPage = new Page<>(page, size);
+            majorPage = majorService.page(majorPage, queryWrapper);
+            
+            Map<String, Object> responseData = Map.of(
+                    "data", majorPage.getRecords(),
+                    "total", majorPage.getTotal(),
+                    "page", page,
+                    "size", size,
+                    "pages", majorPage.getPages()
+            );
+            return ApiResponse.success(responseData);
+        } catch (Exception e) {
+            log.error("Get majors failed: {}", e.getMessage());
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取专业详情
+     */
+    @GetMapping("/info/{majorId}")
+    public ApiResponse<Major> getMajorInfo(@PathVariable Long majorId) {
+        try {
+            log.info("Get major info request: {}", majorId);
+            Major major = majorService.getById(majorId);
+            if (major == null) {
+                return ApiResponse.error(404, "专业不存在");
+            }
+            return ApiResponse.success(major);
+        } catch (Exception e) {
+            log.error("Get major info failed: {}", e.getMessage());
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 创建专业
+     */
+    @PostMapping("/add")
+    public ApiResponse<Long> addMajor(@RequestBody Major major) {
+        try {
+            log.info("Add major request: {}", major.getName());
+            boolean saved = majorService.save(major);
+            if (saved) {
+                return ApiResponse.success(major.getId());
+            } else {
+                return ApiResponse.error("创建专业失败");
+            }
+        } catch (Exception e) {
+            log.error("Add major failed: {}", e.getMessage());
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 更新专业
+     */
+    @PutMapping("/update/{majorId}")
+    public ApiResponse<String> updateMajor(@PathVariable Long majorId, @RequestBody Major major) {
+        try {
+            log.info("Update major request: {}", majorId);
+            major.setId(majorId);
+            boolean updated = majorService.updateById(major);
+            if (updated) {
+                return ApiResponse.success("专业已更新");
+            } else {
+                return ApiResponse.error("更新专业失败");
+            }
+        } catch (Exception e) {
+            log.error("Update major failed: {}", e.getMessage());
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 删除专业
+     */
+    @DeleteMapping("/delete/{majorId}")
+    public ApiResponse<String> deleteMajor(@PathVariable Long majorId) {
+        try {
+            log.info("Delete major request: {}", majorId);
+            boolean deleted = majorService.removeById(majorId);
+            if (deleted) {
+                return ApiResponse.success("专业已删除");
+            } else {
+                return ApiResponse.error("删除专业失败");
+            }
+        } catch (Exception e) {
+            log.error("Delete major failed: {}", e.getMessage());
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 根据代码获取专业信息
+     */
+    @GetMapping("/by-code/{code}")
+    public ApiResponse<Major> getMajorByCode(@PathVariable String code) {
+        try {
+            log.info("Get major by code request: {}", code);
+            Major major = majorService.getByCode(code);
+            if (major == null) {
+                return ApiResponse.error(404, "专业不存在");
+            }
+            return ApiResponse.success(major);
+        } catch (Exception e) {
+            log.error("Get major by code failed: {}", e.getMessage());
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 根据学院ID获取专业列表
+     */
+    @GetMapping("/by-college/{collegeId}")
+    public ApiResponse<java.util.List<Major>> getMajorsByCollegeId(@PathVariable Long collegeId) {
+        try {
+            log.info("Get majors by college id request: {}", collegeId);
+            java.util.List<Major> majors = majorService.getByCollegeId(collegeId);
+            return ApiResponse.success(majors);
+        } catch (Exception e) {
+            log.error("Get majors by college id failed: {}", e.getMessage());
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取所有专业列表（不分页）
+     */
+    @GetMapping("/all")
+    public ApiResponse<java.util.List<Major>> getAllMajors() {
+        try {
+            log.info("Get all majors request");
+            java.util.List<Major> majors = majorService.list(new QueryWrapper<>());
+            return ApiResponse.success(majors);
+        } catch (Exception e) {
+            log.error("Get all majors failed: {}", e.getMessage());
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 获取专业总数
+     */
+    @GetMapping("/count")
+    public ApiResponse<Long> getMajorCount(@RequestParam(required = false) Long collegeId) {
+        try {
+            log.info("Get major count request: collegeId={}", collegeId);
+            QueryWrapper<Major> queryWrapper = new QueryWrapper<>();
+            if (collegeId != null) {
+                queryWrapper.eq("college_id", collegeId);
+            }
+            long count = majorService.count(queryWrapper);
+            return ApiResponse.success(count);
+        } catch (Exception e) {
+            log.error("Get major count failed: {}", e.getMessage());
+            return ApiResponse.error(e.getMessage());
+        }
+    }
+}

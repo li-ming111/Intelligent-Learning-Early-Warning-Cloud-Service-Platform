@@ -15,6 +15,13 @@
             <span>首页</span>
           </router-link>
           <router-link 
+            to="/teacher/courses" 
+            class="nav-item"
+            :class="{ active: isActive('/teacher/courses') }"
+          >
+            <span>课程管理</span>
+          </router-link>
+          <router-link 
             to="/teacher/scores" 
             class="nav-item"
             :class="{ active: isActive('/teacher/scores') }"
@@ -29,25 +36,11 @@
             <span>预警管理</span>
           </router-link>
           <router-link 
-            to="/teacher/analysis" 
+            to="/teacher/credit-prediction" 
             class="nav-item"
-            :class="{ active: isActive('/teacher/analysis') }"
+            :class="{ active: isActive('/teacher/credit-prediction') }"
           >
-            <span>班级分析</span>
-          </router-link>
-          <router-link 
-            to="/teacher/feedback" 
-            class="nav-item"
-            :class="{ active: isActive('/teacher/feedback') }"
-          >
-            <span>反馈管理</span>
-          </router-link>
-          <router-link 
-            to="/teacher/courses" 
-            class="nav-item"
-            :class="{ active: isActive('/teacher/courses') }"
-          >
-            <span>选修课</span>
+            <span>学分预测</span>
           </router-link>
           <router-link 
             to="/teacher/class-management" 
@@ -57,11 +50,32 @@
             <span>班级管理</span>
           </router-link>
           <router-link 
-            to="/teacher/messages" 
+            to="/teacher/analysis" 
             class="nav-item"
-            :class="{ active: isActive('/teacher/messages') }"
+            :class="{ active: isActive('/teacher/analysis') }"
           >
-            <span>消息中心</span>
+            <span>数据分析</span>
+          </router-link>
+          <router-link 
+            to="/teacher/feedback" 
+            class="nav-item"
+            :class="{ active: isActive('/teacher/feedback') }"
+          >
+            <span>反馈消息</span>
+          </router-link>
+          <router-link 
+            to="/teacher/audit-log" 
+            class="nav-item"
+            :class="{ active: isActive('/teacher/audit-log') }"
+          >
+            <span>审计日志</span>
+          </router-link>
+          <router-link 
+            to="/teacher/settings" 
+            class="nav-item"
+            :class="{ active: isActive('/teacher/settings') }"
+          >
+            <span>个人设置</span>
           </router-link>
         </nav>
       </div>
@@ -91,12 +105,16 @@
         <router-view />
       </div>
     </div>
+
+    <!-- AI助手 -->
+    <AIAssistant />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AIAssistant from '@/components/AIAssistant.vue'
 import { 
   HomeFilled,
   DocumentCopy,
@@ -152,15 +170,15 @@ onMounted(() => {
 
 const pageMap = {
   '/teacher/dashboard': '教学数据概览',
+  '/teacher/courses': '课程管理',
   '/teacher/scores': '学生成绩管理',
   '/teacher/warnings': '学业预警管理',
-  '/teacher/analysis': '班级性能分析',
-  '/teacher/feedback': '学生反馈管理',
-  '/teacher/courses': '选修课信息',
   '/teacher/credit-prediction': '学分预测',
+  '/teacher/class-management': '班级管理',
+  '/teacher/analysis': '数据分析',
+  '/teacher/feedback': '反馈消息',
   '/teacher/audit-log': '审计日志',
-  '/teacher/feedback-management': '反馈处理',
-  '/teacher/class-management': '班级管理'
+  '/teacher/settings': '个人设置'
 }
 
 const currentPageTitle = computed(() => {
@@ -303,6 +321,8 @@ const handleLogout = () => {
 .main-wrapper {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 内容区 */
@@ -317,22 +337,21 @@ const handleLogout = () => {
 }
 
 .content-area::-webkit-scrollbar {
-  width: 0 !important;
-  background: transparent !important;
+  width: 6px;
+  background: transparent;
 }
 
 .content-area::-webkit-scrollbar-track {
-  background: transparent !important;
-  display: none !important;
+  background: transparent;
 }
 
 .content-area::-webkit-scrollbar-thumb {
-  background: transparent !important;
-  display: none !important;
+  background: #c1c1c1;
+  border-radius: 3px;
 }
 
 .content-area::-webkit-scrollbar-thumb:hover {
-  background: transparent !important;
+  background: #a8a8a8;
 }
 
 /* 响应式设计 */

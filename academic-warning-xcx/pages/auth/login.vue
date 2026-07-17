@@ -1,58 +1,90 @@
-误] app.json: 在项目根目录未找到 app.json (env: Windows,mp,2.01.2510280; lib: 3.15.1)
-         <template>
-  <view class="login-page">
-    <view class="login-wrapper">
-      <view class="login-card">
-        <view class="login-header">
-          <image src="../../assets/vue.svg" alt="哈尔滨信息工程学院" class="logo-image"></image>
-          <text class="login-title">智学预警云服务平台</text>
-          <text class="login-subtitle">智能学业预警与帮扶云服务平台</text>
-        </view>
+<template>
+  <view class="page">
+    <view class="brand">
+      <view class="logo-wrap">
+        <image src="/static/logo.jpg" mode="aspectFit" class="logo" />
+      </view>
+      <text class="brand-title">智能学习预警服务系统</text>
+      <text class="brand-sub">哈尔滨信息工程学院</text>
+    </view>
 
-        <view class="form-group">
-          <input 
-            v-model="loginForm.username" 
-            placeholder="学号或工号"
-            class="login-input"
-            placeholder-class="placeholder"
-          />
-        </view>
-        
-        <view class="form-group">
-          <input 
-            v-model="loginForm.password" 
-            type="password" 
-            placeholder="密码"
-            class="login-input"
-            placeholder-class="placeholder"
-          />
-        </view>
+    <view class="card">
+      <text class="card-title">登录</text>
 
-        <view class="form-group">
-          <input 
-            v-model="loginForm.captcha" 
-            placeholder="验证码"
-            class="login-input captcha-input"
-            placeholder-class="placeholder"
+      <view class="field">
+        <text class="field-label">学号 / 工号</text>
+        <input
+          v-model="loginForm.username"
+          placeholder="请输入学号或工号"
+          class="field-input"
+          placeholder-class="ph"
+        />
+      </view>
+
+      <view class="field">
+        <text class="field-label">密码</text>
+        <view class="input-wrap">
+          <input
+            v-model="loginForm.password"
+            :password="!showPwd"
+            placeholder="请输入密码"
+            class="field-input"
+            placeholder-class="ph"
           />
-          <view class="captcha-btn" @click="generateCaptcha">
-            <text>{{ captchaCode }}</text>
+          <view class="toggle-pwd" @tap="showPwd = !showPwd">
+            <image v-if="!showPwd" src="/static/icon/eye-open.svg" mode="aspectFit" class="eye-icon" />
+            <image v-else src="/static/icon/eye-close.svg" mode="aspectFit" class="eye-icon" />
           </view>
         </view>
+      </view>
 
-        <button @click="handleLogin" type="primary" class="login-btn">登录</button>
-
-        <view class="login-links">
-          <text>快速注册：</text>
-          <navigator url="/pages/auth/register" class="link">学生</navigator>
-          <navigator url="/pages/auth/register" class="link">教师</navigator>
-          <navigator url="/pages/auth/register" class="link">辅导员</navigator>
-        </view>
-
-        <view v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
+      <view class="field captcha-field">
+        <text class="field-label">验证码</text>
+        <view class="captcha-row">
+          <input
+            v-model="loginForm.captcha"
+            placeholder="输入验证码"
+            class="field-input captcha-input"
+            placeholder-class="ph"
+            maxlength="6"
+          />
+          <view class="captcha-box" @tap="generateCaptcha">
+            <text class="captcha-code">{{ captchaCode }}</text>
+          </view>
         </view>
       </view>
+
+      <view v-if="errorMessage" class="error">
+        <text>{{ errorMessage }}</text>
+      </view>
+
+      <view class="remember" @tap="rememberMe = !rememberMe">
+        <view :class="['check', { active: rememberMe }]">
+          <text v-if="rememberMe" class="check-mark">✓</text>
+        </view>
+        <text class="remember-text">记住我30天</text>
+      </view>
+
+      <button
+        class="btn"
+        :disabled="loading"
+        @tap="handleLogin"
+      >
+        {{ loading ? '登录中...' : '登录' }}
+      </button>
+
+      <view class="register">
+        <text class="reg-text">还没有账户？</text>
+        <navigator url="/pages/auth/register" class="reg-link">快速注册</navigator>
+      </view>
+    </view>
+
+    <view class="footer-links">
+      <text class="footer-link">隐私政策</text>
+      <text class="footer-dot">·</text>
+      <text class="footer-link">服务条款</text>
+      <text class="footer-dot">·</text>
+      <text class="footer-link">联系我们</text>
     </view>
   </view>
 </template>
@@ -61,259 +93,312 @@
 import { ref, onMounted } from 'vue'
 import { apiClient } from '../../services/api'
 
-const loginForm = ref({
-  username: '',
-  password: '',
-  captcha: ''
-})
-
+const loginForm = ref({ username: '', password: '', captcha: '' })
+const loading = ref(false)
+const showPwd = ref(false)
+const rememberMe = ref(false)
 const errorMessage = ref('')
 const captchaCode = ref('')
 
-// 生成验证码
 const generateCaptcha = () => {
-  const code = Math.random().toString(36).substring(2, 8).toUpperCase()
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = ''
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
   captchaCode.value = code
 }
 
-// 初始化验证码
-const initCaptcha = () => {
-  generateCaptcha()
-}
-
 const handleLogin = async () => {
-  // 验证输入
-  if (!loginForm.value.username) {
-    errorMessage.value = '请输入学号或工号'
-    return
-  }
-  if (!loginForm.value.password) {
-    errorMessage.value = '请输入密码'
-    return
-  }
-  if (!loginForm.value.captcha) {
-    errorMessage.value = '请输入验证码'
+  errorMessage.value = ''
+  if (!loginForm.value.username) { errorMessage.value = '请输入学号或工号'; return }
+  if (!loginForm.value.password) { errorMessage.value = '请输入密码'; return }
+  if (!loginForm.value.captcha) { errorMessage.value = '请输入验证码'; return }
+  if (loginForm.value.captcha.toUpperCase() !== captchaCode.value.toUpperCase()) {
+    errorMessage.value = '验证码错误'
+    generateCaptcha()
+    loginForm.value.captcha = ''
     return
   }
 
+  loading.value = true
   try {
     const response = await apiClient.login(loginForm.value.username, loginForm.value.password)
-
     if (response && response.token) {
-      // 保存token和用户信息
       uni.setStorageSync('token', response.token)
       uni.setStorageSync('userId', response.userId)
       uni.setStorageSync('username', response.username)
       uni.setStorageSync('role', response.role)
-      
-      // 保存用户姓名
-      if (response.name) {
-        uni.setStorageSync('userName', response.name)
-      } else {
-        // 根据角色设置默认名称
-        const role = String(response.role)
-        if (role === '2' || role === 'teacher') {
-          uni.setStorageSync('userName', '教师')
-        } else if (role === '1' || role === 'student') {
-          uni.setStorageSync('userName', '学生')
-        } else if (role === '3' || role === 'admin') {
-          uni.setStorageSync('userName', '管理员')
-        } else if (role === '4' || role === 'counselor') {
-          uni.setStorageSync('userName', '辅导员')
-        } else {
-          uni.setStorageSync('userName', response.username || '用户')
-        }
-      }
-
-      // 保存学号/工号
-      const role = String(response.role)
-      if (role === '1' || role === 'student') {
-        uni.setStorageSync('studentId', response.username)
-      } else if (response.studentId) {
-        uni.setStorageSync('studentId', response.studentId)
-      }
-
+      if (response.name) uni.setStorageSync('userName', response.name)
       if (response.teacherId) uni.setStorageSync('teacherId', response.teacherId)
       if (response.counselorId) uni.setStorageSync('counselorId', response.counselorId)
-      if (response.adminId) uni.setStorageSync('adminId', response.adminId)
 
-      uni.showToast({
-        title: '登录成功',
-        icon: 'success'
-      })
-      
-      // 根据用户角色跳转
-      if (role === '1' || role === 'student') {
-        uni.navigateTo({ url: '/pages/student/dashboard' })
-      } else if (role === '2' || role === 'teacher') {
-        uni.navigateTo({ url: '/pages/teacher/dashboard' })
-      } else if (role === '4' || role === 'counselor') {
-        uni.navigateTo({ url: '/pages/counselor/dashboard' })
-      } else if (role === '3' || role === 'admin') {
-        uni.navigateTo({ url: '/pages/admin/dashboard' })
-      } else {
-        uni.showToast({
-          title: '未能识别用户角色，请联系管理员',
-          icon: 'none'
-        })
-      }
+      const role = String(response.role)
+      uni.showToast({ title: '登录成功', icon: 'success', duration: 1200 })
+      setTimeout(() => {
+        const routes = {
+          '1': '/pages/student/dashboard',
+          student: '/pages/student/dashboard',
+          '2': '/pages/teacher/dashboard',
+          teacher: '/pages/teacher/dashboard',
+          '3': '/pages/counselor/dashboard',
+          counselor: '/pages/counselor/dashboard',
+          '4': '/pages/admin/dashboard',
+          admin: '/pages/admin/dashboard',
+          '5': '/pages/college-admin/dashboard',
+          college_admin: '/pages/college-admin/dashboard'
+        }
+        uni.reLaunch({ url: routes[role] || '/pages/student/dashboard' })
+      }, 1200)
     } else {
-      errorMessage.value = response?.message || '登录失败'
+      errorMessage.value = '账号或密码错误'
+      generateCaptcha()
+      loginForm.value.captcha = ''
     }
   } catch (error) {
-    console.error('登录错误:', error)
-    const errorMsg = error.response?.data?.message || error.message || '登录失败，请重试'
-    errorMessage.value = errorMsg
+    errorMessage.value = '网络连接失败，请检查网络后重试'
     generateCaptcha()
     loginForm.value.captcha = ''
+  } finally {
+    loading.value = false
   }
 }
 
 onMounted(() => {
-  // 清除可能残留的旧token
-  uni.removeStorageSync('token')
-  uni.removeStorageSync('userId')
-  uni.removeStorageSync('username')
-  uni.removeStorageSync('role')
-  uni.removeStorageSync('studentId')
-  uni.removeStorageSync('teacherId')
-  uni.removeStorageSync('counselorId')
-  uni.removeStorageSync('adminId')
-  initCaptcha()
+  const keys = ['token','userId','username','role','studentId','teacherId','counselorId','adminId','userName']
+  keys.forEach(k => uni.removeStorageSync(k))
+  generateCaptcha()
 })
 </script>
 
 <style scoped>
-.login-page {
+.page {
+  min-height: 100vh;
+  background: linear-gradient(160deg, #3b5ce8 0%, #5b7cf0 40%, #7b9cf8 100%);
   display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  width: 100%;
-  background-color: #f5f5f5;
+  flex-direction: column;
 }
 
-.login-wrapper {
+/* 品牌区 */
+.brand {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  width: 100%;
-  height: 100%;
+  padding: 140rpx 0 60rpx;
+  position: relative;
+  z-index: 1;
 }
-
-.login-card {
+.logo-wrap {
+  width: 160rpx;
+  height: 160rpx;
   background: #ffffff;
-  border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-  padding: 60rpx 50rpx;
-  width: 100%;
-  max-width: 480rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 32rpx rgba(0,0,0,0.15);
+  margin-bottom: 24rpx;
+}
+.logo {
+  width: 130rpx;
+  height: 130rpx;
+  border-radius: 50%;
+}
+.brand-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 2rpx;
+}
+.brand-sub {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.6);
+  margin-top: 8rpx;
 }
 
-.login-header {
-  text-align: center;
+/* 卡片 */
+.card {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 48rpx 40rpx 40rpx;
+  position: relative;
+  z-index: 1;
+}
+.card-title {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1d1d1f;
   margin-bottom: 40rpx;
 }
 
-.logo-image {
-  width: 80rpx;
-  height: 80rpx;
-  margin-bottom: 16rpx;
-  border-radius: 12rpx;
-  background: white;
-  padding: 8rpx;
-  border: 1rpx solid #e0e0e0;
+/* 字段 */
+.field {
+  margin-bottom: 28rpx;
+  position: relative;
 }
-
-.login-title {
-  font-size: 24rpx;
-  color: #1A3D5C;
-  font-weight: 700;
+.field-label {
   display: block;
-  margin-bottom: 8rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #86868b;
+  margin-bottom: 10rpx;
 }
-
-.login-subtitle {
-  font-size: 14rpx;
-  color: #666;
-  font-weight: 400;
+.input-wrap {
+  position: relative;
+  width: 100%;
+  height: 88rpx;
 }
-
-.form-group {
-  margin-bottom: 12rpx;
-  display: flex;
-  align-items: center;
-}
-
-.login-input {
-  height: 44rpx;
-  padding: 0 20rpx;
-  border: 1.5rpx solid #E0E0E0;
+.field-input {
+  width: 100%;
+  height: 88rpx;
+  background: #f5f5f7;
   border-radius: 12rpx;
-  font-size: 16rpx;
-  flex: 1;
-  background-color: #F9FAFB;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  color: #1d1d1f;
+  box-sizing: border-box;
 }
-
-.captcha-input {
-  flex: 2;
-  margin-right: 10rpx;
+.ph {
+  color: #aeaeb2;
+  font-size: 28rpx;
 }
-
-.captcha-btn {
-  width: 110rpx;
-  height: 44rpx;
-  border: 1.5rpx solid #E0E0E0;
-  border-radius: 12rpx;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
-  font-weight: 700;
-  font-size: 12rpx;
+.toggle-pwd {
+  position: absolute;
+  right: 8rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56rpx;
+  height: 56rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  z-index: 2;
+}
+.eye-icon {
+  width: 36rpx;
+  height: 36rpx;
 }
 
-.login-btn {
-  width: 100%;
-  height: 44rpx;
-  font-size: 16rpx;
-  font-weight: 700;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border: none;
-  margin-top: 28rpx;
+/* 验证码 */
+.captcha-row {
+  display: flex;
+  gap: 16rpx;
+}
+.captcha-input {
+  flex: 1;
+}
+.captcha-box {
+  width: 160rpx;
+  height: 88rpx;
+  background: #f5f5f7;
   border-radius: 12rpx;
-  color: white;
-  box-shadow: 0 6rpx 20rpx rgba(79, 172, 254, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.captcha-code {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #3b5ce8;
+  letter-spacing: 6rpx;
+  font-style: italic;
 }
 
-.login-links {
-  text-align: center;
-  margin-top: 30rpx;
-  font-size: 14rpx;
-  color: #4facfe;
-}
-
-.link {
-  color: #4facfe;
-  text-decoration: none;
-  margin: 0 6rpx;
-  position: relative;
-  padding-bottom: 2rpx;
-}
-
-.error-message {
-  background-color: #FFEBEE;
-  border-left: 4rpx solid #FF5252;
-  color: #D32F2F;
-  padding: 12rpx;
+/* 错误 */
+.error {
+  background: #fef2f2;
   border-radius: 8rpx;
-  margin-top: 20rpx;
-  font-size: 14rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 20rpx;
+}
+.error text {
+  color: #ef4444;
+  font-size: 24rpx;
 }
 
-.placeholder {
-  color: #999;
+/* 记住我 */
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 32rpx;
+}
+.check {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 6rpx;
+  border: 2rpx solid #d4d4d8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.check.active {
+  background: #3b5ce8;
+  border-color: #3b5ce8;
+}
+.check-mark {
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 700;
+}
+.remember-text {
+  font-size: 24rpx;
+  color: #86868b;
+}
+
+/* 按钮 */
+.btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: #3b5ce8;
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 12rpx;
+  border: none;
+  letter-spacing: 4rpx;
+  margin: 0;
+}
+.btn[disabled] {
+  opacity: 0.5;
+}
+
+/* 注册 */
+.register {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 32rpx;
+}
+.reg-text {
+  font-size: 24rpx;
+  color: #86868b;
+}
+.reg-link {
+  font-size: 24rpx;
+  color: #3b5ce8;
+  font-weight: 500;
+}
+
+/* 底部 */
+.footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16rpx;
+  padding: 32rpx 0;
+}
+.footer-link {
+  font-size: 22rpx;
+  color: #aeaeb2;
+}
+.footer-dot {
+  font-size: 22rpx;
+  color: #aeaeb2;
 }
 </style>

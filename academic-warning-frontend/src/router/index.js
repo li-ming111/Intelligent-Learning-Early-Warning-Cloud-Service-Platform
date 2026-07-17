@@ -28,6 +28,7 @@ import TeacherFeedback from '../views/TeacherFeedback.vue'
 import TeacherCourses from '../views/TeacherCourses.vue'
 import TeacherClassManagement from '../views/TeacherClassManagement.vue'
 import TeacherMessages from '../views/TeacherMessages.vue'
+import TeacherSettings from '../views/TeacherSettings.vue'
 import CounselorDashboard from '../views/CounselorDashboard.vue'
 import CounselorRegister from '../views/CounselorRegister.vue'
 import CounselorStudents from '../views/CounselorStudents.vue'
@@ -37,12 +38,16 @@ import CounselorCreditMonitor from '../views/CounselorCreditMonitor.vue'
 import CounselorNotifications from '../views/CounselorNotifications.vue'
 import CounselorClassManagement from '../views/CounselorClassManagement.vue'
 import CounselorSettings from '../views/CounselorSettings.vue'
+import CounselorScores from '../views/CounselorScores.vue'
+import CounselorAssistance from '../views/CounselorAssistance.vue'
+import CounselorAnalytics from '../views/CounselorAnalytics.vue'
 import AdminRegister from '../views/AdminRegister.vue'
 import AdminColleges from '../views/AdminColleges.vue'
 import AdminMajors from '../views/AdminMajors.vue'
 import AdminUsers from '../views/AdminUsers.vue'
 import AdminRules from '../views/AdminRules.vue'
 import AdminStatistics from '../views/AdminStatistics.vue'
+import AdminWarnings from '../views/AdminWarnings.vue'
 import AdminCourses from '../views/AdminCourses.vue'
 import AdminPermissions from '../views/AdminPermissions.vue'
 import AdminMessages from '../views/AdminMessages.vue'
@@ -50,11 +55,27 @@ import AdminDataExport from '../views/AdminDataExport.vue'
 import AdminClassManagement from '../views/AdminClassManagement.vue'
 import AdminSettings from '../views/AdminSettings.vue'
 import AdminDashboard from '../views/AdminDashboard.vue'
+import CollegeAdminDashboard from '../views/CollegeAdminDashboard.vue'
+import CollegeAdminStudents from '../views/CollegeAdminStudents.vue'
+import CollegeAdminTeachers from '../views/CollegeAdminTeachers.vue'
+import CollegeAdminWarnings from '../views/CollegeAdminWarnings.vue'
+import CollegeAdminClasses from '../views/CollegeAdminClasses.vue'
+import CollegeAdminAnalysis from '../views/CollegeAdminAnalysis.vue'
+import CollegeAdminCounselors from '../views/CollegeAdminCounselors.vue'
+import CollegeAdminExport from '../views/CollegeAdminExport.vue'
+import CollegeAdminScoreQuery from '../views/CollegeAdminScoreQuery.vue'
 import TeacherLayout from '../views/TeacherLayout.vue'
 import AdminLayout from '../views/AdminLayout.vue'
 import CounselorLayout from '../views/CounselorLayout.vue'
+import TestPage from '../views/TestPage.vue'
 
 const routes = [
+  {
+    path: '/test',
+    name: 'TestPage',
+    component: TestPage,
+    meta: { requiresAuth: false }
+  },
   {
     path: '/login',
     name: 'Login',
@@ -131,12 +152,18 @@ const routes = [
         path: 'settings',
         component: Settings,
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'statistics',
+        component: Statistics,
+        meta: { requiresAuth: true }
       }
     ]
   },
   {
     path: '/dashboard',
-    redirect: '/student/dashboard'
+    redirect: '/student/dashboard',
+    meta: { requiresAuth: true }
   },
   {
     path: '/counselor-register',
@@ -145,6 +172,12 @@ const routes = [
     meta: { requiresAuth: false }
   },
 
+  {
+    path: '/admin-register',
+    name: 'AdminRegister',
+    component: AdminRegister,
+    meta: { requiresAuth: true, allowedRoles: [4, 'admin'] }
+  },
   {
     path: '/teacher-register',
     name: 'TeacherRegister',
@@ -210,62 +243,13 @@ const routes = [
         path: 'messages',
         name: 'TeacherMessages',
         component: TeacherMessages
+      },
+      {
+        path: 'settings',
+        name: 'TeacherSettings',
+        component: TeacherSettings
       }
     ]
-  },
-  {
-    path: '/teacher-dashboard',
-    name: 'TeacherDashboardLegacy',
-    component: TeacherDashboard,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/teacher-scores',
-    name: 'TeacherScoresLegacy',
-    component: TeacherScores,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/teacher-warnings',
-    name: 'TeacherWarningsLegacy',
-    component: TeacherWarnings,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/teacher-analysis',
-    name: 'TeacherAnalysisLegacy',
-    component: TeacherAnalysis,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/teacher-credit-prediction',
-    name: 'TeacherCreditPredictionLegacy',
-    component: TeacherCreditPrediction,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/teacher-audit-log',
-    name: 'TeacherAuditLogLegacy',
-    component: TeacherAuditLog,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/teacher-feedback-management',
-    name: 'TeacherFeedbackManagementLegacy',
-    component: TeacherFeedbackManagement,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/teacher-feedback',
-    name: 'TeacherFeedbackLegacy',
-    component: TeacherFeedback,
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/teacher-courses',
-    name: 'TeacherCoursesLegacy',
-    component: TeacherCourses,
-    meta: { requiresAuth: true }
   },
   {
     path: '/counselor',
@@ -286,6 +270,21 @@ const routes = [
         path: 'warnings',
         name: 'CounselorWarnings',
         component: CounselorWarnings
+      },
+      {
+        path: 'assistance',
+        name: 'CounselorAssistance',
+        component: CounselorAssistance
+      },
+      {
+        path: 'scores',
+        name: 'CounselorScores',
+        component: CounselorScores
+      },
+      {
+        path: 'analytics',
+        name: 'CounselorAnalytics',
+        component: CounselorAnalytics
       },
       {
         path: 'courses',
@@ -354,6 +353,11 @@ const routes = [
         component: AdminStatistics
       },
       {
+        path: 'warnings',
+        name: 'AdminWarnings',
+        component: AdminWarnings
+      },
+      {
         path: 'courses',
         name: 'AdminCourses',
         component: AdminCourses
@@ -385,6 +389,24 @@ const routes = [
       }
     ]
   },
+  // 学院管理员端
+  {
+    path: '/college-admin',
+    component: AdminLayout,
+    meta: { requiresAuth: true, role: 'college_admin' },
+    redirect: '/college-admin/dashboard',
+    children: [
+      { path: 'dashboard',  name: 'CollegeAdminDashboard',  component: CollegeAdminDashboard },
+      { path: 'students',   name: 'CollegeAdminStudents',   component: CollegeAdminStudents },
+      { path: 'teachers',   name: 'CollegeAdminTeachers',   component: CollegeAdminTeachers },
+      { path: 'warnings',   name: 'CollegeAdminWarnings',   component: CollegeAdminWarnings },
+      { path: 'classes',    name: 'CollegeAdminClasses',    component: CollegeAdminClasses },
+      { path: 'analysis',   name: 'CollegeAdminAnalysis',   component: CollegeAdminAnalysis },
+      { path: 'counselors', name: 'CollegeAdminCounselors', component: CollegeAdminCounselors },
+      { path: 'export',     name: 'CollegeAdminExport',     component: CollegeAdminExport },
+      { path: 'scores',    name: 'CollegeAdminScoreQuery', component: CollegeAdminScoreQuery }
+    ]
+  },
   {
     path: '/notifications',
     redirect: '/dashboard'
@@ -404,10 +426,12 @@ const routes = [
       const role = localStorage.getItem('role')
       if (role === '2' || role === 'teacher') {
         return '/teacher/dashboard'
-      } else if (role === '4' || role === 'counselor') {
-        return '/counselor-dashboard'
-      } else if (role === '3' || role === 'admin') {
+      } else if (role === '3' || role === 'counselor') {
+        return '/counselor/dashboard'
+      } else if (role === '4' || role === 'admin') {
         return '/admin/dashboard'
+      } else if (role === '5' || role === 'college_admin') {
+        return '/college-admin/dashboard'
       } else {
         return '/student/dashboard'
       }
@@ -432,18 +456,73 @@ router.beforeEach((to, from, next) => {
   }
   
   // 如果已登录且访问登录/注册页，根据角色跳转到对应首页
-  if ((to.path === '/login' || to.path === '/register' || to.path === '/teacher-register' || to.path === '/counselor-register' || to.path === '/admin-register') && hasToken) {
+  // 注：/admin-register 现在需要管理员身份，不在此处跳转
+  if ((to.path === '/login' || to.path === '/register' || to.path === '/teacher-register' || to.path === '/counselor-register') && hasToken) {
     if (role === '2' || role === 'teacher') {
       next('/teacher/dashboard')
-    } else if (role === '4' || role === 'counselor') {
-      next('/counselor-dashboard')
-    } else if (role === '3' || role === 'admin') {
+    } else if (role === '3' || role === 'counselor') {
+      next('/counselor/dashboard')
+    } else if (role === '4' || role === 'admin') {
       next('/admin/dashboard')
+    } else if (role === '5' || role === 'college_admin') {
+      next('/college-admin/dashboard')
     } else {
       // 默认学生
       next('/student/dashboard')
     }
     return
+  }
+  
+  // 角色路由保护：防止跨角色访问
+  if (hasToken && to.meta.requiresAuth) {
+    const roleNum = Number(role)
+    const path = to.path
+    // 管理员注册页只允许管理员角色(4)访问
+    if (path === '/admin-register' && roleNum !== 4 && role !== 'admin') {
+      next('/login')
+      return
+    }
+    // 教师路径只允许教师角色(2)访问
+    if (path.startsWith('/teacher') && roleNum !== 2 && role !== 'teacher') {
+      if (roleNum === 1) next('/student/dashboard')
+      else if (roleNum === 3) next('/counselor/dashboard')
+      else if (roleNum === 4) next('/admin/dashboard')
+      else next('/login')
+      return
+    }
+    // 学生路径只允许学生角色(1)访问
+    if (path.startsWith('/student') && roleNum !== 1 && role !== 'student' && roleNum !== 0) {
+      if (roleNum === 2) next('/teacher/dashboard')
+      else if (roleNum === 3) next('/counselor/dashboard')
+      else if (roleNum === 4) next('/admin/dashboard')
+      else next('/login')
+      return
+    }
+    // 辅导员路径只允许辅导员角色(3)访问
+    if (path.startsWith('/counselor') && roleNum !== 3 && role !== 'counselor') {
+      if (roleNum === 1) next('/student/dashboard')
+      else if (roleNum === 2) next('/teacher/dashboard')
+      else if (roleNum === 4) next('/admin/dashboard')
+      else next('/login')
+      return
+    }
+    // 管理员路径只允许管理员角色(4)访问
+    if (path.startsWith('/admin') && roleNum !== 4 && role !== 'admin') {
+      if (roleNum === 1) next('/student/dashboard')
+      else if (roleNum === 2) next('/teacher/dashboard')
+      else if (roleNum === 3) next('/counselor/dashboard')
+      else next('/login')
+      return
+    }
+    // 学院管理员路径只允许学院管理员角色(5)访问
+    if (path.startsWith('/college-admin') && roleNum !== 5 && role !== 'college_admin') {
+      if (roleNum === 1) next('/student/dashboard')
+      else if (roleNum === 2) next('/teacher/dashboard')
+      else if (roleNum === 3) next('/counselor/dashboard')
+      else if (roleNum === 4) next('/admin/dashboard')
+      else next('/login')
+      return
+    }
   }
   
   next()

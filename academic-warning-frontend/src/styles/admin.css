@@ -1,0 +1,304 @@
+/* 全局滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f7fa;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #c0c4cc;
+}
+
+/* 深色模式全局样式 */
+.dark-mode {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+.dark-mode ::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
+}
+
+/* 教师待审批申请列表美化 */
+.application-card {
+  margin-bottom: 20px;
+}
+
+.empty-state {
+  padding: 40px;
+  text-align: center;
+}
+
+.application-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.application-card-item {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.dark-mode .application-card-item {
+  background: #2a2a2a;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.application-card-item:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.application-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 16px;
+}
+
+.dark-mode .application-header {
+  border-bottom-color: #404040;
+}
+
+.application-info {
+  display: flex;
+  align-items: center;
+}
+
+.application-id {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.dark-mode .application-id {
+  color: #e5e7eb;
+}
+
+.application-time {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.dark-mode .application-time {
+  color: #9ca3af;
+}
+
+.application-body {
+  margin-bottom: 16px;
+}
+
+.application-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.application-row:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 14px;
+  min-width: 80px;
+}
+
+.dark-mode .label {
+  color: #9ca3af;
+}
+
+.value {
+  color: #1f2937;
+  font-size: 14px;
+  flex: 1;
+}
+
+.dark-mode .value {
+  color: #e5e7eb;
+}
+
+.reason-text {
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.dark-mode .reason-text {
+  color: #d1d5db;
+}
+
+.application-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.dark-mode .application-footer {
+  border-top-color: #404040;
+}
+
+.ml-4 {
+  margin-left: 16px;
+}
+
+.mr-2 {
+  margin-right: 8px;
+}
+
+/* 筛选器样式 */
+.filter-bar {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.filter-select {
+  width: 180px;
+}
+
+/* 申请分类样式 */
+.request-category {
+  margin-bottom: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.dark-mode .request-category {
+  background: #2a2a2a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dark-mode .category-header {
+  border-bottom-color: #404040;
+}
+
+.category-count {
+  margin-left: 10px;
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.dark-mode .category-count {
+  color: #9ca3af;
+}
+
+.requests-section {
+  padding: 10px;
+  height: calc(100vh - 200px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.request-item {
+  background: #fafafa;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.dark-mode .request-item {
+  background: #252525;
+}
+
+.request-item:hover {
+  background: #f0f0f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.dark-mode .request-item:hover {
+  background: #303030;
+}
+
+.request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.request-type-tag {
+  flex-shrink: 0;
+}
+
+.request-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.dark-mode .request-header h4 {
+  color: #e5e7eb;
+}
+
+.request-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.request-info p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.request-info .label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.dark-mode .request-info .label {
+  color: #9ca3af;
+}
+
+.request-info .value {
+  color: #4b5563;
+}
+
+.dark-mode .request-info .value {
+  color: #d1d5db;
+}

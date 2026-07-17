@@ -1,510 +1,179 @@
 <template>
-  <view class="dashboard-page">
-    <view class="header">
-      <view class="user-info">
-        <text class="welcome">欢迎，{{ userName }}</text>
-        <text class="role">{{ roleText }}</text>
+  <view class="page">
+    <!-- 蓝色 Hero -->
+    <view class="hero">
+      <view class="hero-top">
+        <view class="hero-user">
+          <text class="hero-greeting">你好，{{ userName }}</text>
+          <text class="hero-role">{{ roleText }}</text>
+        </view>
+        <view class="hero-av">{{ avatarChar }}</view>
       </view>
-      <view class="avatar">
-        <text class="avatar-text">{{ userName.charAt(0) }}</text>
-      </view>
-    </view>
-
-    <view class="stats-container">
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon total-credits">📚</view>
-        <text class="stat-title">总学分</text>
-        <text class="stat-value">{{ dashboardData.totalCredits || 0 }}</text>
-      </view>
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon completed-credits">✅</view>
-        <text class="stat-title">已修学分</text>
-        <text class="stat-value">{{ dashboardData.completedCredits || 0 }}</text>
-      </view>
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon warning-count">⚠️</view>
-        <text class="stat-title">预警数量</text>
-        <text class="stat-value warning">{{ dashboardData.warningCount || 0 }}</text>
-      </view>
-      <view class="stat-card" hover-class="stat-card-hover">
-        <view class="stat-icon average-gpa">📈</view>
-        <text class="stat-title">平均绩点</text>
-        <text class="stat-value">{{ dashboardData.averageGPA || 0 }}</text>
+      <view class="hero-stats">
+        <view class="hs-box" v-for="s in stats" :key="s.label">
+          <text :class="['hs-val', s.warn ? 'warn' : '']">{{ s.val }}</text>
+          <text class="hs-lbl">{{ s.label }}</text>
+        </view>
       </view>
     </view>
 
-    <view class="recent-warnings">
-      <view class="section-header">
-        <text class="section-title">最近预警</text>
-        <navigator url="/pages/student/warnings" class="more-link">查看全部</navigator>
+    <!-- 快捷入口 -->
+    <view class="quick-grid">
+      <view class="q-item" @tap="nav('/pages/student/scores')">
+        <view class="q-icon blue">成</view><text class="q-label">成绩</text>
       </view>
-      <view v-if="dashboardData.recentWarnings && dashboardData.recentWarnings.length > 0" class="warning-list">
-        <view v-for="warning in dashboardData.recentWarnings" :key="warning.id" class="warning-item" hover-class="warning-item-hover">
-          <view class="warning-content">
-            <text class="warning-title">{{ warning.title }}</text>
-            <text class="warning-description">{{ warning.description }}</text>
-            <text class="warning-date">{{ warning.date }}</text>
-          </view>
-          <view :class="['warning-level', warning.level]">
-            {{ warning.level === 'red' ? '严重' : warning.level === 'yellow' ? '中等' : '轻微' }}
+      <view class="q-item" @tap="nav('/pages/student/warnings')">
+        <view class="q-icon red">预</view><text class="q-label">预警</text>
+      </view>
+      <view class="q-item" @tap="nav('/pages/student/assistance')">
+        <view class="q-icon green">帮</view><text class="q-label">帮扶</text>
+      </view>
+      <view class="q-item" @tap="nav('/pages/student/analysis/index')">
+        <view class="q-icon orange">析</view><text class="q-label">分析</text>
+      </view>
+    </view>
+
+    <!-- 最近预警 -->
+    <view class="section">
+      <view class="sec-hd">
+        <text class="sec-title">最近预警</text>
+        <text class="sec-more" @tap="nav('/pages/student/warnings')">查看全部</text>
+      </view>
+      <view class="card" v-if="warnings.length">
+        <view v-for="w in warnings" :key="w.id" class="warn-row">
+          <view :class="['warn-dot', w.cls]"></view>
+          <text class="warn-name">{{ w.title }}</text>
+          <text class="warn-tag" :class="w.cls">{{ w.lvl }}</text>
+        </view>
+      </view>
+      <view v-else class="card empty"><text class="empty-text">暂无预警</text></view>
+    </view>
+
+    <!-- 帮扶计划 -->
+    <view class="section">
+      <view class="sec-hd">
+        <text class="sec-title">帮扶计划</text>
+        <text class="sec-more" @tap="nav('/pages/student/assistance')">查看全部</text>
+      </view>
+      <view class="card" v-if="plans.length">
+        <view v-for="p in plans" :key="p.id" class="plan-row">
+          <text class="plan-title">{{ p.title }}</text>
+          <view class="plan-progress">
+            <view class="plan-track"><view class="plan-fill" :style="{width:(p.progress||0)+'%'}"></view></view>
+            <text class="plan-pct">{{ p.progress || 0 }}%</text>
           </view>
         </view>
       </view>
-      <view v-else class="empty-state">
-        <view class="empty-icon">📭</view>
-        <text>暂无预警记录</text>
-      </view>
-    </view>
-
-    <view class="quick-actions">
-      <view class="action-card" @click="navigateToScores" hover-class="action-card-hover">
-        <view class="action-icon scores">📊</view>
-        <text class="action-text">成绩查询</text>
-      </view>
-      <view class="action-card" @click="navigateToWarnings" hover-class="action-card-hover">
-        <view class="action-icon warnings">⚠️</view>
-        <text class="action-text">预警管理</text>
-      </view>
-      <view class="action-card" @click="navigateToAssistance" hover-class="action-card-hover">
-        <view class="action-icon assistance">🤝</view>
-        <text class="action-text">帮扶计划</text>
-      </view>
-      <view class="action-card" @click="handleLogout" hover-class="action-card-hover">
-        <view class="action-icon logout">🚪</view>
-        <text class="action-text">退出登录</text>
-      </view>
+      <view v-else class="card empty"><text class="empty-text">暂无帮扶计划</text></view>
     </view>
   </view>
 </template>
 
-<script setup>
-import { ref, onMounted, computed } from 'vue'
-import { apiClient } from '../../services/api'
+<script>
+import { studentAPI } from '@/services/api.js'
 
-const dashboardData = ref({
-  totalCredits: 0,
-  completedCredits: 0,
-  warningCount: 0,
-  averageGPA: 0,
-  recentWarnings: []
-})
-
-const userName = computed(() => {
-  return uni.getStorageSync('userName') || '学生'
-})
-
-const roleText = computed(() => {
-  const role = uni.getStorageSync('role')
-  switch (role) {
-    case '1':
-    case 'student':
-      return '学生'
-    case '2':
-    case 'teacher':
-      return '教师'
-    case '4':
-    case 'counselor':
-      return '辅导员'
-    case '3':
-    case 'admin':
-      return '管理员'
-    default:
-      return '用户'
-  }
-})
-
-const loadDashboardData = async () => {
-  try {
-    const response = await apiClient.getStudentDashboard()
-    if (response && response.data) {
-      dashboardData.value = response.data
+export default {
+  data() {
+    return {
+      stats: [
+        { label: '绩点', val: '0.0', warn: false },
+        { label: '学分', val: 0, warn: false },
+        { label: '预警', val: 0, warn: true }
+      ],
+      warnings: [],
+      plans: []
     }
-  } catch (error) {
-    console.error('获取仪表板数据失败:', error)
-    // 使用模拟数据
-    dashboardData.value = {
-      totalCredits: 140,
-      completedCredits: 85,
-      warningCount: 2,
-      averageGPA: 3.2,
-      recentWarnings: [
-        {
-          id: 1,
-          title: '高数挂科预警',
-          description: '高等数学成绩低于60分',
-          date: '2026-03-20',
-          level: 'red'
-        },
-        {
-          id: 2,
-          title: '英语预警',
-          description: '大学英语成绩低于70分',
-          date: '2026-03-15',
-          level: 'yellow'
+  },
+  computed: {
+    userName() {
+      return uni.getStorageSync('userName') || uni.getStorageSync('username') || '学生'
+    },
+    roleText() {
+      const r = uni.getStorageSync('role')
+      const m = { '1': '学生', '2': '教师', '3': '辅导员', '4': '管理员', '5': '学院管理员' }
+      return m[r] || '学生'
+    },
+    avatarChar() {
+      return (this.userName || '学')[0]
+    }
+  },
+  onLoad() {
+    this.loadData()
+  },
+  methods: {
+    async loadData() {
+      const uid = uni.getStorageSync('userId')
+      if (!uid) return
+      try {
+        const dash = await studentAPI.getDashboard(uid)
+        if (dash) {
+          this.stats[0].val = (dash.gpa || 0).toFixed(1)
+          this.stats[1].val = dash.completedCredits || 0
+          this.stats[2].val = dash.warningCount || 0
+          this.warnings = (dash.recentWarnings || []).slice(0, 3).map(w => ({
+            id: w.id, title: w.title || '预警',
+            cls: (w.warningLevel || 0) >= 3 ? 'danger' : (w.warningLevel || 0) >= 2 ? 'medium' : 'low',
+            lvl: (w.warningLevel || 0) >= 3 ? '严重' : (w.warningLevel || 0) >= 2 ? '中等' : '轻微'
+          }))
         }
-      ]
+        const p = await studentAPI.getAssistancePlans(uid)
+        if (p) this.plans = (Array.isArray(p) ? p : (p?.data || [])).slice(0, 2)
+      } catch (e) {}
+    },
+    nav(url) {
+      const tb = ['/pages/student/dashboard', '/pages/student/scores', '/pages/student/warnings', '/pages/student/profile']
+      if (tb.some(p => url === p || url.startsWith(p + '?'))) {
+        uni.switchTab({ url })
+      } else {
+        uni.navigateTo({ url })
+      }
     }
   }
 }
-
-const navigateToScores = () => {
-  uni.navigateTo({ url: '/pages/student/scores' })
-}
-
-const navigateToWarnings = () => {
-  uni.navigateTo({ url: '/pages/student/warnings' })
-}
-
-const navigateToAssistance = () => {
-  uni.navigateTo({ url: '/pages/student/assistance' })
-}
-
-const handleLogout = async () => {
-  try {
-    const userId = uni.getStorageSync('userId')
-    const role = uni.getStorageSync('role')
-    if (userId && role) {
-      await apiClient.logout(userId, role)
-    }
-  } catch (error) {
-    console.error('登出失败:', error)
-  } finally {
-    // 清除本地存储
-    uni.removeStorageSync('token')
-    uni.removeStorageSync('userId')
-    uni.removeStorageSync('username')
-    uni.removeStorageSync('role')
-    uni.removeStorageSync('userName')
-    uni.removeStorageSync('studentId')
-    uni.removeStorageSync('teacherId')
-    uni.removeStorageSync('counselorId')
-    uni.removeStorageSync('adminId')
-    
-    // 跳转到登录页
-    uni.navigateTo({ url: '/pages/auth/login' })
-  }
-}
-
-onMounted(() => {
-  loadDashboardData()
-})
 </script>
 
 <style scoped>
-.dashboard-page {
-  padding: 20rpx;
-  background-color: #f5f7fa;
-  min-height: 100vh;
-}
+.page { min-height: 100vh; background: #f0f2f8; }
+.hero { background: linear-gradient(180deg, #3b5ce8 0%, #5b7cf0 100%); padding: 60rpx 28rpx 80rpx; }
+.hero-top { display: flex; justify-content: space-between; align-items: center; }
+.hero-greeting { font-size: 36rpx; font-weight: 700; color: #fff; display: block; }
+.hero-role { font-size: 24rpx; color: rgba(255,255,255,0.7); display: block; margin-top: 6rpx; }
+.hero-av { width: 80rpx; height: 80rpx; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 32rpx; font-weight: 700; color: #fff; }
+.hero-stats { display: flex; gap: 24rpx; margin-top: 40rpx; }
+.hs-box { flex: 1; background: rgba(255,255,255,0.12); border-radius: 14rpx; padding: 24rpx; text-align: center; }
+.hs-val { display: block; font-size: 40rpx; font-weight: 700; color: #fff; }
+.hs-val.warn { color: #ffb4a2; }
+.hs-lbl { display: block; font-size: 22rpx; color: rgba(255,255,255,0.65); margin-top: 4rpx; }
 
-.header {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border-radius: 24rpx;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 4rpx 16rpx rgba(79, 172, 254, 0.3);
-}
+.quick-grid { display: flex; padding: 28rpx 24rpx 0; gap: 16rpx; }
+.q-item { flex: 1; background: #fff; border-radius: 16rpx; padding: 28rpx 12rpx; display: flex; flex-direction: column; align-items: center; gap: 10rpx; }
+.q-icon { width: 64rpx; height: 64rpx; border-radius: 16rpx; display: flex; align-items: center; justify-content: center; font-size: 28rpx; font-weight: 700; color: #fff; }
+.q-icon.blue { background: #3b5ce8; } .q-icon.red { background: #ef4444; }
+.q-icon.green { background: #22c55e; } .q-icon.orange { background: #f59e0b; }
+.q-label { font-size: 24rpx; color: #1d1d1f; font-weight: 500; }
 
-.user-info {
-  flex: 1;
-}
+.section { padding: 20rpx 24rpx 0; }
+.sec-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14rpx; }
+.sec-title { font-size: 28rpx; font-weight: 600; color: #1d1d1f; }
+.sec-more { font-size: 24rpx; color: #3b5ce8; }
+.card { background: #fff; border-radius: 14rpx; padding: 20rpx 24rpx; }
 
-.welcome {
-  font-size: 28rpx;
-  font-weight: 700;
-  display: block;
-  margin-bottom: 8rpx;
-}
+.warn-row { display: flex; align-items: center; gap: 14rpx; padding: 16rpx 0; border-bottom: 1rpx solid #f5f5f7; }
+.warn-row:last-child { border-bottom: none; }
+.warn-dot { width: 10rpx; height: 10rpx; border-radius: 50%; flex-shrink: 0; }
+.warn-dot.danger { background: #ef4444; } .warn-dot.medium { background: #f59e0b; } .warn-dot.low { background: #3b5ce8; }
+.warn-name { flex: 1; font-size: 26rpx; color: #1d1d1f; font-weight: 500; }
+.warn-tag { font-size: 20rpx; padding: 4rpx 14rpx; border-radius: 12rpx; font-weight: 500; }
+.warn-tag.danger { background: #fef2f2; color: #ef4444; } .warn-tag.medium { background: #fffbeb; color: #f59e0b; } .warn-tag.low { background: #eef1ff; color: #3b5ce8; }
 
-.role {
-  font-size: 16rpx;
-  opacity: 0.9;
-}
+.plan-row { padding: 16rpx 0; border-bottom: 1rpx solid #f5f5f7; }
+.plan-row:last-child { border-bottom: none; }
+.plan-title { font-size: 26rpx; font-weight: 500; color: #1d1d1f; display: block; margin-bottom: 10rpx; }
+.plan-progress { display: flex; align-items: center; gap: 10rpx; }
+.plan-track { flex: 1; height: 6rpx; background: #e5e5ea; border-radius: 3rpx; overflow: hidden; }
+.plan-fill { height: 100%; background: #22c55e; border-radius: 3rpx; }
+.plan-pct { font-size: 20rpx; color: #22c55e; font-weight: 600; }
 
-.avatar {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10rpx);
-}
-
-.avatar-text {
-  font-size: 32rpx;
-  font-weight: 700;
-}
-
-.stats-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20rpx;
-  margin-bottom: 24rpx;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  text-align: center;
-  transition: all 0.3s ease;
-  border: 1rpx solid #f0f0f0;
-}
-
-.stat-card-hover {
-  transform: translateY(-4rpx);
-  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.12);
-}
-
-.stat-icon {
-  font-size: 40rpx;
-  margin-bottom: 12rpx;
-  display: block;
-}
-
-.total-credits {
-  color: #4facfe;
-}
-
-.completed-credits {
-  color: #4caf50;
-}
-
-.warning-count {
-  color: #ff5252;
-}
-
-.average-gpa {
-  color: #ff9800;
-}
-
-.stat-title {
-  font-size: 16rpx;
-  color: #666;
-  margin-bottom: 8rpx;
-  display: block;
-}
-
-.stat-value {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #333;
-}
-
-.stat-value.warning {
-  color: #ff5252;
-}
-
-.recent-warnings {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  border: 1rpx solid #f0f0f0;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20rpx;
-}
-
-.section-title {
-  font-size: 20rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.more-link {
-  font-size: 16rpx;
-  color: #4facfe;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-}
-
-.more-link::after {
-  content: "→";
-  margin-left: 4rpx;
-  font-size: 14rpx;
-}
-
-.warning-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.warning-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 20rpx;
-  border: 1rpx solid #f0f0f0;
-  border-radius: 16rpx;
-  background-color: #f9f9f9;
-  transition: all 0.3s ease;
-}
-
-.warning-item-hover {
-  background-color: #f0f7ff;
-  border-color: #4facfe;
-}
-
-.warning-content {
-  flex: 1;
-  margin-right: 16rpx;
-}
-
-.warning-title {
-  font-size: 18rpx;
-  font-weight: 600;
-  color: #333;
-  display: block;
-  margin-bottom: 6rpx;
-}
-
-.warning-description {
-  font-size: 16rpx;
-  color: #666;
-  display: block;
-  margin-bottom: 6rpx;
-  line-height: 24rpx;
-}
-
-.warning-date {
-  font-size: 14rpx;
-  color: #999;
-}
-
-.warning-level {
-  padding: 6rpx 16rpx;
-  border-radius: 16rpx;
-  font-size: 14rpx;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.warning-level.red {
-  background-color: #ffebee;
-  color: #d32f2f;
-}
-
-.warning-level.yellow {
-  background-color: #fff8e1;
-  color: #f57c00;
-}
-
-.warning-level.blue {
-  background-color: #e3f2fd;
-  color: #1976d2;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60rpx 0;
-  color: #999;
-  font-size: 16rpx;
-}
-
-.empty-icon {
-  font-size: 60rpx;
-  margin-bottom: 16rpx;
-  display: block;
-}
-
-.quick-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 20rpx;
-}
-
-.action-card {
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 140rpx;
-  transition: all 0.3s ease;
-  border: 1rpx solid #f0f0f0;
-}
-
-.action-card-hover {
-  transform: translateY(-4rpx);
-  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.12);
-}
-
-.action-icon {
-  font-size: 40rpx;
-  margin-bottom: 12rpx;
-  display: block;
-}
-
-.action-icon.scores {
-  color: #4facfe;
-}
-
-.action-icon.warnings {
-  color: #ff5252;
-}
-
-.action-icon.assistance {
-  color: #4caf50;
-}
-
-.action-icon.logout {
-  color: #999;
-}
-
-.action-text {
-  font-size: 16rpx;
-  color: #333;
-  font-weight: 500;
-}
-
-/* 动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.dashboard-page > * {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-.dashboard-page > *:nth-child(1) {
-  animation-delay: 0.1s;
-}
-
-.dashboard-page > *:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.dashboard-page > *:nth-child(3) {
-  animation-delay: 0.3s;
-}
-
-.dashboard-page > *:nth-child(4) {
-  animation-delay: 0.4s;
-}
+.empty { padding: 40rpx 24rpx; text-align: center; }
+.empty-text { font-size: 24rpx; color: #aeaeb2; }
 </style>

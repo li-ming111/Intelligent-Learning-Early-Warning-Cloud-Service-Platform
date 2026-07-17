@@ -67,7 +67,9 @@
       </div>
       <div class="navbar-right">
         <div class="user-info">
-          <el-icon class="notification-icon" style="cursor: pointer; margin-right: 10px;"><Bell /></el-icon>
+          <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="notify-badge">
+            <el-icon class="notification-icon" @click="goMessages"><Bell /></el-icon>
+          </el-badge>
           <el-dropdown trigger="click">
             <div class="user-profile">
               <div class="user-avatar">{{ studentName.charAt(0) }}</div>
@@ -97,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { 
   HomeFilled,
@@ -114,12 +116,16 @@ import {
   User,
   Trophy
 } from '@element-plus/icons-vue'
+import { studentAPI } from '@/api/index'
+import { getUserId } from '@/utils/userUtils'
 import AIAssistant from '@/components/AIAssistant.vue'
 
 const route = useRoute()
 const router = useRouter()
 const storedName = localStorage.getItem('userName')
 const storedRole = localStorage.getItem('role')
+const unreadCount = ref(0)
+let pollTimer = null
 let defaultName = '学生'
 // 检查storedName是否存在且不是纯数字（避免显示用户ID）
 if (storedName && !/^\d+$/.test(storedName)) {
@@ -149,7 +155,27 @@ const loadStudentInfo = async () => {
 // 组件挂载时加载学生信息
 onMounted(() => {
   loadStudentInfo()
+  fetchUnread()
+  pollTimer = setInterval(fetchUnread, 30000) // 30秒轮询
 })
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
+
+async function fetchUnread() {
+  try {
+    const uid = getUserId()
+    if (!uid) return
+    const res = await studentAPI.getUnreadCount(uid)
+    if (typeof res === 'number') unreadCount.value = res
+    else if (res?.data !== undefined) unreadCount.value = Number(res.data) || 0
+  } catch (e) {}
+}
+
+function goMessages() {
+  router.push('/student/messages')
+}
 
 const pageMap = {
   '/student/dashboard': '学业数据概览',
@@ -218,10 +244,7 @@ const handleLogout = () => {
   align-items: center;
 }
 
-.logo-image {
-  height: 40px;
-  object-fit: contain;
-}
+.logo-image { height: 40px; max-height: 40px; max-width: 120px; object-fit: contain; display: inline-block; }
 
 .main-nav {
   display: flex;
@@ -302,15 +325,26 @@ const handleLogout = () => {
   white-space: nowrap;
 }
 
+.notify-badge { margin-right: 10px; }
+.notify-badge :deep(.el-badge__content) { border: 2px solid #fff; }
+
 .notification-icon {
   font-size: 20px;
   color: #333;
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .notification-icon:hover {
-  color: #4facfe;
+  color: #7c3aed;
   transform: scale(1.1);
+}
+
+/* 主内容区域 */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #f5f7fb;
 }
 
 /* 主体区域 */

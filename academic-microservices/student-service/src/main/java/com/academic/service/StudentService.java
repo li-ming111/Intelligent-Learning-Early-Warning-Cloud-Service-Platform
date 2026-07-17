@@ -4,23 +4,120 @@ import com.academic.dto.StudentDashboardResponse;
 
 public interface StudentService {
     
-    /**
-     * 获取学生仪表盘数据
-     */
+    /** 获取学生仪表盘数据 */
     StudentDashboardResponse getStudentDashboard(Long studentId);
-    
-    /**
-     * 获取学生成绩
-     */
+    /** 获取学生成绩 */
     Object getStudentScores(Long studentId);
-    
-    /**
-     * 获取学生预警信息
-     */
+    /** 获取学生成绩（按学期） */
+    Object getStudentScores(Long studentId, String semester);
+    /** 获取学生预警信息 */
     Object getStudentWarnings(Long studentId);
-    
-    /**
-     * 获取学生信息
-     */
+    /** 获取学生信息 */
     Object getStudentInfo(Long studentId);
+    /** 学生注册 */
+    Object registerStudent(Object request);
+    /** 获取历史GPA数据 */
+    Object getHistoryBenchmark(Long studentId);
+    /** 获取班级信息 */
+    Object getClassInfo(Long studentId);
+    /** 获取帮扶计划 */
+    Object getAssistancePlans(Long studentId);
+    /** 获取学业建议 */
+    Object getSuggestions(Long studentId);
+    /** 提交成绩申诉 */
+    Object submitAppeal(Object request);
+    /** 获取学生申诉列表 */
+    Object getStudentAppeals(Long studentId);
+
+    // ========== 申诉新增方法 ==========
+    /** 获取申诉详情 */
+    Object getAppealDetail(Long appealId);
+    /** 撤销申诉 */
+    Object withdrawAppeal(Long appealId, Long studentId);
+    /** 获取待处理申诉 */
+    Object getPendingAppeals(Long studentId);
+    /** 获取申诉统计 */
+    Object getAppealStatistics(Long studentId);
+    /** 获取申诉成功率 */
+    Object getAppealSuccessRate(Long studentId);
+    /** 按状态获取申诉 */
+    Object getAppealsByStatus(Long studentId, Integer status);
+    /** 获取申诉历史（分页） */
+    Object getAppealHistory(Long studentId, int page, int pageSize);
+    /** 获取申诉原因统计 */
+    Object getAppealReasonStatistics(Long studentId);
+
+    // ========== 对标分析新增方法 ==========
+    /** 获取最新对标分析 */
+    Object getLatestBenchmark(Long studentId);
+    /** 获取班级排名 */
+    Object getBenchmarkClassRanking(Long studentId, Long classId, String semester);
+    /** 获取专业排名 */
+    Object getBenchmarkMajorRanking(Long studentId, Long majorId, String semester);
+    /** 获取班级对标对比 */
+    Object getClassBenchmarkComparison(Long classId, String semester);
+    /** 获取专业对标对比 */
+    Object getMajorBenchmarkComparison(Long majorId, String semester);
+
+    // ========== 通知中心新增方法 ==========
+    /** 获取通知列表（分页） */
+    Object getNotificationCenterList(Long userId, int page, int pageSize);
+    /** 获取未读通知数量 */
+    Object getNotificationUnreadCount(Long userId);
+    /** 批量标记通知已读 */
+    Object markNotificationsBatchRead(Long userId, java.util.List<Long> notificationIds);
+    /** 删除通知 */
+    Object deleteNotification(Long notificationId);
+    /** 清除已读通知 */
+    Object clearReadNotifications(Long userId);
+    /** 获取未读通知列表 */
+    Object getUnreadNotifications(Long userId);
+
+    // ========== 订阅管理新增方法 ==========
+    /** 获取订阅偏好 */
+    Object getSubscriptionPreferences(Long studentId);
+    /** 更新订阅偏好 */
+    Object updateSubscriptionPreferences(Long studentId, Object preferences);
+    /** 订阅预警等级 */
+    Object subscribeWarningLevel(Long studentId, String level);
+    /** 取消订阅预警等级 */
+    Object unsubscribeWarningLevel(Long studentId, String level);
+    /** 设置推送渠道 */
+    Object setPushChannel(Long studentId, String channel, Boolean enabled);
+
+    // ========== 帮扶反馈新增方法 ==========
+    /** 提交帮扶评价 */
+    Object submitEvaluation(Object evaluation);
+    /** 获取学生评价列表 */
+    Object getEvaluationsByStudent(Long studentId);
+    /** 获取帮扶计划评价 */
+    Object getPlanEvaluation(Long planId);
+    /** 获取评价统计 */
+    Object getEvaluationStatistics(Long studentId);
+
+    // ========== 设置新增方法 ==========
+    /** 更新隐私级别 */
+    Object updatePrivacyLevel(Long studentId, Integer privacyLevel);
+
+    // ========== 原有方法 ==========
+    /** 获取学期对标分析数据 */
+    Object getSemesterBenchmark(Long studentId, String semester);
+    /** 获取进度报告 */
+    Object getProgressReport(Long studentId);
+    /** 获取学生设置 */
+    Object getStudentSettings(Long studentId);
+    /** 获取安全日志 */
+    Object getSecurityLogs(Long studentId, int page, int pageSize);
+    /** 获取学生消息 */
+    Object getStudentMessages(Long studentId);
+    /** 获取未读消息数量 */
+    Object getUnreadMessageCount(Long studentId);
+    /** 导出学生成绩到Excel */
+    Object exportScoresToExcel(Long studentId);
+    /** 下载成绩 */
+    Object downloadScores(Long studentId);
+    /** 按学院统计学生数量 */
+    long countByCollege(Long collegeId);
+    /** 按学院获取学生列表 */
+    java.util.List<Object> getStudentsByCollege(Long collegeId);
 }

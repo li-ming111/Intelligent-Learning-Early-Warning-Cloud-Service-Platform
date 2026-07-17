@@ -1,5 +1,5 @@
 {
-    "name" : "智学预警云服务平台",
+    "name" : "智能学习预警服务系统",
     "appid" : "",
     "description" : "",
     "versionName" : "1.0.0",
@@ -52,9 +52,20 @@
     "mp-weixin" : {
         "appid" : "",
         "setting" : {
-            "urlCheck" : false
+            "urlCheck" : false,
+            "minified": true
         },
-        "usingComponents" : true
+        "usingComponents" : true,
+        "permission": {
+            "scope.userLocation": {
+                "desc": "你的位置信息将用于小程序位置接口的效果展示"
+            }
+        },
+        "requiredPrivateInfos": [],
+        "optimization": {
+            "subPackages": true
+        },
+        "lazyCodeLoading": "requiredComponents"
     },
     "mp-alipay" : {
         "usingComponents" : true

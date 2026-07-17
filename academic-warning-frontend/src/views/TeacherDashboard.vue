@@ -1,497 +1,352 @@
 <template>
-  <div class="teacher-dashboard">
-    <!-- 欢迎卡片 -->
-    <div class="welcome-card">
-      <div class="welcome-animation"></div>
-      <div class="welcome-content">
-        <div class="greeting-icon"></div>
-        <h1>欢迎回来，{{ teacherName }}！</h1>
-        <p>{{ currentDate }} | 管理您的教学数据</p>
-      </div>
-    </div>
+  <div class="td-page">
 
-    <!-- 教学数据概览 -->
-    <div class="metrics-section">
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-icon"></div>
-          <div class="metric-content">
-            <div class="metric-label">管理学生</div>
-            <div class="metric-value">{{ teacherData.totalStudents || 0 }}</div>
-            <div class="metric-trend">人</div>
+    <!-- Hero 区域 - 蓝色主题 -->
+    <div class="td-hero">
+      <div class="tdh-glow tdh-g1"></div>
+      <div class="tdh-glow tdh-g2"></div>
+      <div class="tdh-inner">
+        <div class="tdh-left">
+          <div class="tdh-logo">
+            <img src="@/assets/logo.png" alt="校徽" class="tdh-logo-img" />
           </div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-icon"></div>
-          <div class="metric-content">
-            <div class="metric-label">授课课程</div>
-            <div class="metric-value">{{ teacherData.totalCourses || 0 }}</div>
-            <div class="metric-trend">门</div>
-          </div>
-        </div>
-        <div class="metric-card warning-metric">
-          <div class="metric-icon"></div>
-          <div class="metric-content">
-            <div class="metric-label">红色预警</div>
-            <div class="metric-value" :class="{ critical: teacherData.highWarnings > 0 }">{{ teacherData.highWarnings || 0 }}</div>
-            <div class="metric-trend">需处理</div>
-          </div>
-        </div>
-        <div class="metric-card">
-          <div class="metric-icon"></div>
-          <div class="metric-content">
-            <div class="metric-label">黄色预警</div>
-            <div class="metric-value">{{ teacherData.mediumWarnings || 0 }}</div>
-            <div class="metric-trend">需关注</div>
+          <div>
+            <h1 class="tdh-greeting">{{ greeting }}，{{ teacherName }}</h1>
+            <p class="tdh-date">{{ currentDate }} · 祝您工作顺利</p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 待办事项和预警 -->
-    <div class="content-grid">
-      <!-- 待办事项 -->
-      <div class="card-section">
-        <div class="section-header">
-          <h2 class="section-title">待办事项</h2>
-          <el-badge :value="3" class="badge"></el-badge>
+    <!-- 核心指标卡片 -->
+    <div class="td-metrics">
+      <div class="tdm-card">
+        <div class="tdm-icon ic-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
         </div>
-        <div class="todo-list">
-          <div v-if="!teacherData.todos || teacherData.todos.length === 0" class="empty-state">暂无待办事项</div>
-          <div v-for="todo in (teacherData.todos || []).slice(0, 3)" :key="todo.id" class="todo-item">
-            <el-checkbox :checked="todo.completed"></el-checkbox>
-            <div class="todo-content">
-              <h4>{{ todo.title }}</h4>
-              <p>{{ todo.description }}</p>
-            </div>
-            <el-button type="primary" size="small" link>处理</el-button>
-          </div>
-        </div>
+        <div class="tdm-val">{{ stats.totalStudents }}</div>
+        <div class="tdm-lbl">管理学生</div>
       </div>
-
-      <!-- 红色预警学生 -->
-      <div class="card-section">
-        <div class="section-header">
-          <h2 class="section-title">红色预警</h2>
-          <router-link to="/teacher/warnings" class="view-all">查看全部 →</router-link>
+      <div class="tdm-card">
+        <div class="tdm-icon ic-sky">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
         </div>
-        <div class="warning-list">
-          <div v-if="!teacherData.warnings || teacherData.warnings.length === 0" class="empty-state">暂无红色预警</div>
-          <div v-for="warning in (teacherData.warnings || []).slice(0, 2)" :key="warning.id" class="warning-item">
-            <div class="warning-header">
-              <span class="student-name">{{ warning.studentName }}</span>
-              <span class="course-name">{{ warning.courseName }}</span>
-            </div>
-            <p class="warning-score">成绩：{{ warning.score }}分</p>
-            <div class="warning-actions">
-              <el-button type="primary" size="small" link>处理</el-button>
-            </div>
-          </div>
+        <div class="tdm-val">{{ stats.totalCourses }}</div>
+        <div class="tdm-lbl">授课课程</div>
+      </div>
+      <div class="tdm-card">
+        <div class="tdm-icon ic-red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         </div>
+        <div class="tdm-val red">{{ stats.highWarnings }}</div>
+        <div class="tdm-lbl">严重预警</div>
+      </div>
+      <div class="tdm-card">
+        <div class="tdm-icon ic-amber">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="tdm-val amber">{{ stats.mediumWarnings }}</div>
+        <div class="tdm-lbl">中度预警</div>
       </div>
     </div>
 
-    <!-- 快速操作 -->
-    <div class="quick-actions">
-      <h2 class="section-title">快速操作</h2>
-      <div class="action-buttons">
-        <router-link to="/teacher/scores" class="action-btn">
-          <span></span>
-          <span>成绩录入</span>
-        </router-link>
-        <router-link to="/teacher/warnings" class="action-btn">
-          <span></span>
-          <span>预警管理</span>
-        </router-link>
-        <router-link to="/teacher/analysis" class="action-btn">
-          <span></span>
-          <span>性能分析</span>
-        </router-link>
-        <router-link to="/teacher/credit-prediction" class="action-btn">
-          <span></span>
-          <span>学分预测</span>
-        </router-link>
-        <router-link to="/teacher/audit-log" class="action-btn">
-          <span></span>
-          <span>审计日志</span>
-        </router-link>
-        <router-link to="/teacher/feedback-management" class="action-btn">
-          <span></span>
-          <span>反馈管理</span>
-        </router-link>
+    <!-- 主体双栏 -->
+    <div class="td-main">
+      <div class="td-left">
+
+        <div class="td-card" v-if="warnings.length">
+          <div class="tdc-head">
+            <span class="tdc-title">最新预警</span>
+            <router-link to="/teacher/warnings" class="tdc-link">查看全部 →</router-link>
+          </div>
+          <div class="tdc-warns">
+            <div v-for="(w, i) in warnings.slice(0, 5)" :key="w.id" class="tdcw-item" :style="{ animationDelay: i * 0.05 + 's' }">
+              <div class="tdcw-bar" :class="w.warningLevel === '严重' ? 'lvl-3' : w.warningLevel === '中度' ? 'lvl-2' : 'lvl-1'"></div>
+              <div class="tdcw-body">
+                <div class="tdcw-top">
+                  <span class="tdcw-name">{{ w.studentName }}</span>
+                  <span class="tdcw-lvl" :class="w.warningLevel === '严重' ? 'lvl-3' : w.warningLevel === '中度' ? 'lvl-2' : 'lvl-1'">{{ w.warningLevel }}</span>
+                </div>
+                <p class="tdcw-title">{{ w.title }}</p>
+                <div class="tdcw-meta">
+                  <span>{{ w.className }}</span>
+                  <span>{{ fmtDate(w.createdAt) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="td-card" v-if="classes.length">
+          <div class="tdc-head">
+            <span class="tdc-title">管辖班级</span>
+            <span class="tdc-badge">{{ classes.length }}个</span>
+          </div>
+          <div class="tdc-classes">
+            <div v-for="(c, i) in classes" :key="c.id" class="tdcc-item" :style="{ animationDelay: i * 0.06 + 's' }">
+              <div class="tdcc-avatar">{{ (c.name || '').substring(0, 2) }}</div>
+              <div class="tdcc-info">
+                <span class="tdcc-name">{{ c.name }}</span>
+                <span class="tdcc-count">{{ c.studentCount || 0 }}名学生</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="td-right">
+
+        <div class="td-card">
+          <div class="tdc-head">
+            <span class="tdc-title">待办事项</span>
+            <span class="tdc-badge" v-if="todos.length">{{ todos.length }}项</span>
+          </div>
+          <div class="tdc-todos" v-if="todos.length">
+            <div v-for="(t, i) in todos" :key="t.id" class="tdct-item" :style="{ animationDelay: i * 0.06 + 's' }">
+              <div class="tdct-dot" :class="t.urgent ? 'urgent' : ''"></div>
+              <div class="tdct-info">
+                <span class="tdct-title">{{ t.title }}</span>
+                <span class="tdct-desc">{{ t.description }}</span>
+              </div>
+              <router-link :to="t.link" class="tdct-btn">{{ t.action }}</router-link>
+            </div>
+          </div>
+          <div v-else class="tdc-none">暂无待办事项，一切正常 👍</div>
+        </div>
+
+        <div class="td-card">
+          <div class="tdc-head">
+            <span class="tdc-title">快捷入口</span>
+          </div>
+          <div class="tdc-actions">
+            <router-link to="/teacher/scores" class="tdca-btn">
+              <span class="tdca-icon ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>
+              <span>成绩管理</span>
+            </router-link>
+            <router-link to="/teacher/warnings" class="tdca-btn">
+              <span class="tdca-icon ic-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+              <span>预警管理</span>
+            </router-link>
+            <router-link to="/teacher/analysis" class="tdca-btn">
+              <span class="tdca-icon ic-sky"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+              <span>数据分析</span>
+            </router-link>
+            <router-link to="/teacher/courses" class="tdca-btn">
+              <span class="tdca-icon ic-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></span>
+              <span>课程管理</span>
+            </router-link>
+            <router-link to="/teacher/feedback" class="tdca-btn">
+              <span class="tdca-icon ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></span>
+              <span>反馈消息</span>
+            </router-link>
+            <router-link to="/teacher/credit-prediction" class="tdca-btn">
+              <span class="tdca-icon ic-teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+              <span>学分预测</span>
+            </router-link>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { teacherAPI } from '@/api/index'
 import { getUserId } from '@/utils/userUtils'
 
 const teacherName = ref('教师')
 const currentDate = ref('')
-const teacherData = ref({
-  totalStudents: 0,
-  totalCourses: 0,
-  highWarnings: 0,
-  mediumWarnings: 0,
-  todos: [],
-  warnings: []
+const warnings = ref([])
+const classes = ref([])
+const todos = ref([])
+const stats = reactive({ totalStudents: 0, totalCourses: 0, highWarnings: 0, mediumWarnings: 0 })
+
+const greeting = computed(() => {
+  const h = new Date().getHours()
+  if (h < 6) return '夜深了'
+  if (h < 9) return '早上好'
+  if (h < 12) return '上午好'
+  if (h < 14) return '中午好'
+  if (h < 18) return '下午好'
+  return '晚上好'
 })
 
 onMounted(async () => {
-  const storedName = localStorage.getItem('userName')
-  const storedRole = localStorage.getItem('role')
-  // 检查storedName是否存在且不是纯数字（避免显示用户ID）
-  if (storedName && !/^\d+$/.test(storedName)) {
-    teacherName.value = storedName
-  } else {
-    // 如果没有userName或userName是纯数字，根据角色显示默认名称
-    if (storedRole === '2' || storedRole === 'teacher') {
-      teacherName.value = '教师'
-    } else {
-      teacherName.value = '用户'
-    }
-  }
-
+  const stored = localStorage.getItem('userName')
+  if (stored && !/^\d+$/.test(stored)) teacherName.value = stored
   const today = new Date()
-  const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }
-  currentDate.value = today.toLocaleDateString('zh-CN', options)
-
-  await loadTeacherDashboard()
+  currentDate.value = today.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+  await loadData()
 })
 
-// 加载教师看板数据
-const loadTeacherDashboard = async () => {
+async function loadData() {
   try {
-    const userId = getUserId()
-    if (!userId) return
-    const response = await teacherAPI.getDashboard(userId)
-    if (response) {
-      teacherData.value = response
-      // 检查响应中是否包含教师姓名
-      if (response.teacherName || response.name) {
-        const teacherNameFromApi = response.teacherName || response.name
-        teacherName.value = teacherNameFromApi
-        // 更新localStorage中的userName
-        localStorage.setItem('userName', teacherNameFromApi)
+    const tid = localStorage.getItem('teacherId') || getUserId() || '9'
+    const [dashRes, warnRes, classRes] = await Promise.all([
+      teacherAPI.getDashboard(tid).catch(() => null),
+      teacherAPI.getWarnings(tid).catch(() => []),
+      teacherAPI.getMyClasses(tid).catch(() => [])
+    ])
+    if (dashRes) {
+      stats.totalStudents = dashRes.totalStudents || 0
+      stats.totalCourses = dashRes.totalCourses || 0
+      if (dashRes.teacherName) {
+        teacherName.value = dashRes.teacherName
+        localStorage.setItem('userName', dashRes.teacherName)
       }
     }
-    // 加载待办事项
-    const teacherId = localStorage.getItem('teacherId') || userId
-    const todosResponse = await teacherAPI.getTodos(teacherId)
-    if (todosResponse) {
-      // 处理待办事项数据
-      const todos = []
-      if (todosResponse.pendingWarnings > 0) {
-        todos.push({
-          id: 1,
-          title: '未处理的预警',
-          description: `有${todosResponse.pendingWarnings}个学生预警待处理`,
-          completed: false
-        })
-      }
-      if (todosResponse.pendingFeedbacks > 0) {
-        todos.push({
-          id: 2,
-          title: '待回复的学生反馈',
-          description: `有${todosResponse.pendingFeedbacks}条学生反馈待回复`,
-          completed: false
-        })
-      }
-      if (todosResponse.pendingAppeals > 0) {
-        todos.push({
-          id: 3,
-          title: '成绩申诋',
-          description: `有${todosResponse.pendingAppeals}条成绩申诋待处理`,
-          completed: false
-        })
-      }
-      teacherData.value.todos = todos
+    const wlist = Array.isArray(warnRes) ? warnRes : (warnRes?.data || [])
+    stats.highWarnings = wlist.filter(w => w.warningLevel === '严重' || w.warningLevel >= 3).length
+    stats.mediumWarnings = wlist.filter(w => w.warningLevel === '中度' || w.warningLevel === 2).length
+    warnings.value = wlist.filter(w => w.status === '待处理' || w.status === 0).slice(0, 8)
+    const clist = Array.isArray(classRes) ? classRes : (classRes?.data || [])
+    classes.value = clist.map(c => ({
+      id: c.id || c.classId,
+      name: c.name || c.className,
+      studentCount: c.studentCount || 0
+    }))
+    const tdList = []
+    const pendingWarns = wlist.filter(w => w.status === '待处理' || w.status === 0).length
+    if (pendingWarns > 0) {
+      tdList.push({ id: 1, title: '预警待处理', description: `${pendingWarns}条预警需要您处理`, action: '去处理', link: '/teacher/warnings', urgent: true })
     }
-  } catch (error) {
-    console.error('加载教师看板失败:', error)
-  }
+    if (wlist.some(w => w.warningLevel === '严重')) {
+      tdList.push({ id: 2, title: '严重预警关注', description: '存在严重预警学生，建议立即跟进', action: '查看', link: '/teacher/warnings', urgent: true })
+    }
+    const feedbackRes = await teacherAPI.getTodos(tid).catch(() => null)
+    if (feedbackRes?.pendingFeedbacks > 0) {
+      tdList.push({ id: 3, title: '学生反馈待回复', description: `${feedbackRes.pendingFeedbacks}条反馈等待回复`, action: '回复', link: '/teacher/feedback' })
+    }
+    if (feedbackRes?.pendingAppeals > 0) {
+      tdList.push({ id: 4, title: '成绩申诉处理', description: `${feedbackRes.pendingAppeals}条申诉待处理`, action: '处理', link: '/teacher/feedback' })
+    }
+    todos.value = tdList
+  } catch (e) { console.error('加载看板失败', e) }
+}
+
+function fmtDate(d) {
+  if (!d) return ''
+  const s = typeof d === 'string' ? d : (d[0] || '')
+  if (!s) return ''
+  return s.split('T')[0] || s.substring(0, 10)
 }
 </script>
 
 <style scoped>
-.teacher-dashboard {
-  padding: 20px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  min-height: 100vh;
-}
+.td-page { padding: 20px 24px; min-height: 100vh; background: #f0f4ff; }
 
-/* 欢迎卡片 */
-.welcome-card {
-  background: white;
-  border-radius: 16px;
-  padding: 45px;
-  margin-bottom: 30px;
-  color: #333;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+/* ===== Hero - 蓝色主题 ===== */
+.td-hero {
   position: relative;
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 30%, #3b82f6 60%, #60a5fa 100%);
+  border-radius: 20px;
+  padding: 40px 44px;
+  margin-bottom: 24px;
   overflow: hidden;
-  animation: slideDown 0.6s ease-out;
-  border: 1px solid #e0e0e0;
 }
+.tdh-glow { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .25; pointer-events: none; }
+.tdh-g1 { width: 280px; height: 280px; background: #3b82f6; top: -80px; right: -60px; }
+.tdh-g2 { width: 220px; height: 220px; background: #60a5fa; bottom: -70px; left: 15%; opacity: .2; }
+.tdh-inner { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; }
+.tdh-left { display: flex; align-items: center; gap: 18px; }
+.tdh-logo {
+  width: 64px; height: 64px; border-radius: 16px;
+  background: #fff; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,.15); flex-shrink: 0; overflow: hidden;
+}
+.tdh-logo-img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.tdh-greeting { margin: 0; font-size: 24px; color: #fff; font-weight: 700; }
+.tdh-wave { display: inline-block; animation: wave 1.5s ease-in-out infinite; }
+.tdh-date { margin: 6px 0 0; font-size: 13px; color: rgba(255,255,255,.7); }
 
-.welcome-animation {
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(79, 172, 254, 0.1) 0%, transparent 70%);
-  border-radius: 50%;
-  top: -100px;
-  right: -100px;
-  animation: float 6s ease-in-out infinite;
+/* ===== 核心指标 ===== */
+.td-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.tdm-card {
+  background: #fff; border-radius: 14px; padding: 22px 20px;
+  box-shadow: 0 2px 8px rgba(59,130,246,.08); text-align: center; transition: all .25s;
 }
+.tdm-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(59,130,246,.15); }
+.tdm-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+.ic-blue { background: #eff6ff; color: #2563eb; }
+.ic-sky { background: #e0f2fe; color: #0284c7; }
+.ic-red { background: #fef2f2; color: #ef4444; }
+.ic-amber { background: #fffbeb; color: #d97706; }
+.tdm-val { font-size: 26px; font-weight: 800; color: #1e3a5f; }
+.tdm-val.red { color: #ef4444; }
+.tdm-val.amber { color: #d97706; }
+.tdm-lbl { font-size: 12px; color: #94a3b8; margin-top: 4px; }
 
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+/* ===== 主体 ===== */
+.td-main { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .td-main { grid-template-columns: 1fr; } .td-metrics { grid-template-columns: repeat(2, 1fr); } }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
+/* ===== 卡片 ===== */
+.td-card {
+  background: #fff; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  padding: 20px 24px; margin-bottom: 20px;
 }
-
-.welcome-content {
-  position: relative;
-  z-index: 1;
-}
-
-.greeting-icon {
-  font-size: 40px;
-  margin-bottom: 15px;
-}
-
-.welcome-content h1 {
-  margin: 0;
-  font-size: 32px;
-  font-weight: bold;
-}
-
-.welcome-content p {
-  margin: 12px 0 0 0;
-  font-size: 14px;
-  opacity: 0.95;
-}
-
-/* 统计部分 */
-.metrics-section {
-  margin-bottom: 30px;
-}
-
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.metric-card {
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  transition: all 0.3s ease;
-}
-
-.metric-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-}
-
-.metric-icon {
-  font-size: 32px;
-  line-height: 1;
-}
-
-.metric-content {
-  flex: 1;
-}
-
-.metric-label {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 6px;
-}
-
-.metric-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #4facfe;
-  margin-bottom: 4px;
-}
-
-.metric-value.critical {
-  color: #ff6b6b;
-}
-
-.metric-trend {
-  font-size: 12px;
-  color: #aaa;
-}
-
-/* 内容网格 */
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-bottom: 30px;
-}
-
-@media (max-width: 1200px) {
-  .content-grid { grid-template-columns: 1fr; }
-}
-
-.card-section {
-  background: white;
-  border-radius: 16px;
-  padding: 28px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.card-section:hover {
-  border-color: #e8ecf1;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.badge {
-  margin-left: 10px;
-}
-
-.view-all {
-  color: #409eff;
-  text-decoration: none;
-  font-size: 13px;
-}
-
-/* 待办列表 */
-.todo-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.todo-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border-left: 3px solid #409eff;
-}
-
-.todo-content {
-  flex: 1;
-}
-
-.todo-content h4 {
-  margin: 0 0 4px 0;
-  color: #333;
-}
-
-.todo-content p {
-  margin: 0;
-  font-size: 13px;
-  color: #666;
-}
+.tdc-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.tdc-title { font-size: 15px; font-weight: 600; color: #1e3a5f; }
+.tdc-link { font-size: 12px; color: #2563eb; text-decoration: none; }
+.tdc-link:hover { text-decoration: underline; }
+.tdc-badge { font-size: 11px; background: #eff6ff; color: #2563eb; padding: 2px 10px; border-radius: 10px; font-weight: 600; }
+.tdc-none { text-align: center; padding: 30px 0; color: #94a3b8; font-size: 14px; }
 
 /* 预警列表 */
-.warning-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.tdcw-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f1f5f9; animation: fadeUp .4s ease both; }
+.tdcw-item:last-child { border-bottom: none; padding-bottom: 0; }
+.tdcw-bar { width: 4px; border-radius: 4px; flex-shrink: 0; }
+.tdcw-bar.lvl-3 { background: #ef4444; }
+.tdcw-bar.lvl-2 { background: #f59e0b; }
+.tdcw-bar.lvl-1 { background: #3b82f6; }
+.tdcw-body { flex: 1; min-width: 0; }
+.tdcw-top { display: flex; justify-content: space-between; align-items: center; }
+.tdcw-name { font-size: 14px; font-weight: 600; color: #1e293b; }
+.tdcw-lvl { font-size: 11px; padding: 1px 8px; border-radius: 10px; font-weight: 600; }
+.tdcw-lvl.lvl-3 { background: #fef2f2; color: #ef4444; }
+.tdcw-lvl.lvl-2 { background: #fffbeb; color: #d97706; }
+.tdcw-lvl.lvl-1 { background: #eff6ff; color: #2563eb; }
+.tdcw-title { margin: 4px 0; font-size: 13px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tdcw-meta { display: flex; gap: 12px; font-size: 11px; color: #94a3b8; }
 
-.warning-item {
-  padding: 12px;
-  background: #fdf6ec;
-  border-radius: 8px;
-  border-left: 3px solid #e6a23c;
-}
+/* 班级 */
+.tdcc-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; animation: fadeUp .4s ease both; }
+.tdcc-item:last-child { border-bottom: none; }
+.tdcc-avatar { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.tdcc-item:nth-child(1) .tdcc-avatar { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.tdcc-item:nth-child(2) .tdcc-avatar { background: linear-gradient(135deg, #60a5fa, #3b82f6); }
+.tdcc-item:nth-child(3) .tdcc-avatar { background: linear-gradient(135deg, #38bdf8, #0ea5e9); }
+.tdcc-item:nth-child(4) .tdcc-avatar { background: linear-gradient(135deg, #818cf8, #6366f1); }
+.tdcc-item:nth-child(5) .tdcc-avatar { background: linear-gradient(135deg, #22d3ee, #06b6d4); }
+.tdcc-item:nth-child(6) .tdcc-avatar { background: linear-gradient(135deg, #34d399, #10b981); }
+.tdcc-info { display: flex; flex-direction: column; }
+.tdcc-name { font-size: 14px; font-weight: 600; color: #1e293b; }
+.tdcc-count { font-size: 12px; color: #94a3b8; }
 
-.warning-header {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 8px;
-}
+/* 待办 */
+.tdct-item { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f1f5f9; animation: fadeUp .4s ease both; }
+.tdct-item:last-child { border-bottom: none; }
+.tdct-dot { width: 8px; height: 8px; border-radius: 50%; background: #60a5fa; flex-shrink: 0; }
+.tdct-dot.urgent { background: #ef4444; animation: pulse 2s infinite; }
+.tdct-info { flex: 1; min-width: 0; }
+.tdct-title { font-size: 14px; font-weight: 600; color: #1e293b; }
+.tdct-desc { display: block; font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.tdct-btn { font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 600; flex-shrink: 0; }
+.tdct-btn:hover { text-decoration: underline; }
 
-.student-name {
-  font-weight: bold;
-  color: #333;
+/* 快捷入口 */
+.tdc-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tdca-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 16px 10px; border-radius: 12px; text-decoration: none;
+  background: #f8fafc; transition: all .25s; border: 1px solid transparent;
 }
+.tdca-btn:hover { background: #eff6ff; border-color: #bfdbfe; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59,130,246,.1); }
+.tdca-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.tdca-btn span:last-child { font-size: 12px; color: #475569; font-weight: 500; }
 
-.course-name {
-  color: #666;
-  font-size: 13px;
-}
-
-.warning-score {
-  margin: 0 0 8px 0;
-  font-size: 13px;
-  color: #e6a23c;
-  font-weight: bold;
-}
-
-/* 快速操作 */
-.quick-actions {
-  margin-top: 30px;
-}
-
-.action-buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 15px;
-}
-
-.action-btn {
-  background: white;
-  border-radius: 16px;
-  padding: 28px;
-  text-align: center;
-  text-decoration: none;
-  color: #333;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  border: 2px solid transparent;
-}
-
-.action-btn:hover {
-  box-shadow: 0 12px 32px rgba(79, 172, 254, 0.25);
-  transform: translateY(-8px) scale(1.02);
-  border-color: #4facfe;
-  background: linear-gradient(135deg, rgba(79, 172, 254, 0.05) 0%, rgba(0, 242, 254, 0.05) 100%);
-}
-
-.action-btn span:first-child {
-  font-size: 32px;
-}
-
-.action-btn span:last-child {
-  font-size: 14px;
-  font-weight: 500;
-}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes wave { 0%,100% { transform: rotate(0); } 25% { transform: rotate(15deg); } 75% { transform: rotate(-10deg); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
 </style>

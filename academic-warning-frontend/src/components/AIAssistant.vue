@@ -1,592 +1,427 @@
 <template>
   <div class="ai-assistant">
-    <!-- 聊天按钮 -->
-    <div class="chat-button" @click="toggleChat">
-      <div class="robot-icon">
-        <div class="robot-head">
-          <div class="robot-eyes"></div>
-          <div class="robot-mouth"></div>
-        </div>
-        <div class="robot-antenna"></div>
-      </div>
-      <span class="badge" v-if="unreadMessages > 0">{{ unreadMessages }}</span>
+    <!-- 浮动按钮 - 可拖拽 -->
+    <div
+      class="chat-trigger"
+      :class="{ active: isChatOpen }"
+      :style="{ left: ballX + 'px', top: ballY + 'px' }"
+      @mousedown="startDrag"
+      @touchstart.prevent="startDrag"
+      @click="handleClick"
+    >
+      <img src="@/assets/xiaohui.jpg" alt="AI助手" class="trigger-img" />
+      <span class="trigger-pulse" v-if="unreadCount > 0"></span>
     </div>
 
-    <!-- 聊天窗口 -->
-    <div class="chat-window" v-if="isChatOpen">
-      <div class="chat-header">
-        <div class="chat-title">
-          <div class="avatar">
-            <i class="el-icon-robot"></i>
+    <!-- 聊天面板 -->
+    <transition name="panel-slide">
+      <div class="chat-panel" v-if="isChatOpen">
+        <!-- 头部 -->
+        <div class="panel-header">
+          <div class="header-left">
+            <div class="header-avatar">
+              <img src="@/assets/xiaohui.jpg" alt="校徽" class="header-avatar-img" />
+            </div>
+            <div class="header-info">
+              <span class="header-name">智学助手</span>
+              <span class="header-status">AI · 在线</span>
+            </div>
           </div>
-          <span>学业预警系统AI助手</span>
+          <div class="header-actions">
+            <button class="hdr-btn" @click="toggleChat" title="关闭">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
         </div>
-        <div class="chat-actions">
-          <button class="action-btn minimize-btn" @click="toggleChat">
-            <span>—</span>
-          </button>
-          <button class="action-btn close-btn" @click="toggleChat">
-            <span>×</span>
-          </button>
-        </div>
-      </div>
 
-      <div class="chat-body" ref="chatBody">
-        <!-- 主聊天区 -->
-        <div class="chat-main" ref="chatMain">
-          <!-- 欢迎消息 -->
-          <div v-if="messages.length === 0" class="welcome-message">
-            <div class="message-content">
-              <p>你好，我是学业预警系统的AI助手</p>
-              <p>我可以帮你查询成绩、了解预警信息、计算GPA等学业相关问题</p>
-              <div class="suggestions">
-                <button class="suggestion-btn" @click="sendSuggestion('我的成绩如何')">我的成绩如何</button>
-                <button class="suggestion-btn" @click="sendSuggestion('我有哪些预警')">我有哪些预警</button>
-                <button class="suggestion-btn" @click="sendSuggestion('如何计算GPA')">如何计算GPA</button>
-              </div>
+        <!-- 消息区 - 关键：flex:1 + overflow-y:auto -->
+        <div class="panel-body" ref="panelBody">
+          <!-- 欢迎屏 -->
+          <div v-if="messages.length === 0" class="welcome-screen">
+            <h3>你好，我是智学助手</h3>
+            <p>基于通义千问大模型，为你提供智能学业分析</p>
+            <div class="quick-actions">
+              <button v-for="q in quickQuestions" :key="q" @click="sendSuggestion(q)" class="quick-btn">
+                {{ q }}
+              </button>
             </div>
           </div>
 
           <!-- 消息列表 -->
-          <div v-for="(message, index) in messages" :key="index" :class="['message', message.type]">
-            <div class="message-avatar">
-              {{ message.type === 'user' ? username.charAt(0) : 'AI' }}
-            </div>
-            <div class="message-content">
-              <div class="message-text">{{ message.content }}</div>
-              <div class="message-time">{{ message.time }}</div>
+          <div v-for="(msg, i) in messages" :key="i" :class="['msg-row', msg.type]">
+            <div class="msg-bubble" :class="msg.type">
+              <div class="bubble-text">{{ msg.content }}</div>
+              <div class="bubble-time">{{ msg.time }}</div>
             </div>
           </div>
 
-          <!-- 加载中 -->
-          <div v-if="isLoading" class="loading-message">
-            <div class="loading-spinner"></div>
-            <span>AI正在思考...</span>
+          <!-- 加载动画 -->
+          <div v-if="loading" class="msg-row ai">
+            <div class="msg-bubble ai typing">
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 输入区 -->
+        <div class="panel-footer">
+          <div class="input-wrap">
+            <input
+              type="text"
+              v-model="inputMessage"
+              placeholder="输入学业相关问题..."
+              @keyup.enter="sendMessage"
+              :disabled="loading"
+              ref="inputRef"
+            />
+            <button @click="sendMessage" :disabled="!inputMessage.trim() || loading" class="send-btn">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
-
-      <div class="chat-footer">
-        <input 
-          type="text" 
-          v-model="inputMessage" 
-          placeholder="输入学业相关问题" 
-          @keyup.enter="sendMessage"
-          class="message-input"
-        >
-        <button @click="sendMessage" class="send-button">
-          <i class="el-icon-arrow-right"></i>
-        </button>
-      </div>
-    </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { aiAPI } from '@/api/index'
 import { getUserId } from '@/utils/userUtils'
 
 const isChatOpen = ref(false)
 const messages = ref([])
 const inputMessage = ref('')
-const isLoading = ref(false)
-const unreadMessages = ref(0)
-const chatBody = ref(null)
-const chatMain = ref(null)
-const username = ref(localStorage.getItem('userName') || '学生')
+const loading = ref(false)
+const unreadCount = ref(0)
+const panelBody = ref(null)
+const inputRef = ref(null)
 
-// 切换聊天窗口
-const toggleChat = () => {
+// ====== 拖拽状态 ======
+const ballX = ref(window.innerWidth - 82)  // 默认右下角
+const ballY = ref(window.innerHeight - 82)
+const dragging = ref(false)
+const dragStartX = ref(0)
+const dragStartY = ref(0)
+const dragOffsetX = ref(0)
+const dragOffsetY = ref(0)
+const hasMoved = ref(false)  // 区分拖拽和点击
+
+function startDrag(e) {
+  // 如果聊天面板打开中，不允许拖拽
+  if (isChatOpen.value) return
+  dragging.value = true
+  hasMoved.value = false
+  const touch = e.touches ? e.touches[0] : e
+  dragStartX.value = touch.clientX
+  dragStartY.value = touch.clientY
+  dragOffsetX.value = ballX.value
+  dragOffsetY.value = ballY.value
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+  document.addEventListener('touchmove', onDrag, { passive: false })
+  document.addEventListener('touchend', stopDrag)
+}
+
+function onDrag(e) {
+  if (!dragging.value) return
+  const touch = e.touches ? e.touches[0] : e
+  const dx = touch.clientX - dragStartX.value
+  const dy = touch.clientY - dragStartY.value
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasMoved.value = true
+  // 边界限制
+  ballX.value = Math.min(Math.max(dragOffsetX.value + dx, 8), window.innerWidth - 62)
+  ballY.value = Math.min(Math.max(dragOffsetY.value + dy, 8), window.innerHeight - 62)
+}
+
+function stopDrag() {
+  dragging.value = false
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+  document.removeEventListener('touchmove', onDrag)
+  document.removeEventListener('touchend', stopDrag)
+}
+
+function handleClick() {
+  if (!hasMoved.value) toggleChat()
+}
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+  document.removeEventListener('touchmove', onDrag)
+  document.removeEventListener('touchend', stopDrag)
+})
+
+const quickQuestions = [
+  '我的成绩怎么样？',
+  '帮我分析一下学业风险',
+  '如何提高GPA？',
+  '有哪些学习方法推荐？'
+]
+
+function toggleChat() {
   isChatOpen.value = !isChatOpen.value
   if (isChatOpen.value) {
-    unreadMessages.value = 0
-    nextTick(() => {
-      scrollToBottom()
-    })
+    unreadCount.value = 0
+    nextTick(() => { inputRef.value?.focus(); scrollToBottom() })
   }
 }
 
-// 滚动到底部
-const scrollToBottom = () => {
-  if (chatMain.value) {
-    chatMain.value.scrollTop = chatMain.value.scrollHeight
-  }
+function scrollToBottom() {
+  nextTick(() => {
+    if (panelBody.value) {
+      panelBody.value.scrollTop = panelBody.value.scrollHeight
+    }
+  })
 }
 
-// 发送消息
-const sendMessage = async () => {
-  if (!inputMessage.value.trim()) return
-
-  const message = inputMessage.value.trim()
+async function sendMessage() {
+  const text = inputMessage.value.trim()
+  if (!text || loading.value) return
   inputMessage.value = ''
 
-  // 添加用户消息
-  messages.value.push({
-    type: 'user',
-    content: message,
-    time: new Date().toLocaleTimeString()
-  })
+  messages.value.push({ type: 'user', content: text, time: fmtTime() })
   scrollToBottom()
 
-  isLoading.value = true
+  loading.value = true
   try {
     const userId = getUserId()
-    if (!userId) {
-      throw new Error('用户未登录')
-    }
-    const response = await aiAPI.getResponse(userId, message)
-    
-    // 添加AI回复
-    messages.value.push({
-      type: 'ai',
-      content: response.content,
-      time: new Date().toLocaleTimeString()
-    })
-  } catch (error) {
-    console.error('AI回复失败:', error)
-    messages.value.push({
-      type: 'ai',
-      content: '抱歉，我暂时无法回答你的问题，请稍后再试。',
-      time: new Date().toLocaleTimeString()
-    })
+    if (!userId) throw new Error('请先登录')
+    const res = await aiAPI.getResponse(userId, text)
+    const reply = res?.reply || res?.content || '抱歉，我暂时无法回答，请稍后重试。'
+    messages.value.push({ type: 'ai', content: reply, time: fmtTime() })
+  } catch (e) {
+    console.error('AI 回复失败:', e)
+    messages.value.push({ type: 'ai', content: '抱歉，服务暂时不可用，请稍后重试。', time: fmtTime() })
   } finally {
-    isLoading.value = false
+    loading.value = false
     scrollToBottom()
   }
 }
 
-// 发送建议问题
-const sendSuggestion = (suggestion) => {
-  inputMessage.value = suggestion
+function sendSuggestion(q) {
+  inputMessage.value = q
   sendMessage()
 }
 
-// 清空聊天
-const clearChat = () => {
-  messages.value = []
+function fmtTime() {
+  return new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
 
-// 监听消息变化，自动滚动
-watch(messages, () => {
-  nextTick(() => {
-    scrollToBottom()
-  })
-}, { deep: true })
-
-// 组件挂载时初始化
-onMounted(() => {
-  // 可以在这里加载历史消息或初始化其他数据
-})
+watch(messages, () => scrollToBottom(), { deep: true })
 </script>
 
 <style scoped>
+/* ========== 容器 ========== */
 .ai-assistant {
   position: fixed;
-  bottom: 30px;
-  right: 30px;
-  z-index: 1000;
+  top: 0; left: 0;
+  width: 0; height: 0;
+  z-index: 9999;
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
 }
 
-.chat-button {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #6c63ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(108, 99, 255, 0.4);
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.chat-button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(108, 99, 255, 0.6);
-}
-
-.robot-icon {
-  position: relative;
-  width: 30px;
-  height: 30px;
-}
-
-.robot-head {
-  width: 30px;
-  height: 30px;
-  background: white;
-  border-radius: 50%;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.robot-eyes {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 2px;
-}
-
-.robot-eyes::before, .robot-eyes::after {
-  content: '';
-  width: 4px;
-  height: 4px;
-  background: #333;
-  border-radius: 50%;
-}
-
-.robot-mouth {
-  width: 8px;
-  height: 2px;
-  background: #333;
-  border-radius: 1px;
-}
-
-.robot-antenna {
+/* ========== 触发按钮 ========== */
+.chat-trigger {
   position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 2px;
-  height: 8px;
-  background: white;
-}
-
-.robot-antenna::after {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  background: #ff6b6b;
+  width: 54px; height: 54px;
   border-radius: 50%;
-}
-
-.badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #ff6b6b;
-  color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-
-.chat-window {
-  width: 380px;
-  height: 500px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
-  animation: slideUp 0.3s ease-out;
-  border: 1px solid #e0e0e0;
+  cursor: grab;
+  box-shadow: 0 6px 24px rgba(124, 58, 237, .35);
+  transition: transform .15s, box-shadow .3s;
+  border: 2px solid transparent;
+  user-select: none;
+}
+.chat-trigger:active { cursor: grabbing; }
+.chat-trigger:hover { box-shadow: 0 8px 30px rgba(124, 58, 237, .5); border-color: #7c3aed; }
+.chat-trigger.active { box-shadow: 0 6px 24px rgba(0,0,0,.15); border-color: #7c3aed; }
+.chat-trigger.active:hover { transform: none; }
+.trigger-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.trigger-pulse {
+  position: absolute; top: 2px; right: 2px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #ef4444; border: 2px solid #fff;
+  animation: pulse 2s infinite;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.chat-header {
-  background: #6c63ff;
-  color: white;
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.chat-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 600;
-  font-size: 16px;
-  font-family: 'Microsoft YaHei', sans-serif;
-}
-
-.avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6c63ff;
-  font-weight: bold;
-}
-
-.avatar i {
-  font-size: 18px;
-}
-
-.chat-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  border-radius: 4px;
-  color: white;
-  padding: 4px 8px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.minimize-btn {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 4px 0 0 4px;
-}
-
-.close-btn {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 0 4px 4px 0;
-}
-
-.action-btn:hover {
-  background: rgba(255, 255, 255, 0.4);
-}
-
-.chat-body {
-  flex: 1;
-  background: #f8f9fa;
-}
-
-.chat-main {
-  height: 100%;
-  padding: 16px;
-  overflow-y: auto;
-}
-
-.welcome-message {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e0e0e0;
-}
-
-.welcome-message p {
-  margin: 0 0 12px 0;
-  color: #333;
-  line-height: 1.5;
-  font-family: 'Microsoft YaHei', sans-serif;
-}
-
-.welcome-message p:last-child {
-  margin-bottom: 20px;
-}
-
-.suggestions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.suggestion-btn {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 20px;
-  padding: 12px 16px;
-  text-align: center;
-  color: #6c63ff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 14px;
-  font-family: 'Microsoft YaHei', sans-serif;
-}
-
-.suggestion-btn:hover {
-  background: #f0f0ff;
-  border-color: #6c63ff;
-  box-shadow: 0 2px 8px rgba(108, 99, 255, 0.2);
-}
-
-.message {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.message.user {
-  flex-direction: row-reverse;
-}
-
-.message-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #6c63ff;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  flex-shrink: 0;
-  font-family: 'Microsoft YaHei', sans-serif;
-}
-
-.message.user .message-avatar {
-  background: #4facfe;
-}
-
-.message-content {
-  flex: 1;
-  max-width: 70%;
-}
-
-.message.user .message-content {
-  text-align: right;
-}
-
-.message-text {
-  background: white;
-  padding: 12px 16px;
+/* ========== 聊天面板 (相对于触发按钮定位) ========== */
+.chat-panel {
+  position: fixed;
+  bottom: 68px; right: 28px;
+  width: 400px; height: 560px;
+  background: #fff;
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  margin-bottom: 4px;
-  line-height: 1.4;
-  font-family: 'Microsoft YaHei', sans-serif;
-  border: 1px solid #e0e0e0;
+  box-shadow: 0 12px 48px rgba(0,0,0,.12), 0 4px 16px rgba(0,0,0,.06);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #eee;
 }
 
-.message.user .message-text {
-  background: #6c63ff;
-  color: white;
-  border: none;
+/* ----- 头部 ----- */
+.panel-header {
+  flex-shrink: 0;
+  height: 60px;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  color: #fff;
 }
-
-.message-time {
-  font-size: 10px;
-  color: #999;
-  margin-top: 4px;
-  font-family: 'Microsoft YaHei', sans-serif;
+.header-left  { display: flex; align-items: center; gap: 10px; }
+.header-avatar {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
 }
-
-.loading-message {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  justify-content: center;
-  padding: 12px;
-  color: #666;
-  font-family: 'Microsoft YaHei', sans-serif;
+.header-avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.header-info  { display: flex; flex-direction: column; line-height: 1.2; }
+.header-name  { font-size: 15px; font-weight: 600; }
+.header-status { font-size: 11px; opacity: .75; }
+.hdr-btn {
+  width: 30px; height: 30px; border-radius: 8px;
+  border: none; background: rgba(255,255,255,.15);
+  color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
 }
+.hdr-btn:hover { background: rgba(255,255,255,.3); }
 
-.loading-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #6c63ff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.chat-footer {
-  padding: 16px;
-  background: white;
-  border-top: 1px solid #f0f0f0;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.message-input {
+/* ----- 消息区（关键：可滚动的核心） ----- */
+.panel-body {
   flex: 1;
-  padding: 12px 16px;
-  border: 1px solid #e0e0e0;
-  border-radius: 24px;
-  font-size: 14px;
-  outline: none;
-  transition: all 0.3s ease;
-  font-family: 'Microsoft YaHei', sans-serif;
+  min-height: 0;           /* ← 允许收缩！ */
+  overflow-y: auto;        /* ← 滚动！ */
+  overflow-x: hidden;
+  padding: 16px;
+  background: #f8f7fc;
+  scroll-behavior: smooth;
 }
+.panel-body::-webkit-scrollbar { width: 4px; }
+.panel-body::-webkit-scrollbar-track { background: transparent; }
+.panel-body::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
 
-.message-input:focus {
-  border-color: #6c63ff;
-  box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.1);
+/* ----- 欢迎屏 ----- */
+.welcome-screen {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 30px 10px 10px;
+  animation: fadeUp .5s ease;
 }
+.welcome-screen h3 {
+  margin: 12px 0 4px; font-size: 18px; color: #1e1b4b; font-weight: 700;
+}
+.welcome-screen p {
+  margin: 0 0 18px; font-size: 13px; color: #71717a;
+}
+.quick-actions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  width: 100%; max-width: 320px;
+}
+.quick-btn {
+  padding: 10px 12px; font-size: 13px;
+  border: 1px solid #e4e4e7; border-radius: 12px;
+  background: #fff; color: #3f3f46; cursor: pointer;
+  transition: all .2s; text-align: left;
+}
+.quick-btn:hover { border-color: #a78bfa; background: #f5f3ff; color: #7c3aed; }
 
-.send-button {
-  background: #6c63ff;
-  border: none;
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  color: white;
-  cursor: pointer;
+/* ----- 消息行 ----- */
+.msg-row {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  font-size: 18px;
-  font-weight: bold;
+  margin-bottom: 14px;
+  animation: fadeUp .35s ease;
+}
+.msg-row.user { justify-content: flex-end; }
+.msg-row.ai   { justify-content: flex-start; }
+
+/* 气泡 */
+.msg-bubble {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 14px; line-height: 1.55; word-break: break-word;
+  position: relative;
+}
+.msg-bubble.ai {
+  background: #fff;
+  color: #27272a;
+  border: 1px solid #e4e4e7;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.msg-bubble.user {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.bubble-time {
+  font-size: 10px; margin-top: 4px; opacity: .55;
+}
+.msg-bubble.user .bubble-time { text-align: right; }
+
+/* 打字动画 */
+.msg-bubble.typing {
+  display: flex; gap: 5px; align-items: center;
+  padding: 14px 18px; width: 56px;
+}
+.dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #a78bfa;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+.dot:nth-child(1) { animation-delay: -.32s; }
+.dot:nth-child(2) { animation-delay: -.16s; }
+
+/* ----- 输入区 ----- */
+.panel-footer {
+  flex-shrink: 0;
+  padding: 12px 16px; background: #fff; border-top: 1px solid #f4f4f5;
+}
+.input-wrap {
+  display: flex; align-items: center; gap: 8px;
+  background: #f4f4f5; border-radius: 24px; padding: 4px 4px 4px 16px;
+  transition: box-shadow .25s;
+}
+.input-wrap:focus-within { box-shadow: 0 0 0 2px rgba(124,58,237,.15); background: #fff; }
+.input-wrap input {
+  flex: 1; border: none; background: transparent; outline: none;
+  font-size: 14px; padding: 8px 0; color: #18181b;
+}
+.input-wrap input::placeholder { color: #a1a1aa; }
+.send-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: none; background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .2s; flex-shrink: 0;
+}
+.send-btn:hover:not(:disabled) { transform: scale(1.06); box-shadow: 0 4px 12px rgba(124,58,237,.4); }
+.send-btn:disabled { opacity: .4; cursor: default; }
+
+/* ========== 动画 ========== */
+.panel-slide-enter-active { animation: slideIn .3s cubic-bezier(.4,0,.2,1); }
+.panel-slide-leave-active { animation: slideIn .25s cubic-bezier(.4,0,.2,1) reverse; }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(16px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
 }
 
-.send-button:hover {
-  background: #5a52d5;
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.4);
-}
-
-.send-button i {
-  font-size: 18px;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .ai-assistant {
-    bottom: 20px;
-    right: 20px;
-  }
-  
-  .chat-window {
-    width: 320px;
-    height: 450px;
-  }
+/* ========== 响应式 ========== */
+@media (max-width: 480px) {
+  .chat-panel { width: calc(100vw - 40px); height: 65vh; right: -8px; }
 }
 </style>

@@ -1,74 +1,164 @@
 <template>
-  <div class="admin-users"><div class="page-header"><h1>用户管理</h1><p>用户信息、角色和权限</p></div>
-    <div class="filter-bar">
-      <el-select v-model="filterCollege" placeholder="学院筛选" style="width: 200px;">
+  <div class="admin-users" style="background-color: #f8f9fa !important; min-height: 100vh;">
+    <div class="page-header">
+      <h1>用户管理</h1>
+      <p>用户信息、角色和权限</p>
+    </div>
+
+    <div class="action-bar">
+      <el-button type="primary" @click="addUserDialogVisible = true">
+        <el-icon><Plus /></el-icon> 添加用户
+      </el-button>
+      <el-select v-model="filterCollege" placeholder="学院筛选" style="width: 200px;" @change="searchUsers">
         <el-option label="全部" value=""></el-option>
         <el-option v-for="college in colleges" :key="college.id" :label="college.name" :value="college.id">
           {{ college.name }}
         </el-option>
       </el-select>
-      <el-select v-model="filterRole" placeholder="角色筛选" style="width: 200px;">
+      <el-select v-model="filterRole" placeholder="角色筛选" style="width: 150px;" @change="searchUsers">
         <el-option label="全部" value=""></el-option>
         <el-option label="学生" value="1"></el-option>
         <el-option label="教师" value="2"></el-option>
-        <el-option label="辅导员" value="4"></el-option>
+        <el-option label="辅导员" value="3"></el-option>
+        <el-option label="管理员" value="4"></el-option>
       </el-select>
-      <el-button type="primary" @click="searchUsers">筛选</el-button>
-      <el-button type="danger" @click="batchDeleteUsers" :disabled="selectedUsers.length === 0">批量删除</el-button>
+      <el-input v-model="searchText" placeholder="搜索用户名或姓名" style="width: 250px;" @input="searchUsers" clearable />
+      <el-button @click="loadUsers" :loading="loading">
+        <el-icon><Refresh /></el-icon> 刷新
+      </el-button>
     </div>
-    <el-card><template #header><div class="card-header">用户列表</div></template>
-      <el-table :data="userList" stripe style="width: 100%" row-key="id" @selection-change="handleSelectionChange">
+
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <span>用户列表</span>
+          <span class="user-count">共 {{ total }} 个用户</span>
+        </div>
+      </template>
+
+      <div v-if="userList.length === 0" style="padding: 20px; text-align: center; color: #999;">
+        暂无数据
+      </div>
+      <el-table v-else :data="userList" stripe v-loading="loading" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column label="ID" min-width="100">
-          <template #default="{ $index }">
-            {{ $index + 1 }}
-          </template>
-        </el-table-column>
+        <el-table-column prop="id" label="ID" width="100" sortable />
         <!-- 根据角色显示学号或工号 -->
-        <el-table-column label="学号" min-width="120">
+        <el-table-column label="学号/工号" width="120">
           <template #default="{ row }">
             {{ row.role === '1' || row.role === 1 ? (row.studentId || row.username) : (row.jobNumber || row.username) }}
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="姓名" min-width="120"></el-table-column>
-        <el-table-column prop="role" label="角色" min-width="100"><template #default="{ row }"><el-tag>{{ row.role === '1' ? '学生' : row.role === '2' ? '教师' : row.role === '4' ? '辅导员' : '管理员' }}</el-tag></template></el-table-column>
-        <el-table-column prop="collegeName" label="学院" min-width="200"></el-table-column>
-        <el-table-column prop="status" label="状态" min-width="100"><template #default="{ row }"><el-tag :type="row.status === 1 ? 'success' : 'danger'">{{ row.status === 1 ? '正常' : '禁用' }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" min-width="280" fixed="right"><template #default="{ row }"><el-button type="primary" size="small" link @click="editUser(row)">编辑</el-button><el-button type="info" size="small" link @click="viewPassword(row)">查看密码</el-button><el-button :type="row.status === 1 ? 'danger' : 'success'" size="small" link @click="toggleStatus(row)">{{ row.status === 1 ? '禁用' : '启用' }}</el-button><el-button type="danger" size="small" link @click="deleteUser(row)">删除</el-button></template></el-table-column>
+        <el-table-column prop="username" label="用户名" width="150" />
+        <el-table-column prop="name" label="姓名" width="120" />
+        <el-table-column prop="role" label="角色" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getRoleTagType(row.role)">
+              {{ getRoleText(row.role) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="collegeName" label="学院" width="200" show-overflow-tooltip />
+        <el-table-column prop="majorName" label="专业" width="200" show-overflow-tooltip />
+        <el-table-column prop="status" label="状态" width="120">
+          <template #default="{ row }">
+            <el-tag v-if="row.status === 0" type="warning">待审批</el-tag>
+            <el-tag v-else-if="row.status === 1" type="success">正常</el-tag>
+            <el-tag v-else-if="row.status === 2" type="danger">已锁定</el-tag>
+            <el-tag v-else type="info">已禁用</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="340" fixed="right">
+          <template #default="{ row }">
+            <div class="action-buttons">
+              <el-button v-if="row.status === 0" type="success" size="small" @click="approveUser(row)">审批通过</el-button>
+              <el-button type="primary" size="small" @click="editUser(row)">编辑</el-button>
+              <el-button :type="row.status === 1 ? 'danger' : 'success'" size="small" @click="toggleStatus(row)">{{ row.status === 1 ? '禁用' : row.status === 0 ? '启用' : '解锁' }}</el-button>
+              <el-button type="danger" size="small" @click="deleteUser(row)">删除</el-button>
+            </div>
+          </template>
+        </el-table-column>
       </el-table>
-      <div class="pagination-container" style="margin-top: 20px; display: flex; justify-content: flex-start;">
+
+      <div class="table-footer">
+        <div class="selection-info" v-if="selectedUsers.length > 0">
+          已选择 {{ selectedUsers.length }} 项
+          <el-button type="danger" size="small" @click="batchDeleteUsers">批量删除</el-button>
+        </div>
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
           :total="total"
+          layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
         />
       </div>
     </el-card>
-    <el-dialog v-model="editDialogVisible" title="编辑用户" width="400px">
-      <el-form :model="editingUser" label-width="80px">
-        <!-- 用户名显示为只读（派生自学号/工号） -->
-        <el-form-item label="用户名">
-          <el-input v-model="editingUser.username" disabled placeholder="自动由学号/工号生成"></el-input>
+
+    <!-- 添加用户弹窗 -->
+    <el-dialog v-model="addUserDialogVisible" title="添加用户" width="500px" :close-on-click-modal="false">
+      <el-form ref="addUserFormRef" :model="addUserForm" :rules="formRules" label-width="100px">
+        <el-form-item label="角色" prop="role">
+          <el-select v-model="addUserForm.role" placeholder="请选择角色">
+            <el-option label="学生" value="1"></el-option>
+            <el-option label="教师" value="2"></el-option>
+            <el-option label="辅导员" value="3"></el-option>
+            <el-option label="管理员" value="4"></el-option>
+          </el-select>
         </el-form-item>
-        
-        <!-- 根据用户角色显示学号或工号 -->
+        <el-form-item v-if="addUserForm.role === '1'" label="学号" prop="username">
+          <el-input v-model="addUserForm.username" placeholder="请输入学号"></el-input>
+          <small style="color: #999; margin-top: 5px; display: block;">学号将作为用户名</small>
+        </el-form-item>
+        <el-form-item v-else-if="addUserForm.role === '2'" label="工号" prop="username">
+          <el-input v-model="addUserForm.username" placeholder="请输入教师工号"></el-input>
+          <small style="color: #999; margin-top: 5px; display: block;">工号将作为用户名</small>
+        </el-form-item>
+        <el-form-item v-else-if="addUserForm.role === '3'" label="工号" prop="username">
+          <el-input v-model="addUserForm.username" placeholder="请输入辅导员工号"></el-input>
+          <small style="color: #999; margin-top: 5px; display: block;">工号将作为用户名</small>
+        </el-form-item>
+        <el-form-item v-else-if="addUserForm.role === '4'" label="账号" prop="username">
+          <el-input v-model="addUserForm.username" placeholder="请输入管理员账号"></el-input>
+          <small style="color: #999; margin-top: 5px; display: block;">账号将作为用户名</small>
+        </el-form-item>
+        <el-form-item label="姓名" prop="name">
+          <el-input v-model="addUserForm.name" placeholder="请输入姓名"></el-input>
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="addUserForm.email" placeholder="请输入邮箱（可选）"></el-input>
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input v-model="addUserForm.password" type="password" placeholder="请输入密码（默认123456）"></el-input>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="addUserDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitAddUser">确认添加</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 编辑用户弹窗 -->
+    <el-dialog v-model="editDialogVisible" title="编辑用户" width="500px" :close-on-click-modal="false">
+      <el-form ref="editUserFormRef" :model="editingUser" label-width="100px">
         <el-form-item v-if="editingUser.role === '1' || editingUser.role === 1" label="学号">
           <el-input v-model="editingUser.studentId" placeholder="请输入学号"></el-input>
           <small style="color: #999; margin-top: 5px; display: block;">修改学号会自动更新用户名</small>
         </el-form-item>
         <el-form-item v-else-if="editingUser.role === '2' || editingUser.role === 2" label="工号">
           <el-input v-model="editingUser.jobNumber" placeholder="请输入教师工号"></el-input>
-          <small style="color: #999; margin-top: 5px; display: block;">修改工号会自动更新用户名</small>
         </el-form-item>
-        <el-form-item v-else-if="editingUser.role === '4' || editingUser.role === 4" label="工号">
+        <el-form-item v-else-if="editingUser.role === '3' || editingUser.role === 3" label="工号">
           <el-input v-model="editingUser.jobNumber" placeholder="请输入辅导员工号"></el-input>
-          <small style="color: #999; margin-top: 5px; display: block;">修改工号会自动更新用户名</small>
         </el-form-item>
-        
+        <el-form-item v-else-if="editingUser.role === '4' || editingUser.role === 4" label="账号">
+          <el-input v-model="editingUser.jobNumber" placeholder="请输入管理员账号"></el-input>
+        </el-form-item>
+        <el-form-item label="用户名">
+          <el-input v-model="editingUser.username" disabled placeholder="自动由学号/工号生成"></el-input>
+          <small style="color: #999; margin-top: 5px; display: block;">用户名由学号/工号自动生成，不可手动修改</small>
+        </el-form-item>
         <el-form-item label="姓名">
           <el-input v-model="editingUser.name"></el-input>
         </el-form-item>
@@ -87,23 +177,87 @@
         <el-button @click="editDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitEdit">保存</el-button>
       </template>
-    </el-dialog></div>
+    </el-dialog>
+
+    <!-- 删除确认弹窗 -->
+    <el-dialog v-model="deleteDialogVisible" title="确认删除" width="400px">
+      <div class="delete-warning">
+        <el-icon color="#E6A23C" size="20"><WarningFilled /></el-icon>
+        <p>确定要删除用户 <strong>{{ userToDelete?.username }}</strong> 吗？</p>
+        <p class="warning-text">此操作不可逆，删除后将无法恢复！</p>
+      </div>
+      <template #footer>
+        <el-button @click="deleteDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="confirmDelete" :loading="deleteLoading">确认删除</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量删除确认弹窗 -->
+    <el-dialog v-model="batchDeleteDialogVisible" title="批量删除" width="400px">
+      <div class="delete-warning">
+        <el-icon color="#F56C6C" size="20"><WarningFilled /></el-icon>
+        <p>确定要删除选中的 <strong>{{ selectedUsers.length }} 个用户</strong> 吗？</p>
+        <p class="warning-text">此操作不可逆，删除后将无法恢复！</p>
+      </div>
+      <template #footer>
+        <el-button @click="batchDeleteDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="confirmBatchDelete" :loading="deleteLoading">确认删除</el-button>
+      </template>
+    </el-dialog>
+  </div>
 </template>
+
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminAPI } from '@/api/index'
+import { Plus, Refresh, Edit, Delete, WarningFilled } from '@element-plus/icons-vue'
 
+const searchText = ref('')
 const filterCollege = ref('')
 const filterRole = ref('')
 const userList = ref([])
 const editDialogVisible = ref(false)
+const addUserDialogVisible = ref(false)
+const deleteDialogVisible = ref(false)
+const batchDeleteDialogVisible = ref(false)
 const editingUser = ref({})
+const userToDelete = ref(null)
 const colleges = ref([])
 const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const selectedUsers = ref([])
+const loading = ref(false)
+const deleteLoading = ref(false)
+
+const addUserFormRef = ref(null)
+const editUserFormRef = ref(null)
+
+const addUserForm = ref({
+  username: '',
+  name: '',
+  role: '',
+  email: '',
+  password: '123456'
+})
+
+const formRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 2, max: 50, message: '用户名长度为 2-50 个字符', trigger: 'blur' }
+  ],
+  name: [
+    { required: true, message: '请输入姓名', trigger: 'blur' },
+    { min: 1, max: 50, message: '姓名长度为 1-50 个字符', trigger: 'blur' }
+  ],
+  role: [
+    { required: true, message: '请选择角色', trigger: 'change' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' }
+  ]
+}
 
 onMounted(async () => {
   await loadColleges()
@@ -112,21 +266,10 @@ onMounted(async () => {
 
 const loadColleges = async () => {
   try {
-    console.log('开始加载学院列表...')
-    console.log('调用adminAPI.getColleges...')
     const response = await adminAPI.getColleges()
-    console.log('学院API响应:', response)
-    console.log('响应类型:', typeof response)
-    console.log('是否为数组:', Array.isArray(response))
     if (Array.isArray(response)) {
       colleges.value = response
-      console.log('学院列表（直接数组）:', colleges.value)
-      console.log('学院数量:', colleges.value.length)
-      colleges.value.forEach((college, index) => {
-        console.log(`学院${index}:`, college)
-      })
     } else {
-      console.log('学院API响应格式异常:', response)
       colleges.value = []
     }
   } catch (error) {
@@ -135,51 +278,59 @@ const loadColleges = async () => {
 }
 
 const loadUsers = async () => {
+  loading.value = true
   try {
-    console.log('当前filterCollege.value:', filterCollege.value)
-    console.log('当前filterRole.value:', filterRole.value)
-    console.log('当前分页参数:', { currentPage: currentPage.value, pageSize: pageSize.value })
     const collegeId = filterCollege.value && filterCollege.value !== '' ? parseInt(filterCollege.value) : null
     const role = filterRole.value && filterRole.value !== '' ? parseInt(filterRole.value) : null
-    console.log('处理后的筛选参数:', { collegeId, role })
-    console.log('调用adminAPI.getUsers...')
     const response = await adminAPI.getUsers(currentPage.value, pageSize.value, collegeId, role)
-    console.log('用户API响应:', response)
-    console.log('响应类型:', typeof response)
-    console.log('是否为数组:', Array.isArray(response))
+    
     let users = []
-    if (Array.isArray(response)) {
-      users = response
-      console.log('响应是数组，长度:', users.length)
-      // 使用当前页数据长度作为总数，这样至少能显示正确的当前页数据量
-      total.value = users.length
-      console.log('设置总记录数为:', total.value)
-    } else if (response && response.data && Array.isArray(response.data.data)) {
-      // 新的响应格式：{ data: { total: 40, data: [...] } }
-      users = response.data.data
-      total.value = response.data.total || users.length
-      console.log('响应是对象，数据长度:', users.length, '总数:', total.value)
-    } else if (response && response.data && Array.isArray(response.data)) {
-      // 旧的响应格式：{ data: [...], total: 40 }
-      users = response.data
+    if (response && response.items && Array.isArray(response.items)) {
+      users = response.items
       total.value = response.total || users.length
-      console.log('响应是对象（旧格式），数据长度:', users.length, '总数:', total.value)
+    } else if (Array.isArray(response)) {
+      users = response
+      total.value = users.length
+    } else if (response && response.data && response.data.items) {
+      users = response.data.items
+      total.value = response.data.total || users.length
     } else {
-      console.log('响应不是数组:', response)
       users = []
       total.value = 0
-      console.log('设置总记录数为0')
     }
-    // 确保每个用户都有status字段
+    
     users = users.map(user => ({
       ...user,
       status: user.status !== undefined ? user.status : 1
     }))
+    // 待审批(status=0)置顶，其余按ID倒序
+    users.sort((a, b) => {
+      if (a.status !== b.status) return a.status - b.status
+      return (b.id || 0) - (a.id || 0)
+    })
     userList.value = users
-    console.log('处理后的用户列表:', userList.value)
   } catch (error) {
     console.error('加载用户列表失败:', error)
+    ElMessage.error('加载用户列表失败：' + (error.message || '未知错误'))
+  } finally {
+    loading.value = false
   }
+}
+
+const getRoleText = (role) => {
+  if (role === '1' || role === 1) return '学生'
+  if (role === '2' || role === 2) return '教师'
+  if (role === '3' || role === 3) return '辅导员'
+  if (role === '4' || role === 4) return '管理员'
+  return '未知'
+}
+
+const getRoleTagType = (role) => {
+  if (role === '1' || role === 1) return 'success'
+  if (role === '2' || role === 2) return 'info'
+  if (role === '3' || role === 3) return 'warning'
+  if (role === '4' || role === 4) return 'primary'
+  return 'info'
 }
 
 const editUser = (row) => {
@@ -187,22 +338,39 @@ const editUser = (row) => {
   editDialogVisible.value = true
 }
 
+// 监听学号/工号变化，自动更新用户名
+watch(
+  () => editingUser.value,
+  (newVal) => {
+    if (!newVal) return
+    const role = newVal.role
+    if (role === '1' || role === 1) {
+      // 学生：学号变化时更新用户名
+      if (newVal.studentId && newVal.studentId !== newVal.username) {
+        newVal.username = newVal.studentId
+      }
+    } else if ((role === '2' || role === 2) || (role === '3' || role === 3) || (role === '4' || role === 4)) {
+      // 教师、辅导员、管理员：工号/账号变化时更新用户名
+      if (newVal.jobNumber && newVal.jobNumber !== newVal.username) {
+        newVal.username = newVal.jobNumber
+      }
+    }
+  },
+  { deep: true }
+)
+
 const submitEdit = async () => {
   try {
     const userId = editingUser.value.id
-    console.log('提交编辑，用户ID:', userId, '数据:', editingUser.value)
     if (!userId) {
       ElMessage.error('用户ID不存在')
       return
     }
     const response = await adminAPI.updateUser(userId, editingUser.value)
-    console.log('更新响应:', response)
     ElMessage.success('用户已更新')
     
-    // 如果修改的是当前登录用户（管理员），更新localStorage
     const currentUserId = parseInt(localStorage.getItem('userId'))
     if (currentUserId === userId) {
-      // 更新本地存储的用户名
       if (editingUser.value.name) {
         localStorage.setItem('userName', editingUser.value.name)
       }
@@ -219,13 +387,42 @@ const submitEdit = async () => {
   }
 }
 
+const submitAddUser = async () => {
+  if (!addUserFormRef.value) return
+  
+  try {
+    await addUserFormRef.value.validate()
+    const data = {
+      username: addUserForm.value.username,
+      name: addUserForm.value.name,
+      role: parseInt(addUserForm.value.role),
+      email: addUserForm.value.email || null,
+      password: addUserForm.value.password || '123456'
+    }
+    await adminAPI.createUser(data)
+    ElMessage.success('用户已添加')
+    addUserDialogVisible.value = false
+    addUserForm.value = {
+      username: '',
+      name: '',
+      role: '',
+      email: '',
+      password: '123456'
+    }
+    await loadUsers()
+  } catch (error) {
+    console.error('添加用户失败:', error)
+    ElMessage.error('添加失败')
+  }
+}
+
 const resetPassword = async (userId) => {
   try {
     if (!userId) {
       ElMessage.error('用户ID不存在')
       return
     }
-    const response = await adminAPI.resetPassword(userId)
+    await adminAPI.resetPassword(userId)
     ElMessage.success('密码已重置为默认密码: 123456')
     editingUser.value.password = '123456'
   } catch (error) {
@@ -234,60 +431,59 @@ const resetPassword = async (userId) => {
   }
 }
 
+const approveUser = async (row) => {
+  try {
+    await adminAPI.approveUser(row.id)
+    row.status = 1
+    ElMessage.success('审批通过，用户已激活')
+  } catch (error) {
+    console.error('审批失败:', error)
+    ElMessage.error('审批失败')
+  }
+}
+
 const toggleStatus = async (row) => {
   try {
     const userId = row.id
-    console.log('切换状态，用户ID:', userId, '当前状态:', row.status)
     if (!userId) {
       ElMessage.error('用户ID不存在')
       return
     }
-    if (row.status === 1) {
-      await adminAPI.disableUser(userId)
-      ElMessage.success('用户已禁用')
-      // 直接更新前端数据
-      row.status = 0
-    } else {
-      await adminAPI.enableUser(userId)
-      ElMessage.success('用户已启用')
-      // 直接更新前端数据
+    await adminAPI.toggleUserStatus(userId)
+    // 0→1 启用, 1→0 禁用, 2→1 解锁
+    if (row.status === 0 || row.status === 2) {
       row.status = 1
+      ElMessage.success('用户已启用')
+    } else {
+      row.status = 0
+      ElMessage.success('用户已禁用')
     }
-    console.log('直接更新后的程序方式，炸上loadUsers的调用')
   } catch (error) {
     console.error('状态更新失败:', error)
     ElMessage.error('操作失败')
   }
 }
 
-const deleteUser = async (row) => {
+const deleteUser = (row) => {
+  userToDelete.value = row
+  deleteDialogVisible.value = true
+}
+
+const confirmDelete = async () => {
+  if (!userToDelete.value) return
+  
+  deleteLoading.value = true
   try {
-    const userId = row.id
-    if (!userId) {
-      ElMessage.error('用户ID不存在')
-      return
-    }
-    // 确认删除
-    await ElMessageBox.confirm(
-      `确定删除用户 "${row.username}" 吗？删除后该用户将无法使用系统，且数据库中将直接删除。`,
-      '警告',
-      {
-        confirmButtonText: '确定删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-    // 调用后端删除接口
-    await adminAPI.deleteUser(userId)
+    await adminAPI.deleteUser(userToDelete.value.id)
     ElMessage.success('用户已删除')
+    deleteDialogVisible.value = false
+    userToDelete.value = null
     await loadUsers()
   } catch (error) {
-    if (error === 'cancel') {
-      // 用户点击了取消
-      return
-    }
     console.error('删除用户失败:', error)
     ElMessage.error('删除失败')
+  } finally {
+    deleteLoading.value = false
   }
 }
 
@@ -299,7 +495,9 @@ const viewPassword = async (row) => {
       return
     }
     const response = await adminAPI.viewPassword(userId)
-    ElMessage.success(`用户密码: ${response}`)
+    const data = response.data?.data || response.data
+    const pwd = data?.password || data
+    ElMessage.success(`用户密码: ${pwd}`)
   } catch (error) {
     console.error('查看密码失败:', error)
     ElMessage.error('查看密码失败')
@@ -307,99 +505,159 @@ const viewPassword = async (row) => {
 }
 
 const searchUsers = async () => {
-  try {
-    console.log('点击筛选按钮，当前筛选值:', { filterCollege: filterCollege.value, filterRole: filterRole.value })
-    currentPage.value = 1 // 筛选时重置到第一页
-    await loadUsers()
-  } catch (error) {
-    console.error('筛选用户失败:', error)
-    ElMessage.error('筛选失败')
-  }
+  currentPage.value = 1
+  await loadUsers()
 }
 
 const handleCurrentChange = (val) => {
-  console.log('当前页码变更为:', val)
   currentPage.value = val
   loadUsers()
 }
 
 const handleSizeChange = (val) => {
-  console.log('每页条数变更为:', val)
   pageSize.value = val
-  currentPage.value = 1 // 每页条数变化时重置到第一页
+  currentPage.value = 1
   loadUsers()
 }
 
 const handleSelectionChange = (val) => {
-  console.log('选择的用户:', val)
   selectedUsers.value = val
 }
 
-const batchDeleteUsers = async () => {
+const batchDeleteUsers = () => {
   if (selectedUsers.value.length === 0) {
     ElMessage.warning('请先选择要删除的用户')
     return
   }
-  
+  batchDeleteDialogVisible.value = true
+}
+
+const confirmBatchDelete = async () => {
+  deleteLoading.value = true
   try {
-    // 确认删除
-    await ElMessageBox.confirm(
-      `确定删除选中的 ${selectedUsers.value.length} 个用户吗？删除后这些用户将无法使用系统，且数据库中将直接删除。`,
-      '警告',
-      {
-        confirmButtonText: '确定删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-    
-    // 调用后端批量删除接口
     const userIds = selectedUsers.value.map(user => user.id)
-    console.log('批量删除用户ID:', userIds)
-    
-    // 由于没有批量删除接口，我们一个一个删除
     for (const userId of userIds) {
       await adminAPI.deleteUser(userId)
     }
-    
     ElMessage.success(`成功删除 ${selectedUsers.value.length} 个用户`)
-    
-    // 清空选择
+    batchDeleteDialogVisible.value = false
     selectedUsers.value = []
-    // 重新加载用户列表
     await loadUsers()
   } catch (error) {
-    if (error === 'cancel') {
-      // 用户点击了取消
-      return
-    }
     console.error('批量删除用户失败:', error)
     ElMessage.error('批量删除失败')
+  } finally {
+    deleteLoading.value = false
   }
 }
-
 </script>
+
 <style scoped>
-.admin-users { 
-  padding: 20px; 
+.admin-users {
+  padding: 20px;
   background-color: #f8f9fa !important;
-  min-height: 100%;
+  min-height: 100vh;
 }
-.page-header { margin-bottom: 20px; }
-.page-header h1 { margin: 0 0 8px 0; font-size: 24px; color: #333; }
-.page-header p { margin: 0; color: #999; font-size: 14px; }
-.filter-bar { display: flex; gap: 10px; margin-bottom: 20px; }
-.card-header { font-size: 16px; font-weight: bold; color: #333; }
-/* 全局样式覆盖 */
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.page-header p {
+  margin: 0;
+  color: #999;
+  font-size: 14px;
+}
+
+.action-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.card-header {
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-count {
+  font-size: 14px;
+  color: #909399;
+  font-weight: normal;
+}
+
+.table-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.selection-info {
+  color: #606266;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.delete-warning {
+  text-align: center;
+  padding: 20px;
+}
+
+.delete-warning p {
+  margin: 10px 0;
+  color: #606266;
+}
+
+.delete-warning .warning-text {
+  color: #F56C6C;
+  font-size: 14px;
+}
+
 .admin-users :deep(.el-card) {
   border: 1px solid #e9ecef !important;
 }
+
 .admin-users :deep(.el-button--primary) {
   background-color: #667eea !important;
   border-color: #667eea !important;
 }
+
 .admin-users :deep(.el-button--primary:hover) {
   background-color: #5568d3 !important;
   border-color: #5568d3 !important;
+}
+
+.admin-users :deep(.el-button--danger) {
+  background-color: #f56c6c !important;
+  border-color: #f56c6c !important;
+}
+
+.admin-users :deep(.el-button--danger:hover) {
+  background-color: #e64141 !important;
+  border-color: #e64141 !important;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.action-buttons .el-button {
+  margin: 0;
 }
 </style>

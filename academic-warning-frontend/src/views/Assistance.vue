@@ -1,247 +1,117 @@
 <template>
-  <div class="assistance-container">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <h1>帮扶计划</h1>
-    </div>
-
+  <div class="assistance-page">
     <!-- 统计卡片 -->
-    <div class="stats-grid">
+    <div class="stats-row">
       <div class="stat-card">
-        <div class="stat-number">{{ assistancePlans.length }}</div>
-        <div class="stat-label">总计划</div>
+        <div class="st-icon total"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
+        <div class="st-body"><div class="st-num">{{ plans.length }}</div><div class="st-lbl">全部计划</div></div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">{{ inProgressCount }}</div>
-        <div class="stat-label">进行中</div>
+        <div class="st-icon active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <div class="st-body"><div class="st-num">{{ activeCount }}</div><div class="st-lbl">进行中</div></div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">{{ completedCount }}</div>
-        <div class="stat-label">已完成</div>
+        <div class="st-icon done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <div class="st-body"><div class="st-num">{{ doneCount }}</div><div class="st-lbl">已完成</div></div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">{{ averageProgress }}%</div>
-        <div class="stat-label">平均进度</div>
+        <div class="st-icon prog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div>
+        <div class="st-body"><div class="st-num">{{ avgProgress }}%</div><div class="st-lbl">平均进度</div></div>
       </div>
     </div>
 
     <!-- 计划列表 -->
-    <div class="plans-section">
-      <div class="plans-list">
-        <el-card 
-          v-for="plan in assistancePlans" 
-          :key="plan.id"
-          :body-style="{ padding: '20px' }"
-          shadow="hover"
-        >
-          <!-- 计划头部 -->
-          <div class="plan-header">
-            <div>
-              <h3 class="plan-title">{{ plan.title }}</h3>
-              <div class="plan-meta">
-                <el-tag :type="getStatusType(plan.status)" size="small">
-                  {{ plan.status }}
-                </el-tag>
-                <span class="plan-date">{{ plan.createdAt }}</span>
-              </div>
-            </div>
-            <el-button 
-              type="primary" 
-              size="small"
-              @click="viewPlanDetails(plan)"
-            >
-              详情
-            </el-button>
+    <div class="plans-grid" v-if="plans.length > 0">
+      <div v-for="p in plans" :key="p.id" class="plan-card" :class="{ completed: p.status === '已完成' }">
+        <!-- 卡片头部 -->
+        <div class="plan-top">
+          <div class="plan-title-row">
+            <span class="plan-title">{{ p.title }}</span>
+            <el-tag size="small" :type="statusType(p.status)">{{ p.status }}</el-tag>
           </div>
+          <div class="plan-sub">{{ p.description }}</div>
+        </div>
 
-          <!-- 计划内容 -->
-          <div class="plan-content">
-            <div class="plan-info">
-              <div class="info-row">
-                <span class="info-label">目标课程：</span>
-                <span class="info-value">{{ plan.courseName }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">辅导教师：</span>
-                <span class="info-value">{{ plan.teacherName }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">辅导时间：</span>
-                <span class="info-value">{{ plan.scheduleTime }}</span>
-              </div>
-            </div>
-            <div class="plan-description">
-              {{ plan.description }}
-            </div>
+        <!-- 信息区 -->
+        <div class="plan-info">
+          <div class="pi-item" v-if="p.courseName">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" width="14" height="14"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+            <span>{{ p.courseName }}</span>
           </div>
-
-          <!-- 进度部分 -->
-          <div class="progress-section">
-            <div class="progress-header">
-              <span>完成进度</span>
-              <span class="progress-value">{{ plan.progressPercentage }}%</span>
-            </div>
-            <el-progress 
-              :percentage="plan.progressPercentage" 
-              :color="getProgressColor(plan.progressPercentage)"
-            ></el-progress>
-            <div class="progress-detail">
-              已完成 {{ plan.completedCount || 0 }} 次，共 {{ plan.totalCount || 1 }} 次
-            </div>
+          <div class="pi-item" v-if="p.teacherName">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>{{ p.teacherName }}</span>
           </div>
-
-          <!-- 操作按钮 -->
-          <div class="action-section">
-            <el-button 
-              type="primary" 
-              @click="updateProgress(plan)"
-              :disabled="plan.status === '已完成'"
-              size="small"
-            >
-              更新进度
-            </el-button>
-            <el-button 
-              type="success" 
-              @click="markCompleted(plan)"
-              :disabled="plan.status === '已完成'"
-              size="small"
-            >
-              标记完成
-            </el-button>
+          <div class="pi-item" v-if="p.startDate">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>{{ p.startDate }}</span>
           </div>
-        </el-card>
+        </div>
 
-        <!-- 空状态 -->
-        <div v-if="assistancePlans.length === 0" class="empty-state">
-          <el-empty description="暂无帮扶计划">
-            <template #description>
-              <p>您目前还没有任何帮扶计划</p>
-              <p>辅导员可能会根据您的学业情况为您创建计划</p>
-            </template>
-          </el-empty>
+        <!-- 进度条 -->
+        <div class="plan-progress">
+          <div class="pp-header">
+            <span>完成进度</span>
+            <span class="pp-val">{{ p.progress || 0 }}%</span>
+          </div>
+          <div class="pp-bar"><div class="pp-fill" :style="{ width: (p.progress || 0) + '%' }" :class="progressClass(p.progress)"></div></div>
+        </div>
+
+        <!-- 操作 -->
+        <div class="plan-actions">
+          <el-button size="small" @click="viewDetail(p)">详情</el-button>
+          <el-button size="small" type="primary" plain @click="openProgress(p)" :disabled="p.status==='已完成'">更新进度</el-button>
         </div>
       </div>
     </div>
 
-    <!-- 进度更新对话框 -->
-    <el-dialog 
-      v-model="progressDialogVisible" 
-      title="更新帮扶进度" 
-      width="600px"
-      destroy-on-close
-    >
-      <el-form :model="progressForm" label-width="100px">
-        <el-form-item label="计划名称">
-          <el-input v-model="progressForm.planTitle" disabled></el-input>
-        </el-form-item>
-        <el-form-item label="当前进度">
-          <el-slider 
-            v-model="progressForm.percentage" 
-            :min="0" 
-            :max="100" 
-            :step="5"
-            show-input
-          ></el-slider>
-        </el-form-item>
-        <el-form-item label="完成情况" required>
-          <el-input 
-            v-model="progressForm.feedback" 
-            type="textarea" 
-            rows="3" 
-            placeholder="请描述本次辅导的完成情况"
-          ></el-input>
-        </el-form-item>
-        <el-form-item label="遇到的问题">
-          <el-input 
-            v-model="progressForm.issues" 
-            type="textarea" 
-            rows="2" 
-            placeholder="如有问题，请说明"
-          ></el-input>
-        </el-form-item>
-      </el-form>
+    <!-- 空 -->
+    <div v-else class="empty-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+      <p>暂无帮扶计划</p>
+      <span>辅导员将根据学业情况为您创建帮扶计划</span>
+    </div>
 
-      <template #footer>
-        <el-button @click="progressDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitProgressUpdate">保存</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 计划详情对话框 -->
-    <el-dialog 
-      v-model="detailsDialogVisible" 
-      title="计划详情" 
-      width="700px"
-      destroy-on-close
-    >
-      <div v-if="selectedPlan" class="plan-details">
-        <!-- 计划基本信息 -->
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="计划名称">{{ selectedPlan.title }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="getStatusType(selectedPlan.status)">{{ selectedPlan.status }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="目标课程">{{ selectedPlan.courseName }}</el-descriptions-item>
-          <el-descriptions-item label="辅导教师">{{ selectedPlan.teacherName }}</el-descriptions-item>
-          <el-descriptions-item label="计划开始">{{ selectedPlan.startDate }}</el-descriptions-item>
-          <el-descriptions-item label="计划结束">{{ selectedPlan.endDate }}</el-descriptions-item>
-          <el-descriptions-item label="辅导方式">{{ selectedPlan.assistanceType || '线下辅导' }}</el-descriptions-item>
-          <el-descriptions-item label="辅导时间">{{ selectedPlan.scheduleTime }}</el-descriptions-item>
-        </el-descriptions>
-
-        <el-divider></el-divider>
-
-        <!-- 计划描述 -->
-        <div class="detail-section">
-          <h4>计划描述</h4>
-          <p>{{ selectedPlan.description }}</p>
+    <!-- 详情弹窗 -->
+    <el-dialog v-model="detailVisible" title="计划详情" width="600px" destroy-on-close>
+      <div v-if="detailPlan" class="det-body">
+        <div class="det-header">
+          <h3>{{ detailPlan.title }}</h3>
+          <el-tag :type="statusType(detailPlan.status)">{{ detailPlan.status }}</el-tag>
         </div>
-
-        <!-- 当前进度 -->
-        <div class="detail-section">
-          <h4>当前进度</h4>
-          <el-progress 
-            :percentage="selectedPlan.progressPercentage" 
-            :color="getProgressColor(selectedPlan.progressPercentage)"
-            :stroke-width="8"
-          ></el-progress>
-          <div class="progress-stats">
-            已完成 {{ selectedPlan.completedCount || 0 }} 次，共 {{ selectedPlan.totalCount || 1 }} 次
-          </div>
+        <div class="det-grid">
+          <div class="dg-item"><label>目标课程</label><span>{{ detailPlan.courseName || '--' }}</span></div>
+          <div class="dg-item"><label>辅导教师</label><span>{{ detailPlan.teacherName || '--' }}</span></div>
+          <div class="dg-item"><label>计划开始</label><span>{{ detailPlan.startDate || '--' }}</span></div>
+          <div class="dg-item"><label>计划结束</label><span>{{ detailPlan.endDate || '进行中' }}</span></div>
+          <div class="dg-item full"><label>计划描述</label><span>{{ detailPlan.description }}</span></div>
         </div>
-
-        <!-- 进度记录 -->
-        <div class="detail-section">
-          <h4>进度记录</h4>
-          <el-timeline>
-            <el-timeline-item
-              v-for="record in selectedPlan.progressRecords"
-              :key="record.id"
-              :timestamp="record.date"
-            >
-              <div class="timeline-content">
-                <div class="timeline-header">
-                  <span class="timeline-progress">{{ record.percentage }}%</span>
-                </div>
-                <p class="timeline-feedback">{{ record.feedback }}</p>
-                <p v-if="record.issues" class="timeline-issues">
-                  遇到的问题：{{ record.issues }}
-                </p>
-              </div>
-            </el-timeline-item>
-          </el-timeline>
+        <el-divider />
+        <div class="det-progress">
+          <div class="pp-header"><span>当前进度</span><span class="pp-val">{{ detailPlan.progress || 0 }}%</span></div>
+          <div class="pp-bar"><div class="pp-fill" :style="{ width: (detailPlan.progress || 0) + '%' }" :class="progressClass(detailPlan.progress)"></div></div>
         </div>
-
-        <el-alert
-          title="温馨提醒"
-          type="info"
-          :closable="false"
-          show-icon
-          style="margin-top: 20px"
-        >
-          坚持完成帮扶计划，定期与教师沟通，这会显著提升您的学业成绩。
+        <el-alert type="info" :closable="false" show-icon style="margin-top:16px">
+          坚持完成帮扶计划，定期与教师沟通，有效提升学业成绩。
         </el-alert>
       </div>
+    </el-dialog>
+
+    <!-- 更新进度弹窗 -->
+    <el-dialog v-model="progressVisible" title="更新帮扶进度" width="480px" destroy-on-close>
+      <el-form :model="progressForm" label-width="80px">
+        <el-form-item label="计划名称"><el-input :model-value="progressForm.title" disabled /></el-form-item>
+        <el-form-item label="当前进度">
+          <el-slider v-model="progressForm.percent" :min="0" :max="100" :step="5" show-input />
+        </el-form-item>
+        <el-form-item label="完成情况" required>
+          <el-input v-model="progressForm.feedback" type="textarea" rows="3" placeholder="描述本次完成情况..." />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="progressVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitProgress">保存</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -252,364 +122,135 @@ import { ElMessage } from 'element-plus'
 import { studentAPI } from '@/api/index'
 import { getUserId } from '@/utils/userUtils'
 
-const assistancePlans = ref([])
-const progressDialogVisible = ref(false)
-const detailsDialogVisible = ref(false)
-const selectedPlan = ref(null)
-
-const progressForm = ref({
-  planId: null,
-  planTitle: '',
-  percentage: 0,
-  feedback: '',
-  issues: ''
-})
-
-// 计算属性
-const inProgressCount = computed(() => {
-  return assistancePlans.value.filter(plan => plan.status === '进行中').length
-})
-
-const completedCount = computed(() => {
-  return assistancePlans.value.filter(plan => plan.status === '已完成').length
-})
-
-const averageProgress = computed(() => {
-  if (assistancePlans.value.length === 0) return 0
-  const totalProgress = assistancePlans.value.reduce((sum, plan) => sum + plan.progressPercentage, 0)
-  return Math.round(totalProgress / assistancePlans.value.length)
-})
+const plans = ref([])
+const detailVisible = ref(false)
+const progressVisible = ref(false)
+const detailPlan = ref(null)
+const progressForm = ref({ id: null, title: '', percent: 0, feedback: '' })
 
 onMounted(async () => {
-  const userId = getUserId()
-  if (userId) {
-    await loadAssistancePlans(userId)
-  }
+  const uid = getUserId()
+  if (uid) await loadPlans()
 })
 
-// 加载帮扶计划
-const loadAssistancePlans = async (userId) => {
+async function loadPlans() {
   try {
-    if (!userId) {
-      ElMessage.error('请先登录')
-      return
-    }
-    const response = await studentAPI.getAssistancePlans(userId)
-    if (Array.isArray(response) && response.length > 0) {
-      assistancePlans.value = response.map(plan => ({
-        ...plan,
-        title: plan.title || plan.description || '帮扶计划',
-        status: plan.status === 'in_progress' ? '进行中' : plan.status === 'completed' ? '已完成' : '未开始',
-        progressPercentage: plan.progressPercentage || 0,
-        progressRecords: plan.progressRecords || []
+    const uid = getUserId()
+    const res = await studentAPI.getAssistancePlans(uid)
+    if (Array.isArray(res)) {
+      plans.value = res.map(p => ({
+        ...p,
+        title: p.title || p.description || '学业帮扶计划',
+        status: translateStatus(p.status),
+        progress: p.progress || 0,
+        courseName: p.courseName || '',
+        teacherName: p.teacherName || '',
+        startDate: formatDate(p.startDate),
+        endDate: formatDate(p.endDate)
       }))
-    } else {
-      assistancePlans.value = []
     }
-  } catch (error) {
-    console.error('加载帮扶计划失败:', error)
-    assistancePlans.value = []
-  }
+  } catch (e) { console.error('加载帮扶计划失败', e) }
 }
 
-// 获取状态标签类型
-const getStatusType = (status) => {
-  if (status === '已完成') return 'success'
-  if (status === '进行中') return 'primary'
+const activeCount = computed(() => plans.value.filter(p => p.status === '进行中').length)
+const doneCount = computed(() => plans.value.filter(p => p.status === '已完成').length)
+const avgProgress = computed(() => {
+  if (!plans.value.length) return 0
+  return Math.round(plans.value.reduce((s, p) => s + (p.progress || 0), 0) / plans.value.length)
+})
+
+function translateStatus(s) {
+  if (s === 'in_progress' || s === '进行中') return '进行中'
+  if (s === 'completed' || s === '已完成') return '已完成'
+  return '未开始'
+}
+function statusType(s) {
+  if (s === '进行中') return 'primary'
+  if (s === '已完成') return 'success'
   return 'info'
 }
-
-// 获取进度条颜色
-const getProgressColor = (percentage) => {
-  if (percentage >= 80) return '#67c23a'
-  if (percentage >= 50) return '#e6a23c'
-  return '#f56c6c'
+function formatDate(d) {
+  if (!d) return ''
+  return String(d).replace('T', ' ').substring(0, 10)
+}
+function progressClass(p) {
+  if (p >= 80) return 'high'
+  if (p >= 40) return 'mid'
+  return 'low'
 }
 
-// 更新进度
-const updateProgress = (plan) => {
-  progressForm.value = {
-    planId: plan.id,
-    planTitle: plan.title,
-    percentage: plan.progressPercentage,
-    feedback: '',
-    issues: ''
-  }
-  progressDialogVisible.value = true
+function viewDetail(p) { detailPlan.value = p; detailVisible.value = true }
+function openProgress(p) {
+  progressForm.value = { id: p.id, title: p.title, percent: p.progress || 0, feedback: '' }
+  progressVisible.value = true
 }
-
-// 提交进度更新
-const submitProgressUpdate = async () => {
-  if (!progressForm.value.feedback) {
-    ElMessage.error('请填写完成情况说明')
-    return
-  }
-
+async function submitProgress() {
+  if (!progressForm.value.feedback) { ElMessage.error('请填写完成情况'); return }
   try {
-    await studentAPI.updatePlanProgress(progressForm.value.planId, progressForm.value.percentage)
+    await studentAPI.updatePlanProgress(progressForm.value.id, progressForm.value.percent)
     ElMessage.success('进度已更新')
-    progressDialogVisible.value = false
-    const userId = getUserId()
-    await loadAssistancePlans(userId)
-  } catch (error) {
-    console.error('更新进度失败:', error)
-    ElMessage.error('更新进度失败')
-  }
-}
-
-// 查看计划详情
-const viewPlanDetails = (plan) => {
-  selectedPlan.value = plan
-  detailsDialogVisible.value = true
-}
-
-// 标记完成
-const markCompleted = async (plan) => {
-  try {
-    await studentAPI.updatePlanProgress(plan.id, 100)
-    ElMessage.success(`帮扶计划"${plan.title}"已标记为完成`)
-    const userId = getUserId()
-    await loadAssistancePlans(userId)
-  } catch (error) {
-    console.error('标记完成失败:', error)
-    ElMessage.error('标记完成失败')
-  }
+    progressVisible.value = false
+    await loadPlans()
+  } catch (e) { ElMessage.error('更新失败') }
 }
 </script>
 
 <style scoped>
-.assistance-container {
-  padding: 20px;
-  background-color: #f5f7fa;
-  min-height: 100vh;
-}
+.assistance-page { padding: 20px; min-height: 100vh; background: #f5f7fb; }
 
-/* 页面标题 */
-.page-header {
-  margin-bottom: 24px;
-}
+/* 统计 */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.stat-card { background: #fff; border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+.st-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.st-icon svg { width: 20px; height: 20px; }
+.st-icon.total { background: #eff6ff; color: #3b82f6; }
+.st-icon.active { background: #fef3c7; color: #f59e0b; }
+.st-icon.done { background: #ecfdf5; color: #16a34a; }
+.st-icon.prog { background: #f5f3ff; color: #7c3aed; }
+.st-num { font-size: 24px; font-weight: 700; color: #18181b; }
+.st-lbl { font-size: 13px; color: #71717a; }
 
-.page-header h1 {
-  font-size: 24px;
-  font-weight: 600;
-  color: #303133;
-  margin: 0;
-}
+/* 计划卡片 2列网格 */
+.plans-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.plan-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.05); display: flex; flex-direction: column; gap: 14px; border-top: 4px solid #7c3aed; transition: box-shadow .2s; }
+.plan-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.plan-card.completed { border-top-color: #16a34a; opacity: .85; }
 
-/* 统计卡片 */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
+.plan-title-row { display: flex; align-items: center; justify-content: space-between; }
+.plan-title { font-size: 15px; font-weight: 600; color: #18181b; }
+.plan-sub { font-size: 13px; color: #71717a; line-height: 1.5; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.stat-card {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e4e7ed;
-}
+.plan-info { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.pi-item { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #52525b; }
+.pi-item svg { flex-shrink: 0; }
 
-.stat-number {
-  font-size: 20px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 4px;
-}
+.plan-progress { }
+.pp-header { display: flex; justify-content: space-between; font-size: 13px; color: #52525b; margin-bottom: 6px; }
+.pp-val { font-weight: 600; color: #7c3aed; }
+.pp-bar { height: 8px; background: #f4f4f5; border-radius: 4px; overflow: hidden; }
+.pp-fill { height: 100%; border-radius: 4px; transition: width .4s; }
+.pp-fill.high { background: linear-gradient(90deg, #16a34a, #22c55e); }
+.pp-fill.mid { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.pp-fill.low { background: linear-gradient(90deg, #ef4444, #f87171); }
 
-.stat-label {
-  font-size: 14px;
-  color: #909399;
-}
+.plan-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
-/* 计划部分 */
-.plans-section {
-  margin-bottom: 24px;
-}
+/* 空 */
+.empty-box { text-align: center; padding: 80px 20px; color: #a1a1aa; }
+.empty-box svg { width: 60px; margin-bottom: 12px; }
+.empty-box p { font-size: 15px; margin: 0 0 4px; }
+.empty-box span { font-size: 13px; }
 
-.plans-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+/* 详情弹窗 */
+.det-body { line-height: 1.6; }
+.det-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.det-header h3 { margin: 0; font-size: 16px; }
+.det-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dg-item.full { grid-column: span 2; }
+.dg-item label { display: block; font-size: 12px; color: #a1a1aa; margin-bottom: 2px; }
+.dg-item span { font-size: 14px; color: #3f3f46; }
+.det-progress { margin-top: 8px; }
 
-/* 计划卡片 */
-.plan-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.plan-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  margin: 0 0 8px 0;
-}
-
-.plan-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.plan-date {
-  font-size: 12px;
-  color: #909399;
-}
-
-/* 计划内容 */
-.plan-content {
-  margin-bottom: 16px;
-}
-
-.plan-info {
-  margin-bottom: 12px;
-}
-
-.info-row {
-  display: flex;
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-
-.info-label {
-  width: 90px;
-  color: #909399;
-}
-
-.info-value {
-  color: #303133;
-  flex: 1;
-}
-
-.plan-description {
-  font-size: 14px;
-  color: #606266;
-  line-height: 1.4;
-}
-
-/* 进度部分 */
-.progress-section {
-  margin-bottom: 16px;
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: #303133;
-}
-
-.progress-value {
-  font-weight: 600;
-  color: #409eff;
-}
-
-.progress-detail {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #909399;
-  text-align: right;
-}
-
-/* 操作部分 */
-.action-section {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-/* 空状态 */
-.empty-state {
-  background: white;
-  border-radius: 8px;
-  padding: 40px 20px;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e4e7ed;
-}
-
-/* 计划详情 */
-.plan-details {
-  line-height: 1.5;
-}
-
-.detail-section {
-  margin-bottom: 20px;
-}
-
-.detail-section h4 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 12px;
-}
-
-.progress-stats {
-  margin-top: 8px;
-  font-size: 14px;
-  color: #606266;
-  text-align: center;
-}
-
-.timeline-content {
-  font-size: 14px;
-}
-
-.timeline-header {
-  margin-bottom: 8px;
-}
-
-.timeline-progress {
-  font-weight: 600;
-  color: #409eff;
-}
-
-.timeline-feedback {
-  color: #606266;
-  margin: 0 0 8px 0;
-}
-
-.timeline-issues {
-  color: #f56c6c;
-  margin: 0;
-  font-size: 13px;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .assistance-container {
-    padding: 16px;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .info-row {
-    flex-direction: column;
-  }
-
-  .info-label {
-    width: auto;
-    margin-bottom: 4px;
-  }
-
-  .action-section {
-    flex-direction: column;
-  }
-
-  .action-section .el-button {
-    width: 100%;
-  }
-}
+@media (max-width: 900px) { .plans-grid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
 </style>

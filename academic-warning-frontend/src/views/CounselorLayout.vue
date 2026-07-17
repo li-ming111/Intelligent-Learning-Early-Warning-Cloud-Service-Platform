@@ -12,7 +12,7 @@
             class="nav-item"
             :class="{ active: isActive('/counselor/dashboard') }"
           >
-            <span>首页</span>
+            <span>学情视窗</span>
           </router-link>
           <router-link 
             to="/counselor/students" 
@@ -29,25 +29,39 @@
             <span>预警管理</span>
           </router-link>
           <router-link 
-            to="/counselor/courses" 
+            to="/counselor/assistance" 
             class="nav-item"
-            :class="{ active: isActive('/counselor/courses') }"
+            :class="{ active: isActive('/counselor/assistance') }"
           >
-            <span>选修课管理</span>
+            <span>帮扶计划</span>
           </router-link>
           <router-link 
-            to="/counselor/credit-monitor" 
+            to="/counselor/scores" 
             class="nav-item"
-            :class="{ active: isActive('/counselor/credit-monitor') }"
+            :class="{ active: isActive('/counselor/scores') }"
           >
-            <span>学分监控</span>
+            <span>成绩跟踪</span>
+          </router-link>
+          <router-link 
+            to="/counselor/analytics" 
+            class="nav-item"
+            :class="{ active: isActive('/counselor/analytics') }"
+          >
+            <span>数据分析</span>
           </router-link>
           <router-link 
             to="/counselor/notifications" 
             class="nav-item"
             :class="{ active: isActive('/counselor/notifications') }"
           >
-            <span>批量通知</span>
+            <span>通知中心</span>
+          </router-link>
+          <router-link 
+            to="/counselor/courses" 
+            class="nav-item"
+            :class="{ active: isActive('/counselor/courses') }"
+          >
+            <span>选修课</span>
           </router-link>
           <router-link 
             to="/counselor/class-management" 
@@ -91,12 +105,16 @@
         <router-view />
       </div>
     </div>
+
+    <!-- AI助手 -->
+    <AIAssistant />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AIAssistant from '@/components/AIAssistant.vue'
 import { 
   SwitchButton
 } from '@element-plus/icons-vue'
@@ -146,12 +164,14 @@ onMounted(() => {
 })
 
 const pageMap = {
-  '/counselor/dashboard': '数据统计',
+  '/counselor/dashboard': '学情视窗',
   '/counselor/students': '学生管理',
   '/counselor/warnings': '预警管理',
-  '/counselor/courses': '选修课管理',
-  '/counselor/credit-monitor': '学分监控',
-  '/counselor/notifications': '批量通知',
+  '/counselor/assistance': '帮扶计划',
+  '/counselor/scores': '成绩跟踪',
+  '/counselor/analytics': '数据分析',
+  '/counselor/notifications': '通知中心',
+  '/counselor/courses': '选修课',
   '/counselor/class-management': '班级管理',
   '/counselor/settings': '个人设置'
 }
@@ -306,6 +326,21 @@ const handleLogout = () => {
   background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
   padding: 0;
   margin: 0;
+  width: 100%;
+}
+
+/* 确保表格和卡片充满宽度 */
+.content-area :deep(.el-table) {
+  width: 100% !important;
+}
+
+.content-area :deep(.el-card) {
+  width: 100% !important;
+}
+
+.content-area :deep(> div) {
+  width: 100%;
+  max-width: 100%;
 }
 
 .content-area::-webkit-scrollbar {

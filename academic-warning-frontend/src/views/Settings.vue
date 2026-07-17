@@ -1,406 +1,204 @@
 <template>
-  <div class="settings-container">
-    <el-row :gutter="20">
-      <!-- 左侧菜单 -->
-      <el-col :xs="24" :sm="24" :md="6">
-        <div class="settings-menu">
-          <div
-            v-for="item in menuItems"
-            :key="item.id"
-            class="menu-item"
-            :class="{ active: activeMenu === item.id }"
-            @click="activeMenu = item.id"
-          >
-            <span>{{ item.label }}</span>
-          </div>
+  <div class="ss-page">
+    <div class="ss-head">
+      <h1>个人设置</h1>
+      <p>管理账户信息和系统偏好</p>
+    </div>
+
+    <el-tabs model-value="account">
+      <el-tab-pane label="账户管理" name="account">
+        <div class="ss-cards">
+          <!-- 修改密码 -->
+          <el-card>
+            <template #header><span class="ss-card-title">修改密码</span></template>
+            <el-form :model="pw" label-width="100px">
+              <el-form-item label="当前密码">
+                <el-input v-model="pw.old" type="password" placeholder="输入当前密码" />
+              </el-form-item>
+              <el-form-item label="新密码">
+                <el-input v-model="pw.newPw" type="password" placeholder="至少8位，含字母和数字" />
+              </el-form-item>
+              <el-form-item label="确认密码">
+                <el-input v-model="pw.confirm" type="password" placeholder="再次输入新密码" />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="changePw">确认修改</el-button>
+              </el-form-item>
+            </el-form>
+          </el-card>
+
+          <!-- 个人信息 -->
+          <el-card>
+            <template #header><span class="ss-card-title">基本信息</span></template>
+            <el-form :model="userInfo" label-width="100px">
+              <el-form-item label="学号">
+                <el-input :model-value="userInfo.studentId" disabled />
+              </el-form-item>
+              <el-form-item label="姓名">
+                <el-input :model-value="userInfo.name" disabled />
+              </el-form-item>
+              <el-form-item label="班级">
+                <el-input :model-value="userInfo.className" disabled />
+              </el-form-item>
+              <el-form-item label="邮箱">
+                <el-input v-model="userInfo.email" placeholder="请输入邮箱" />
+              </el-form-item>
+              <el-form-item label="手机号">
+                <el-input v-model="userInfo.phone" placeholder="请输入手机号" />
+              </el-form-item>
+              <el-form-item label="入学年份">
+                <el-input :model-value="entranceYear" disabled />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="saveAccount">保存修改</el-button>
+              </el-form-item>
+            </el-form>
+          </el-card>
         </div>
-      </el-col>
+      </el-tab-pane>
 
-      <!-- 右侧内容 -->
-      <el-col :xs="24" :sm="24" :md="18">
-        <!-- 修改密码 -->
-        <el-card v-if="activeMenu === 'password'" class="settings-card">
-          <template #header>
-            <div class="card-header">修改密码</div>
-          </template>
-
-          <el-form :model="passwordForm" label-width="120px">
-            <el-form-item label="当前密码">
-              <el-input v-model="passwordForm.oldPassword" type="password" placeholder="请输入当前密码"></el-input>
-            </el-form-item>
-            <el-form-item label="新密码">
-              <el-input v-model="passwordForm.newPassword" type="password" placeholder="至少8位，包含字母和数字"></el-input>
-            </el-form-item>
-            <el-form-item label="确认新密码">
-              <el-input v-model="passwordForm.confirmPassword" type="password" placeholder="请再次输入新密码"></el-input>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="changePassword">确认修改</el-button>
-              <el-button @click="resetPasswordForm">取消</el-button>
-            </el-form-item>
-          </el-form>
-        </el-card>
-
-        <!-- 隐私设置 -->
-        <el-card v-if="activeMenu === 'privacy'" class="settings-card">
-          <template #header>
-            <div class="card-header">隐私设置</div>
-          </template>
-
-          <el-form :model="privacyForm" label-width="150px">
+      <el-tab-pane label="隐私设置" name="privacy">
+        <el-card>
+          <template #header><span class="ss-card-title">隐私设置</span></template>
+          <el-form :model="privacy" label-width="140px">
             <el-form-item label="成绩可见范围">
-              <el-radio-group v-model="privacyForm.scoresVisibility">
-                <el-radio label="0">所有人可见（公开）</el-radio>
-                <el-radio label="1">仅教师可见</el-radio>
-                <el-radio label="2">仅学生本人可见（私密）</el-radio>
+              <el-radio-group v-model="privacy.scoreVis">
+                <el-radio-button value="0">公开</el-radio-button>
+                <el-radio-button value="1">仅教师</el-radio-button>
+                <el-radio-button value="2">私密</el-radio-button>
               </el-radio-group>
+              <div style="font-size:12px;color:#94a3b8;margin-top:4px">控制谁可以查看你的成绩数据</div>
             </el-form-item>
-
             <el-form-item label="个人信息可见范围">
-              <el-radio-group v-model="privacyForm.profileVisibility">
-                <el-radio label="0">所有人可见</el-radio>
-                <el-radio label="1">仅学院内可见</el-radio>
-                <el-radio label="2">仅自己可见</el-radio>
+              <el-radio-group v-model="privacy.profileVis">
+                <el-radio-button value="0">公开</el-radio-button>
+                <el-radio-button value="1">学院内</el-radio-button>
+                <el-radio-button value="2">仅自己</el-radio-button>
               </el-radio-group>
+              <div style="font-size:12px;color:#94a3b8;margin-top:4px">控制谁可以查看你的个人资料</div>
             </el-form-item>
-
-            <el-form-item label="预警信息通知">
-              <el-checkbox v-model="privacyForm.warningNotification">允许教师通过邮件/短信通知预警信息</el-checkbox>
+            <el-form-item label="预警通知">
+              <el-switch v-model="privacy.warnNotify" />
+              <span style="margin-left:10px;font-size:12px;color:#94a3b8">允许通过邮件/短信接收预警通知</span>
             </el-form-item>
-
-            <el-form-item label="学业反馈共享">
-              <el-checkbox v-model="privacyForm.feedbackSharing">允许系统分析我的学业数据用于改进教学</el-checkbox>
+            <el-form-item label="学业数据共享">
+              <el-switch v-model="privacy.feedbackShare" />
+              <span style="margin-left:10px;font-size:12px;color:#94a3b8">允许系统分析你的学业数据</span>
             </el-form-item>
-
             <el-form-item>
-              <el-button type="primary" @click="updatePrivacy">保存设置</el-button>
-              <el-button @click="resetPrivacyForm">取消</el-button>
+              <el-button type="primary" @click="savePrivacy">保存设置</el-button>
             </el-form-item>
           </el-form>
-
-          <el-divider></el-divider>
-
-          <h4>数据导出</h4>
-          <p style="color: #666; font-size: 13px; margin-bottom: 10px;">
-            您可以随时导出您的个人数据，包括成绩、预警记录等。
-          </p>
-          <el-button @click="exportUserData">导出个人数据（Excel）</el-button>
         </el-card>
+      </el-tab-pane>
 
-        <!-- 安全日志 -->
-        <el-card v-if="activeMenu === 'security'" class="settings-card">
-          <template #header>
-            <div class="card-header">安全日志</div>
-          </template>
-
-          <div class="security-summary">
-            <p><strong>账户安全状态：</strong>
-              <el-tag type="success">正常</el-tag>
-            </p>
-            <p><strong>最后登录：</strong>2025-12-11 23:30:00 | 地点：Windows 10</p>
-            <p style="color: #f56c6c;"><strong>建议：</strong>定期修改密码，不要在公共场所登录，谨慎点击邮件中的链接。</p>
+      <el-tab-pane label="安全日志" name="security">
+        <el-card>
+          <template #header><span class="ss-card-title">安全概览</span></template>
+          <div class="ss-sec-grid">
+            <div class="ss-sec-item safe">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <div><strong>账户安全</strong><span>状态正常</span></div>
+            </div>
+            <div class="ss-sec-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              <div><strong>上次登录</strong><span>刚刚 · Windows</span></div>
+            </div>
           </div>
-
-          <el-divider></el-divider>
-
-          <h4>登录历史（最近15天）</h4>
-          <el-table :data="securityLogs" stripe size="small">
-            <el-table-column prop="loginTime" label="登录时间" width="180"></el-table-column>
-            <el-table-column prop="device" label="设备" width="150"></el-table-column>
-            <el-table-column prop="ipAddress" label="IP地址" width="150"></el-table-column>
-            <el-table-column prop="location" label="位置" width="150"></el-table-column>
-            <el-table-column prop="status" label="状态">
-              <template #default="{ row }">
-                <el-tag v-if="row.status === 'success'" type="success">成功</el-tag>
-                <el-tag v-else type="danger">失败</el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
         </el-card>
 
-        <!-- 账户信息 -->
-        <el-card v-if="activeMenu === 'account'" class="settings-card">
-          <template #header>
-            <div class="card-header">账户信息</div>
-          </template>
-
-          <el-form label-width="120px">
-            <el-form-item label="学号">
-              <el-input v-model="accountInfo.studentId" disabled></el-input>
-            </el-form-item>
-            <el-form-item label="姓名">
-              <el-input v-model="accountInfo.name" disabled></el-input>
-            </el-form-item>
-            <el-form-item label="邮箱">
-              <el-input v-model="accountInfo.email"></el-input>
-            </el-form-item>
-            <el-form-item label="手机号">
-              <el-input v-model="accountInfo.phone"></el-input>
-            </el-form-item>
-            <el-form-item label="学院">
-              <el-input v-model="accountInfo.collegeName" disabled></el-input>
-            </el-form-item>
-            <el-form-item label="专业">
-              <el-input v-model="accountInfo.majorName" disabled></el-input>
-            </el-form-item>
-            <el-form-item label="账户创建">
-              <el-input v-model="accountInfo.createdAt" disabled></el-input>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" @click="updateAccount">保存修改</el-button>
-              <el-button @click="resetAccountForm">取消</el-button>
-            </el-form-item>
-          </el-form>
+        <el-card style="margin-top:16px">
+          <template #header><span class="ss-card-title">登录历史</span></template>
+          <div v-if="logs.length">
+            <div v-for="l in logs" :key="l.id" class="ss-log">
+              <div class="ssl-dot" :class="l.status==='success'?'ok':'fail'"></div>
+              <div class="ssl-body">
+                <div class="ssl-main">{{ l.loginTime }} · {{ l.device }}</div>
+                <div class="ssl-sub">{{ l.ipAddress }} · {{ l.location }}</div>
+              </div>
+              <span class="ssl-tag" :class="l.status==='success'?'ok':'fail'">{{ l.status==='success'?'成功':'失败' }}</span>
+            </div>
+          </div>
+          <div v-else class="ss-empty">暂无登录记录</div>
         </el-card>
-      </el-col>
-    </el-row>
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { studentAPI } from '@/api/index'
 import { getUserId } from '@/utils/userUtils'
 
-const activeMenu = ref('password')
+const userInfo = reactive({ studentId:'', name:'', className:'', email:'', phone:'' })
+const entranceYear = computed(() => (userInfo.studentId || '').substring(0,4) || '--')
+const pw = reactive({ old:'', newPw:'', confirm:'' })
+const privacy = reactive({ scoreVis:'1', profileVis:'1', warnNotify:true, feedbackShare:true })
+const logs = ref([])
 
-const menuItems = [
-  { id: 'password', label: '修改密码' },
-  { id: 'privacy', label: '隐私设置' },
-  { id: 'security', label: '安全日志' },
-  { id: 'account', label: '账户信息' }
-]
+onMounted(async () => { await loadInfo() })
 
-const passwordForm = ref({
-  oldPassword: '',
-  newPassword: '',
-  confirmPassword: ''
-})
-
-const privacyForm = ref({
-  scoresVisibility: '1',
-  profileVisibility: '1',
-  warningNotification: true,
-  feedbackSharing: true
-})
-
-const securityLogs = ref([])
-
-const accountInfo = ref({
-  studentId: '',
-  name: '',
-  email: '',
-  phone: '',
-  collegeName: '',
-  majorName: '',
-  createdAt: ''
-})
-
-onMounted(async () => {
-  await loadSettings()
-  await loadSecurityLogs()
-})
-
-// 加载设置
-const loadSettings = async () => {
+async function loadInfo() {
+  const uid = getUserId(); if (!uid) return
   try {
-    const userId = getUserId()
-    if (!userId) return
-    const response = await studentAPI.getUserSettings(userId)
-    console.log('[Settings] API 响应:', response)
-    if (response) {
-      accountInfo.value = response
-      privacyForm.value.scoresVisibility = String(response.privacyLevel || 1)
-      console.log('[Settings] 帐户信息已加载:', accountInfo.value)
+    const res = await studentAPI.getStudentInfo(uid)
+    let d = res; if (res?.code === 200) d = res.data
+    if (d) {
+      Object.assign(userInfo, { studentId: d.studentId||localStorage.getItem('username')||'', name: d.name||'', className: d.className||d.class_name||'', email: d.email||'', phone: d.phone||'' })
+      privacy.scoreVis = String(d.privacyLevel ?? 1)
     }
-  } catch (error) {
-    console.error('加载设置失败:', error)
-  }
+  } catch(e) { console.error('加载账户失败',e) }
 }
 
-// 修改密码
-const changePassword = async () => {
-  if (!passwordForm.value.oldPassword) {
-    ElMessage.error('请输入当前密码')
-    return
-  }
-  if (!passwordForm.value.newPassword) {
-    ElMessage.error('请输入新密码')
-    return
-  }
-  if (passwordForm.value.newPassword.length < 8) {
-    ElMessage.error('新密码至少需要8位')
-    return
-  }
-  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-    ElMessage.error('两次输入的密码不一致')
-    return
-  }
+async function saveAccount() { try { ElMessage.success('账户信息已保存') } catch(e) { ElMessage.error('保存失败') } }
 
-  // POST /api/student/change-password
-  // SHA-256 + 盐值加密后写入 users.password
-
-  try {
-    const userId = getUserId()
-    await studentAPI.changePassword(userId, passwordForm.value.oldPassword, passwordForm.value.newPassword)
-    ElMessage.success('密码修改成功！')
-    resetPasswordForm()
-  } catch (error) {
-    console.error('修改密码失败:', error)
-    ElMessage.error('密码修改失败，请检查原密码')
-  }
+async function changePw() {
+  if (!pw.old || !pw.newPw) return ElMessage.error('请填写完整')
+  if (pw.newPw.length < 8) return ElMessage.error('新密码至少8位')
+  if (pw.newPw !== pw.confirm) return ElMessage.error('两次密码不一致')
+  try { await studentAPI.changePassword(getUserId(), pw.old, pw.newPw); ElMessage.success('密码已修改'); pw.old=''; pw.newPw=''; pw.confirm='' }
+  catch(e) { ElMessage.error('修改失败，请检查原密码') }
 }
 
-// 重置密码表单
-const resetPasswordForm = () => {
-  passwordForm.value = {
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  }
-}
-
-// 更新隐私设置
-const updatePrivacy = async () => {
-  try {
-    const userId = getUserId()
-    await studentAPI.updatePrivacy(userId, parseInt(privacyForm.value.scoresVisibility))
-    ElMessage.success('隐私设置已更新')
-  } catch (error) {
-    console.error('更新隐私设置失败:', error)
-    ElMessage.error('更新隐私设置失败')
-  }
-}
-
-// 重置隐私设置
-const resetPrivacyForm = () => {
-  privacyForm.value = {
-    scoresVisibility: '1',
-    profileVisibility: '1',
-    warningNotification: true,
-    feedbackSharing: true
-  }
-}
-
-// 导出个人数据
-const exportUserData = async () => {
-  try {
-    const userId = getUserId()
-    await studentAPI.exportScoresExcel(userId)
-    ElMessage.info('数据导出成功，即将下载')
-    // 下载文件
-    const blob = await studentAPI.downloadScoresExcel(userId)
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    const timestamp = Date.now()
-    link.download = `个人数据_${timestamp}.xlsx`
-    link.click()
-    window.URL.revokeObjectURL(url)
-  } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
-  }
-}
-
-// 加载安全日志
-const loadSecurityLogs = async () => {
-  try {
-    const userId = getUserId()
-    if (!userId) return
-    const response = await studentAPI.getSecurityLogs(userId, 15)
-    if (Array.isArray(response)) {
-      securityLogs.value = response
-    }
-  } catch (error) {
-    console.error('加载安全日志失败:', error)
-    // 忽略错误，使用空列表
-    securityLogs.value = []
-  }
-}
-
-// 更新账户信息
-const updateAccount = async () => {
-  try {
-    const userId = getUserId()
-    // 只能修改邮箱、手机号
-    // 厦法、年管、专业等信息是禁用的
-    ElMessage.success('账户信息已更新')
-  } catch (error) {
-    console.error('更新账户信息失败:', error)
-    ElMessage.error('更新失败')
-  }
-}
-
-// 重置账户表单
-const resetAccountForm = () => {
-  // 重置为当前已加载的数据
-  loadSettings()
+async function savePrivacy() {
+  try { await studentAPI.updatePrivacy(getUserId(), parseInt(privacy.scoreVis)); ElMessage.success('隐私设置已保存') }
+  catch(e) { ElMessage.error('保存失败') }
 }
 </script>
 
 <style scoped>
-.settings-container {
-  padding: 20px;
-  background-color: #f5f7fa;
-  min-height: 100vh;
-}
+.ss-page { padding: 24px; }
+.ss-head { margin-bottom: 20px; }
+.ss-head h1 { margin: 0 0 4px; font-size: 22px; font-weight: 700; color: #1e3a5f; }
+.ss-head p { margin: 0; font-size: 13px; color: #94a3b8; }
+.ss-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px; }
+.ss-card-title { font-size: 15px; font-weight: 600; color: #1e293b; }
+:deep(.el-card) { border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+:deep(.el-card__header) { padding: 14px 20px; border-bottom: 1px solid #f1f5f9; }
+:deep(.el-card__body) { padding: 20px; }
+:deep(.el-input__wrapper) { border-radius: 8px; }
+:deep(.el-tabs__item) { font-size: 14px; }
 
-.settings-menu {
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
+/* Security */
+.ss-sec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ss-sec-item { display: flex; align-items: center; gap: 12px; padding: 18px; border-radius: 12px; background: #f8fafc; }
+.ss-sec-item.safe { background: #ecfdf5; }
+.ss-sec-item.safe svg { color: #16a34a; }
+.ss-sec-item strong { display: block; font-size: 14px; color: #1e293b; }
+.ss-sec-item span { font-size: 12px; color: #64748b; }
 
-.menu-item {
-  padding: 15px 20px;
-  cursor: pointer;
-  border-left: 4px solid transparent;
-  color: #666;
-  transition: all 0.3s;
-  font-size: 14px;
-}
+/* Logs */
+.ss-log { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid #f1f5f9; }
+.ss-log:last-child { border-bottom: none; }
+.ssl-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.ssl-dot.ok { background: #16a34a; } .ssl-dot.fail { background: #ef4444; }
+.ssl-body { flex: 1; min-width: 0; } .ssl-main { font-size: 13px; color: #1e293b; }
+.ssl-sub { font-size: 12px; color: #94a3b8; }
+.ssl-tag { font-size: 11px; padding: 2px 8px; border-radius: 6px; }
+.ssl-tag.ok { background: #ecfdf5; color: #16a34a; } .ssl-tag.fail { background: #fef2f2; color: #ef4444; }
+.ss-empty { text-align: center; padding: 24px; font-size: 13px; color: #94a3b8; }
 
-.menu-item:hover {
-  background-color: #f5f7fa;
-}
-
-.menu-item.active {
-  background-color: #e6f7ff;
-  color: #409eff;
-  border-left-color: #409eff;
-  font-weight: bold;
-}
-
-.settings-card {
-  margin-bottom: 20px;
-}
-
-.card-header {
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
-}
-
-.security-summary {
-  padding: 15px;
-  background-color: #f9f9f9;
-  border-radius: 6px;
-}
-
-.security-summary p {
-  margin: 8px 0;
-  color: #666;
-  font-size: 14px;
-}
-
-h4 {
-  margin-top: 20px;
-  margin-bottom: 15px;
-  color: #333;
-  font-size: 14px;
-  font-weight: bold;
-}
+@media (max-width: 700px) { .ss-cards { grid-template-columns: 1fr; } .ss-sec-grid { grid-template-columns: 1fr; } }
 </style>

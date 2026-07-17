@@ -68,7 +68,8 @@ export const studentAPI = {
     return apiClient.get(`/students/suggestions/${userId}`)
   },
   updatePlanProgress: (planId, progress) => {
-    return apiClient.post(`/students/assistance/${planId}/progress`, null, { params: { progress } })
+    // 实际接口在 counselor-service: PATCH /counselors/assistance-plans/{id}/status
+    return apiClient.patch(`/counselors/assistance-plans/${planId}/status`, { status: progress })
   },
   // ========== 班级信息 ==========
   getClassInfo: (studentId) => {
@@ -175,8 +176,8 @@ export const studentAPI = {
   getAppealDetail: (appealId) => {
     return apiClient.get(`/students/appeals/${appealId}/detail`)
   },
-  withdrawAppeal: (appealId) => {
-    return apiClient.post(`/students/appeals/${appealId}/withdraw`)
+  withdrawAppeal: (appealId, studentId) => {
+    return apiClient.post(`/students/appeals/${appealId}/withdraw`, null, { params: { studentId } })
   },
   getAppealStatistics: (studentId) => {
     return apiClient.get(`/students/appeals/${studentId}/statistics`)
@@ -265,6 +266,12 @@ export const teacherAPI = {
   getCourses: (teacherId) => {
     return apiClient.get(`/teachers/courses`, { params: { teacher_id: teacherId } })
   },
+  getAllCourses: () => {
+    return apiClient.get(`/teachers/courses`)  // 不传teacher_id，后端返回全部课程
+  },
+  updateCourse: (courseId, data) => {
+    return apiClient.put(`/teachers/courses/${courseId}`, data)
+  },
   getScores: (courseId) => {
     return apiClient.get(`/teachers/scores`, { params: { course_id: courseId } })
   },
@@ -297,6 +304,9 @@ export const teacherAPI = {
   },
   saveCommunication: (data) => {
     return apiClient.post(`/teachers/communications`, data)
+  },
+  getCounselorByClass: (className) => {
+    return apiClient.get(`/teachers/counselor/by-class`, { params: { class_name: className } })
   },
   getAnalysis: (courseId) => {
     return apiClient.get(`/teachers/analysis`, { params: { course_id: courseId } })
@@ -339,7 +349,7 @@ export const teacherAPI = {
   },
   // ============= 审计日志API =============
   getScoreLogs: (teacherId, page = 1, size = 20) => {
-    return apiClient.get(`/teachers/scores/logs/${teacherId}`, { params: { page, size } })
+    return apiClient.get(`/teachers/scores/audit/${teacherId}`, { params: { page, size } })
   },
   // ============= 反馈管理API =============
   getFeedbackList: (teacherId, category, page = 1, size = 20) => {
@@ -371,6 +381,9 @@ export const teacherAPI = {
   batchDeleteScores: (scoreIds) => {
     return apiClient.post(`/teachers/scores/batch-delete`, scoreIds)
   },
+  getScoresByClass: (className, teacherId) => {
+    return apiClient.get(`/teachers/scores/by-class`, { params: { class_name: className, teacher_id: teacherId } })
+  },
   getClassScoreAnalysis: (classId) => {
     return apiClient.get(`/teachers/classes/${classId}/analysis`)
   },
@@ -382,6 +395,9 @@ export const teacherAPI = {
   },
   submitClassManagementRequest: (data) => {
     return apiClient.post(`/teachers/class-management/apply`, data)
+  },
+  cancelClassManagement: (data) => {
+    return apiClient.post(`/teachers/class-management/cancel`, data)
   },
   importStudents: (formData) => {
     return apiClient.post(`/teachers/students/import`, formData, {
@@ -442,23 +458,35 @@ export const counselorAPI = {
   },
   // ============= 帮扶计划API =============
   getPlansByStudent: (studentId) => {
-    return apiClient.get(`/counselors/assistance/student/${studentId}`)
+    return apiClient.get(`/counselors/students/${studentId}/assistance-plans`)
+  },
+  getCounselorPlans: (counselorId) => {
+    return apiClient.get(`/counselors/${counselorId}/assistance-plans`)
   },
   createAssistancePlan: (data) => {
-    return apiClient.post(`/counselors/assistance/create`, data)
+    return apiClient.post(`/counselors/assistance-plans`, data)
   },
-  updatePlanProgress: (planId, progressPercentage) => {
-    return apiClient.post(`/counselors/assistance/${planId}/progress`, { progress_percentage: progressPercentage })
+  updateAssistancePlan: (id, data) => {
+    return apiClient.put(`/counselors/assistance-plans/${id}`, data)
+  },
+  deleteAssistancePlan: (id) => {
+    return apiClient.delete(`/counselors/assistance-plans/${id}`)
+  },
+  updatePlanProgress: (planId, data) => {
+    return apiClient.patch(`/counselors/assistance-plans/${planId}/status`, data)
   },
   // ============= 成绩跟踪API =============
   getClassScores: (counselorId, classId) => {
     return apiClient.get(`/counselors/scores/class/${classId}`, { params: { counselor_id: counselorId } })
   },
-  getCourseScoreDistribution: (courseId) => {
-    return apiClient.get(`/counselors/scores/distribution/${courseId}`)
+  getCourseScoreDistribution: (courseId, counselorId) => {
+    return apiClient.get(`/counselors/scores/distribution/${courseId}`, { params: { counselor_id: counselorId } })
   },
   getLowScoreStudents: (counselorId) => {
     return apiClient.get(`/counselors/scores/low-score`, { params: { counselor_id: counselorId } })
+  },
+  getStudentScoreTrend: (studentId) => {
+    return apiClient.get(`/counselors/scores/student/${studentId}/trend`)
   },
   // ============= 通知中心API =============
   getNotificationHistory: (counselorId, page, size) => {
@@ -514,6 +542,30 @@ export const counselorAPI = {
   },
   getCreditInsufficientStudents: (counselorId, page = 1, size = 20) => {
     return apiClient.get(`/counselors/credit-insufficient`, { params: { counselor_id: counselorId, page, size } })
+  },
+  // ============= 班级管理API =============
+  getMyClasses: (counselorId) => {
+    return apiClient.get(`/counselors/class-management/my-classes`, { params: { counselorId } })
+  },
+  searchClasses: (keyword) => {
+    return apiClient.get(`/counselors/class-management/search`, { params: { keyword } })
+  },
+  getClassRequests: (counselorId) => {
+    return apiClient.get(`/counselors/class-management/requests`, { params: { counselorId } })
+  },
+  submitClassManagementRequest: (data) => {
+    return apiClient.post(`/counselors/class-management/apply`, data)
+  },
+  cancelClassManagement: (data) => {
+    return apiClient.post(`/counselors/class-management/cancel`, data)
+  },
+  // 获取辅导员班级申请列表（供管理员使用）
+  getClassApplications: (params) => {
+    return apiClient.get(`/counselors/class-management/applications`, { params })
+  },
+  // 审核辅导员班级申请（供管理员使用）
+  reviewClassApplication: (applicationId, data) => {
+    return apiClient.post(`/counselors/class-management/applications/${applicationId}/review`, data)
   }
 }
 
@@ -523,6 +575,57 @@ export const aiAPI = {
   },
   getSuggestions: (userId) => {
     return apiClient.get(`/ai/suggestions/${userId}`)
+  },
+  // 成绩分析
+  analyzeScores: (studentId) => {
+    return apiClient.get(`/ai/analyze-scores/${studentId}`)
+  },
+  // 行为/趋势分析
+  analyzeBehavior: (data) => {
+    return apiClient.post(`/ai/analyze-behavior`, data)
+  },
+  // 风险预测
+  predictRisk: (data) => {
+    return apiClient.post(`/ai/predict-risk`, data)
+  },
+  assessRisk: (studentId) => {
+    return apiClient.get(`/ai/assess-risk/${studentId}`)
+  },
+  // 生成预警建议
+  generateWarning: (data) => {
+    return apiClient.post(`/ai/generate-warning`, data)
+  },
+  predictWarnings: (studentId) => {
+    return apiClient.get(`/ai/predict-warnings/${studentId}`)
+  },
+  // 预警分析
+  analyzeWarningTrend: (counselorId) => {
+    return apiClient.get(`/ai/analyze-warning-trend/${counselorId}`)
+  },
+  analyzeWarning: (warningId) => {
+    return apiClient.get(`/ai/analyze-warning/${warningId}`)
+  },
+  // 班级成绩分析
+  analyzeClassScores: (classId) => {
+    return apiClient.get(`/ai/analyze-class-scores/${classId}`)
+  },
+  // 生成学习建议/计划
+  generateSuggestion: (data) => {
+    return apiClient.post(`/ai/generate-suggestion`, data)
+  },
+  generatePlan: (data) => {
+    return apiClient.post(`/ai/generate-plan`, data)
+  },
+  // 综合分析
+  analyze: (studentId) => {
+    return apiClient.get(`/ai/analyze/${studentId}`)
+  },
+  // 推荐
+  getRecommendations: (studentId) => {
+    return apiClient.get(`/ai/recommendations/${studentId}`)
+  },
+  getWarningSuggestions: (studentId) => {
+    return apiClient.get(`/ai/warning-suggestions/${studentId}`)
   }
 }
 
@@ -565,13 +668,13 @@ export const adminAPI = {
     if (collegeId !== null) params.collegeId = collegeId
     if (role !== null) params.role = role
     console.log('API请求参数:', params)
-    return apiClient.get(`/admin/users`, { params })
+    return apiClient.get(`/admin/users/page`, { params })
   },
   disableUser: (userId) => {
-    return apiClient.post(`/admin/users/${userId}/disable`)
+    return apiClient.post(`/admin/users/${userId}/toggle-status`)
   },
   enableUser: (userId) => {
-    return apiClient.post(`/admin/users/${userId}/enable`)
+    return apiClient.post(`/admin/users/${userId}/toggle-status`)
   },
   getRules: () => {
     return apiClient.get(`/admin/rules`)
@@ -588,8 +691,23 @@ export const adminAPI = {
   getStatistics: () => {
     return apiClient.get(`/admin/statistics`)
   },
+  exportStatistics: () => {
+    return apiClient.get(`/admin/export/statistics`, { responseType: 'blob' })
+  },
+  getPendingRequests: () => {
+    return apiClient.get(`/admin/pending-requests`)
+  },
   getCourses: () => {
     return apiClient.get(`/admin/courses`)
+  },
+  createCourse: (data) => {
+    return apiClient.post(`/admin/courses`, data)
+  },
+  updateCourse: (courseId, data) => {
+    return apiClient.put(`/admin/courses/${courseId}`, data)
+  },
+  deleteCourse: (courseId) => {
+    return apiClient.delete(`/admin/courses/${courseId}`)
   },
   getCourseRequirements: () => {
     // 临时返回空数组，后端需实现该端点
@@ -600,6 +718,9 @@ export const adminAPI = {
   },
   exportColleges: () => {
     return apiClient.get(`/admin/export/colleges`, { responseType: 'blob' })
+  },
+  exportTeachers: () => {
+    return apiClient.get(`/admin/export/teachers`, { responseType: 'blob' })
   },
   exportUsers: () => {
     return apiClient.get(`/admin/export/users`, { responseType: 'blob' })
@@ -632,6 +753,15 @@ export const adminAPI = {
   toggleUserStatus: (userId) => {
     return apiClient.post(`/admin/users/${userId}/toggle-status`)
   },
+  approveUser: (userId) => {
+    return apiClient.put(`/admin/users/${userId}/approve`)
+  },
+  getLoginLogs: (userId) => {
+    return apiClient.get(`/admin/login-logs/${userId}`)
+  },
+  getUserById: (userId) => {
+    return apiClient.get(`/admin/users/${userId}`)
+  },
   // ============= 消息管理API =============
   broadcastMessage: (data) => {
     return apiClient.post(`/admin/messages/broadcast`, data)
@@ -660,16 +790,23 @@ export const adminAPI = {
   },
   // ============= 数据导出与API =============
   exportStudents: () => {
-    return apiClient.get(`/admin/export/students`)
+    return apiClient.get(`/admin/export/students`, { responseType: 'blob' })
   },
   exportScores: (courseId) => {
-    return apiClient.get(`/admin/export/scores`, { params: { course_id: courseId } })
+    return apiClient.get(`/admin/export/scores`, { params: { course_id: courseId }, responseType: 'blob' })
+  },
+  // ============= 预警管理API =============
+  getAllWarnings: () => {
+    return apiClient.get(`/admin/warnings`)
+  },
+  processWarning: (warningId, data) => {
+    return apiClient.put(`/admin/warnings/${warningId}/handle`, data)
   },
   exportWarnings: () => {
-    return apiClient.get(`/admin/export/warnings`)
+    return apiClient.get(`/admin/export/warnings`, { responseType: 'blob' })
   },
   exportUsers: (role) => {
-    return apiClient.get(`/admin/export/users`, { params: { role } })
+    return apiClient.get(`/admin/export/users`, { params: { role }, responseType: 'blob' })
   },
   importStudents: (data) => {
     return apiClient.post(`/admin/import/students`, data)
@@ -677,12 +814,22 @@ export const adminAPI = {
   importScores: (data) => {
     return apiClient.post(`/admin/import/scores`, data)
   },
+  downloadTemplate: (type) => {
+    return apiClient.get(`/admin/import/template/${type}`, { responseType: 'blob' })
+  },
   // ============= 报表API =============
   getReportTemplates: () => {
     return apiClient.get(`/admin/reports/templates`)
   },
   generateReport: (data) => {
     return apiClient.post(`/admin/reports/generate`, data)
+  },
+  // ============= 自定义模板API =============
+  getCustomReportTemplates: () => {
+    return apiClient.get(`/admin/reports/templates/list`)
+  },
+  deleteCustomTemplate: (templateId) => {
+    return apiClient.delete(`/admin/reports/templates/${templateId}`)
   },
   // ============= 数据备份API =============
   backupData: () => {
@@ -694,8 +841,8 @@ export const adminAPI = {
   restoreBackup: (backupId) => {
     return apiClient.post(`/admin/backup/${backupId}/restore`)
   },
-  getExportHistory: () => {
-    return apiClient.get(`/admin/export/history`)
+  getExportHistory: (page = 1, pageSize = 10) => {
+    return apiClient.get(`/admin/export/history`, { params: { page, size: pageSize } })
   },
   deleteExport: (exportId) => {
     return apiClient.delete(`/admin/export/${exportId}`)
@@ -704,13 +851,46 @@ export const adminAPI = {
     return apiClient.get(`/admin/activities`)
   },
   // ============= 班级管理申请API =============
+  getAllClassManagementRequests: () => {
+    return apiClient.get(`/admin/class-management/applications?size=999`)
+  },
   getPendingClassManagementRequests: () => {
     return apiClient.get(`/admin/class-management/pending-requests`)
   },
-  approveClassManagementRequest: (requestId) => {
-    return apiClient.post(`/admin/class-management/approve/${requestId}`)
+  approveClassManagementRequest: (requestId, type = 'teacher') => {
+    return apiClient.post(`/admin/class-management/approve/${requestId}?type=${type}`)
   },
-  rejectClassManagementRequest: (requestId, reason) => {
-    return apiClient.post(`/admin/class-management/reject/${requestId}`, { reason })
+  rejectClassManagementRequest: (requestId, reason, type = 'teacher') => {
+    return apiClient.post(`/admin/class-management/reject/${requestId}?type=${type}`, { reason })
+  },
+  removeTeacherFromClass: (classId) => {
+    return apiClient.post(`/admin/class-management/remove-teacher/${classId}`)
+  },
+  getAllClasses: () => {
+    return apiClient.get(`/admin/classes`)
   }
+}
+
+export const collegeAdminAPI = {
+  getProfile: (userId) => apiClient.get(`/college-admin/profile/${userId}`),
+  getDashboard: (userId) => apiClient.get(`/college-admin/dashboard/${userId}`),
+  getClasses: (userId) => apiClient.get(`/college-admin/classes/${userId}`),
+  getStudents: (userId, keyword) => {
+    const qs = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ''
+    return apiClient.get(`/college-admin/students/${userId}${qs}`)
+  },
+  getStudentDetail: (userId, profileId) => apiClient.get(`/college-admin/student-detail/${userId}/${profileId}`),
+  getTeachers: (userId) => apiClient.get(`/college-admin/teachers/${userId}`),
+  getWarnings: (userId) => apiClient.get(`/college-admin/warnings/${userId}`),
+  getScoreStats: (userId) => apiClient.get(`/college-admin/scores-stats/${userId}`),
+  getScoreAnalysis: (userId) => apiClient.get(`/college-admin/score-analysis/${userId}`),
+  getClassComparison: (userId) => apiClient.get(`/college-admin/class-comparison/${userId}`),
+  getCounselors: (userId) => apiClient.get(`/college-admin/counselors/${userId}`),
+  getAssistance: (userId) => apiClient.get(`/college-admin/assistance/${userId}`),
+  getTeacherDetail: (userId, teacherId) => apiClient.get(`/college-admin/teacher-detail/${userId}/${teacherId}`),
+  processWarning: (data) => apiClient.post('/college-admin/process-warning', data),
+  deleteWarning: (warningId) => apiClient.del(`/college-admin/delete-warning/${warningId}`),
+  getClassStudents: (userId, classId) => apiClient.get(`/college-admin/class-students/${userId}/${classId}`),
+  exportData: (userId, type) => apiClient.get(`/college-admin/export/${userId}?type=${type||'scores'}`),
+  scoreQuery: (userId, params) => apiClient.get(`/college-admin/score-query/${userId}`, { params }),
 }

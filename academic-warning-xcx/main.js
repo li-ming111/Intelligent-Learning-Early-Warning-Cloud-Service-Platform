@@ -13,8 +13,17 @@ app.$mount()
 
 // #ifdef VUE3
 import { createSSRApp } from 'vue'
+import TeacherTabBar from './components/teacher-tab-bar/teacher-tab-bar.vue'
+import CounselorTabBar from './components/counselor-tab-bar/counselor-tab-bar.vue'
+import CollegeAdminTabBar from './components/collegeadmin-tab-bar/collegeadmin-tab-bar.vue'
+import AdminTabBar from './components/admin-tab-bar/admin-tab-bar.vue'
+
 export function createApp() {
   const app = createSSRApp(App)
+  app.component('teacher-tab-bar', TeacherTabBar)
+  app.component('counselor-tab-bar', CounselorTabBar)
+  app.component('collegeadmin-tab-bar', CollegeAdminTabBar)
+  app.component('admin-tab-bar', AdminTabBar)
   return {
     app
   }

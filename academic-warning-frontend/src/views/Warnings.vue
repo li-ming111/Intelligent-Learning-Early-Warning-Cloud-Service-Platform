@@ -1,179 +1,128 @@
- <template>
-  <div class="warnings-container">
-    <!-- 预警统计 -->
-    <div class="warning-stats">
-      <div class="stat-box">
-        <div class="stat-label">红色预警</div>
-        <div class="stat-number red">{{ redWarnings.length }}</div>
+<template>
+  <div class="warnings-page">
+    <!-- 顶部统计 -->
+    <div class="stats-row">
+      <div class="stat-card danger">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div class="stat-body"><div class="stat-num">{{ redWarnings.length }}</div><div class="stat-lbl">严重预警</div></div>
       </div>
-      <div class="stat-box">
-        <div class="stat-label">黄色预警</div>
-        <div class="stat-number yellow">{{ yellowWarnings.length }}</div>
+      <div class="stat-card warning">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <div class="stat-body"><div class="stat-num">{{ yellowWarnings.length }}</div><div class="stat-lbl">中度预警</div></div>
       </div>
-      <div class="stat-box">
-        <div class="stat-label">蓝色预警</div>
-        <div class="stat-number blue">{{ blueWarnings.length }}</div>
+      <div class="stat-card info">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+        <div class="stat-body"><div class="stat-num">{{ blueWarnings.length }}</div><div class="stat-lbl">轻度预警</div></div>
       </div>
-      <div class="stat-box">
-        <div class="stat-label">待处理申诉</div>
-        <div class="stat-number">{{ pendingAppeals.length }}</div>
+      <div class="stat-card appeal">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>
+        <div class="stat-body"><div class="stat-num">{{ pendingAppeals.length }}</div><div class="stat-lbl">申诉记录</div></div>
       </div>
     </div>
 
-    <!-- 预警列表 -->
-    <el-card style="margin-bottom: 20px;">
-      <template #header>
-        <div class="card-header">
-          <span>预警管理</span>
-          <el-select v-model="filterLevel" placeholder="筛选预警等级" style="width: 150px; margin-left: 20px;">
-            <el-option label="全部预警" value=""></el-option>
-            <el-option label="红色预警" value="red"></el-option>
-            <el-option label="黄色预警" value="yellow"></el-option>
-            <el-option label="蓝色预警" value="blue"></el-option>
-          </el-select>
+    <!-- 标题栏 -->
+    <div class="toolbar">
+      <span class="toolbar-title">预警列表</span>
+      <el-select v-model="filterLevel" placeholder="全部等级" clearable style="width:140px" size="default">
+        <el-option label="严重预警" value="red"><span style="color:#ef4444">●</span> 严重预警</el-option>
+        <el-option label="中度预警" value="yellow"><span style="color:#3b82f6">●</span> 中度预警</el-option>
+        <el-option label="轻度预警" value="blue"><span style="color:#3b82f6">●</span> 轻度预警</el-option>
+      </el-select>
+    </div>
+
+    <!-- 预警卡片列表 -->
+    <div class="warning-list" v-if="filteredWarnings.length > 0">
+      <div v-for="w in filteredWarnings" :key="w.id" class="warning-card" :class="'level-' + getLevelKey(w.warningLevel)">
+        <div class="wc-level">
+          <div class="level-badge" :class="getLevelKey(w.warningLevel)">{{ w.warningLevel || '--' }}</div>
         </div>
-      </template>
-
-      <el-table :data="filteredWarnings" stripe>
-        <el-table-column type="expand">
-          <template #default="{ row }">
-            <div style="padding: 20px;">
-              <p><strong>详细说明：</strong>{{ row.description }}</p>
-              <p><strong>处理建议：</strong>{{ row.suggestion }}</p>
-              <p><strong>相关课程：</strong>{{ row.courseName }}</p>
-              <p><strong>创建时间：</strong>{{ row.createdAt }}</p>
-              <p><strong>更新时间：</strong>{{ row.updatedAt }}</p>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="warningLevel" label="预警等级" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getLevelType(row.warningLevel)">{{ row.warningLevel }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="courseName" label="课程" width="120"></el-table-column>
-        <el-table-column prop="title" label="预警标题" width="200"></el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag v-if="row.status === 'confirmed'" type="danger">已确认</el-tag>
-            <el-tag v-else type="info">待确认</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" size="small" @click="viewDetails(row)">详情</el-button>
-            <el-button type="warning" size="small" @click="openAppealDialog(row)">申诉</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-
-    <!-- 待处理申诉 -->
-    <el-card v-if="pendingAppeals.length > 0">
-      <template #header>
-        <div class="card-header">我的申诉记录</div>
-      </template>
-
-      <el-table :data="pendingAppeals" stripe>
-        <el-table-column prop="courseName" label="课程" width="150"></el-table-column>
-        <el-table-column prop="currentScore" label="原成绩" width="100"></el-table-column>
-        <el-table-column prop="reason" label="申诉原因" width="150"></el-table-column>
-        <el-table-column prop="status" label="处理状态" width="100">
-          <template #default="{ row }">
-            <el-tag v-if="row.status === 'pending'" type="warning">待处理</el-tag>
-            <el-tag v-else-if="row.status === 'approved'" type="success">已通过</el-tag>
-            <el-tag v-else type="danger">已驳回</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="submittedAt" label="提交时间" width="150"></el-table-column>
-        <el-table-column label="操作" width="100">
-          <template #default="{ row }">
-            <el-button type="primary" size="small" @click="viewAppealDetails(row)">查看</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-
-    <!-- 申诉对话框 -->
-    <el-dialog v-model="appealDialogVisible" title="预警申诉" width="600px">
-      <el-form :model="appealForm" label-width="100px">
-        <el-form-item label="预警课程">
-          <el-input v-model="appealForm.courseName" disabled></el-input>
-        </el-form-item>
-        <el-form-item label="预警内容">
-          <el-input v-model="appealForm.warningTitle" disabled></el-input>
-        </el-form-item>
-        <el-form-item label="申诉原因">
-          <el-input v-model="appealForm.appealReason" type="textarea" rows="3" placeholder="请说明您的申诉理由"></el-input>
-        </el-form-item>
-        <el-form-item label="附件">
-          <el-upload
-            v-model:file-list="appealForm.attachments"
-            action="#"
-            :auto-upload="false"
-            :limit="3"
-          >
-            <template #trigger>
-              <el-button type="primary">选择文件</el-button>
-            </template>
-          </el-upload>
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="appealDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitWarningAppeal">提交申诉</el-button>
-      </template>
-    </el-dialog>
-
-    <!-- 详情对话框 -->
-    <el-dialog v-model="detailsDialogVisible" title="预警详情" width="600px">
-      <div v-if="selectedWarning" class="warning-details">
-        <p><strong>预警标题：</strong>{{ selectedWarning.title }}</p>
-        <p><strong>预警等级：</strong>
-          <el-tag :type="getLevelType(selectedWarning.warningLevel)">{{ selectedWarning.warningLevel }}</el-tag>
-        </p>
-        <p><strong>关联课程：</strong>{{ selectedWarning.courseName }}</p>
-        <p><strong>详细说明：</strong>{{ selectedWarning.description }}</p>
-        <p><strong>处理建议：</strong>{{ selectedWarning.suggestion }}</p>
-        <p><strong>创建时间：</strong>{{ selectedWarning.createdAt }}</p>
-
-        <el-divider></el-divider>
-
-        <p style="color: #f56c6c;"><strong>建议行动：</strong></p>
-        <ul>
-          <li>立即联系课程教师了解详细情况</li>
-          <li>制定针对性的学习计划</li>
-          <li>参加教师组织的补课或答疑</li>
-          <li>如有异议，可提交成绩申诉</li>
-        </ul>
-
-        <el-divider></el-divider>
-
-        <p style="color: #67c23a;"><strong>推荐帮扶资源：</strong></p>
-        <div v-if="supportResources.length > 0">
-          <el-card v-for="resource in supportResources" :key="resource.id" style="margin-bottom: 10px;">
-            <div class="resource-item">
-              <div class="resource-header">
-                <span class="resource-name">{{ resource.name }}</span>
-                <el-tag :type="getResourceTypeTag(resource.type)">{{ getResourceTypeName(resource.type) }}</el-tag>
-              </div>
-              <div class="resource-body">
-                <p>{{ resource.description }}</p>
-                <div v-if="resource.schedule" class="resource-schedule">
-                  <strong>时间：</strong>{{ resource.schedule }}
-                </div>
-                <div v-if="resource.link" class="resource-link">
-                  <el-button type="primary" size="small" @click="openResourceLink(resource.link)">查看详情</el-button>
-                </div>
-              </div>
-            </div>
-          </el-card>
+        <div class="wc-body">
+          <div class="wc-title">{{ w.title || '学业预警' }}</div>
+          <div class="wc-desc">{{ w.description }}</div>
+          <div class="wc-meta">
+            <span class="wc-tag" v-if="w.courseName">{{ w.courseName }}</span>
+            <span class="wc-time">{{ formatDate(w.createdAt) }}</span>
+            <el-tag size="small" :type="w.status===1?'success':'info'">{{ w.status===1?'已处理':'待处理' }}</el-tag>
+          </div>
         </div>
-        <div v-else class="no-resources">
-          暂无推荐的帮扶资源
+        <div class="wc-actions">
+          <el-button type="primary" plain size="small" @click="viewDetails(w)">详情</el-button>
+          <el-button type="warning" plain size="small" @click="openAppealDialog(w)">申诉</el-button>
         </div>
       </div>
+    </div>
+    <div v-else class="empty-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+      <p>暂无预警记录</p>
+    </div>
+
+    <!-- 申诉记录 -->
+    <div class="toolbar" style="margin-top:24px" v-if="pendingAppeals.length > 0">
+      <span class="toolbar-title">申诉记录</span>
+    </div>
+    <div class="appeal-list" v-if="pendingAppeals.length > 0">
+      <div v-for="a in pendingAppeals" :key="a.id" class="appeal-card">
+        <div class="ap-info">
+          <span class="ap-course">{{ a.courseName }}</span>
+          <span class="ap-reason">{{ a.reason }}</span>
+        </div>
+        <div class="ap-meta">
+          <el-tag size="small" :type="a.status==='pending'?'warning':a.status==='approved'?'success':'danger'">{{ a.status==='pending'?'待处理':a.status==='approved'?'已通过':'已驳回' }}</el-tag>
+          <span class="ap-time">{{ a.submittedAt }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <el-dialog v-model="detailVisible" title="预警详情" width="560px" destroy-on-close>
+      <div v-if="selectedWarning" class="detail-body">
+        <div class="detail-header" :class="'dl-' + getLevelKey(selectedWarning.warningLevel)">
+          <span class="dl-level">{{ selectedWarning.warningLevel }}</span>
+          <span class="dl-title">{{ selectedWarning.title }}</span>
+        </div>
+        <div class="detail-grid">
+          <div class="dg-item"><label>关联课程</label><span>{{ selectedWarning.courseName || '--' }}</span></div>
+          <div class="dg-item"><label>创建时间</label><span>{{ formatDate(selectedWarning.createdAt) }}</span></div>
+          <div class="dg-item full"><label>详细说明</label><span>{{ selectedWarning.description }}</span></div>
+        </div>
+        <el-divider />
+        <div class="detail-suggest">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            建议行动
+          </h4>
+          <ul>
+            <li>联系任课教师了解详细情况</li>
+            <li>制定针对性的学习计划，重点关注薄弱环节</li>
+            <li>参加辅导答疑或学习小组</li>
+            <li>如有异议，可提交成绩申诉</li>
+          </ul>
+        </div>
+      </div>
+    </el-dialog>
+
+    <!-- 申诉弹窗 -->
+    <el-dialog v-model="appealVisible" title="提交申诉" width="520px" destroy-on-close>
+      <el-form :model="appealForm" label-width="80px">
+        <el-form-item label="预警课程"><el-input :model-value="appealForm.courseName" disabled /></el-form-item>
+        <el-form-item label="预警标题"><el-input :model-value="appealForm.warningTitle" disabled /></el-form-item>
+        <el-form-item label="申诉原因" required>
+          <el-select v-model="appealForm.appealReason" placeholder="请选择申诉原因" style="width:100%">
+            <el-option label="成绩录入有误" value="成绩录入有误" />
+            <el-option label="评分标准不明确" value="评分标准不明确" />
+            <el-option label="特殊情况影响考试" value="特殊情况影响考试" />
+            <el-option label="系统数据异常" value="系统数据异常" />
+            <el-option label="其他原因" value="其他原因" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="详细说明">
+          <el-input v-model="appealForm.appealDesc" type="textarea" rows="3" placeholder="请详细说明您的申诉理由..." />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="appealVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitAppeal">提交申诉</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -186,359 +135,177 @@ import { getUserId } from '@/utils/userUtils'
 
 const filterLevel = ref('')
 const allWarnings = ref([])
-const detailsDialogVisible = ref(false)
-const appealDialogVisible = ref(false)
-const selectedWarning = ref(null)
 const pendingAppeals = ref([])
-const supportResources = ref([])
-
-const appealForm = ref({
-  warningId: null,
-  courseName: '',
-  warningTitle: '',
-  appealReason: '',
-  attachments: []
-})
+const detailVisible = ref(false)
+const appealVisible = ref(false)
+const selectedWarning = ref(null)
+const appealForm = ref({ warningId: null, courseName: '', warningTitle: '', appealReason: '', appealDesc: '' })
 
 onMounted(async () => {
-  const userId = getUserId()
-  if (!userId) {
-    ElMessage.error('请先登录')
-    return
-  }
-  await loadWarnings(userId)
-  await loadAppeals(userId)
+  const uid = getUserId()
+  if (!uid) { ElMessage.error('请先登录'); return }
+  await loadWarnings()
+  await loadAppeals()
 })
 
-// 加载预警数据
-const loadWarnings = async (userId) => {
+async function loadWarnings() {
   try {
-    console.log('预警userId:', userId, 'type:', typeof userId)
-    if (!userId) {
-      ElMessage.error('请先登录')
-      return
-    }
-    const response = await studentAPI.getWarnings(userId)
-    if (Array.isArray(response) && response.length > 0) {
-      allWarnings.value = response.map(w => ({
+    const uid = getUserId()
+    const res = await studentAPI.getWarnings(uid)
+    if (Array.isArray(res)) {
+      allWarnings.value = res.map(w => ({
         ...w,
         warningLevel: translateLevel(w.warningLevel),
-        status: w.status || 'confirmed'
+        courseName: extractCourseName(w.description)
       }))
-    } else {
-      allWarnings.value = []
     }
-  } catch (error) {
-    console.error('加载预警失败:', error)
-    allWarnings.value = []
-  }
+  } catch (e) { console.error('加载预警失败', e) }
 }
 
-// 加载申诉数据
-const loadAppeals = async (userId) => {
+async function loadAppeals() {
   try {
-    if (!userId) return
-    const response = await studentAPI.getAppeals(userId)
-    if (Array.isArray(response) && response.length > 0) {
-      pendingAppeals.value = response
-    }
-  } catch (error) {
-    console.error('加载申诉失败:', error)
-  }
+    const uid = getUserId()
+    const res = await studentAPI.getAppeals(uid)
+    if (Array.isArray(res)) pendingAppeals.value = res
+  } catch (e) { console.error('加载申诉失败', e) }
 }
 
-// 计算不同级别的预警
-const redWarnings = computed(() => allWarnings.value.filter(w => w.warningLevel === '红色'))
-const yellowWarnings = computed(() => allWarnings.value.filter(w => w.warningLevel === '黄色'))
-const blueWarnings = computed(() => allWarnings.value.filter(w => w.warningLevel === '蓝色'))
-
-// 根据等级筛选预警
+const redWarnings = computed(() => allWarnings.value.filter(w => w.warningLevel === '严重'))
+const yellowWarnings = computed(() => allWarnings.value.filter(w => w.warningLevel === '中度'))
+const blueWarnings = computed(() => allWarnings.value.filter(w => w.warningLevel === '轻度'))
 const filteredWarnings = computed(() => {
   if (!filterLevel.value) return allWarnings.value
-  const levelMap = {
-    'red': '红色',
-    'yellow': '黄色',
-    'blue': '蓝色'
-  }
-  const translatedLevel = levelMap[filterLevel.value]
-  return allWarnings.value.filter(w => w.warningLevel === translatedLevel)
+  const map = { red: '严重', yellow: '中度', blue: '轻度' }
+  return allWarnings.value.filter(w => w.warningLevel === map[filterLevel.value])
 })
 
-// 翻译不同系统的预警等级
-const translateLevel = (level) => {
-  if (level === 'high' || level === 'red') return '红色'
-  if (level === 'medium' || level === 'yellow') return '黄色'
-  if (level === 'low' || level === 'blue') return '蓝色'
-  return '低'
+function translateLevel(level) {
+  if (level >= 3 || level === 'high' || level === 'red' || level === '严重') return '严重'
+  if (level === 2 || level === 'medium' || level === 'yellow' || level === '中度') return '中度'
+  return '轻度'
+}
+function getLevelKey(level) {
+  if (level === '严重' || level === 'high' || level >= 3) return 'danger'
+  if (level === '中度' || level === 'medium' || level === 2) return 'warning'
+  return 'info'
+}
+function formatDate(d) {
+  if (!d) return '--'
+  const s = String(d).replace('T', ' ').substring(0, 16)
+  return s
+}
+function extractCourseName(desc) {
+  if (!desc) return ''
+  // 去掉 "第X学期" 前缀
+  let text = desc.replace(/第\d+学期/g, '')
+  // 匹配格式: 课程名(分数分) 如 "大学英语不及格(51分)" → "大学英语"
+  // 使用懒匹配 {2,6}? 避免把 "不及格" 当作课程名的一部分
+  const match = text.match(/([\u4e00-\u9fa5]{2,6}?)[(（]?\d+\.?\d*分?/)
+  if (match) return match[1].replace(/不及格$/, '')
+  return ''
 }
 
-// 获取等级标签类型
-const getLevelType = (level) => {
-  switch (level) {
-    case '红色':
-      return 'danger'
-    case '黄色':
-      return 'warning'
-    case '蓝色':
-      return 'info'
-    case 'high':
-      return 'danger'
-    case 'medium':
-      return 'warning'
-    case 'low':
-      return 'info'
-    default:
-      return 'info'
-  }
+function viewDetails(row) { selectedWarning.value = row; detailVisible.value = true }
+function openAppealDialog(row) {
+  appealForm.value = { warningId: row.id, courseName: row.courseName || '', warningTitle: row.title || '学业预警', appealReason: '', appealDesc: '' }
+  appealVisible.value = true
 }
-
-// 打开申诉对话框
-const openAppealDialog = (row) => {
-  appealForm.value = {
-    warningId: row.id,
-    courseName: row.courseName,
-    warningTitle: row.title,
-    appealReason: '',
-    attachments: []
-  }
-  appealDialogVisible.value = true
-}
-
-// 提交申诉
-const submitWarningAppeal = async () => {
-  if (!appealForm.value.appealReason) {
-    ElMessage.error('请填写申诉原因')
-    return
-  }
-
+async function submitAppeal() {
+  if (!appealForm.value.appealReason) { ElMessage.error('请选择申诉原因'); return }
   try {
-    const userId = getUserId()
-    const data = {
-      studentId: userId,
+    await studentAPI.submitAppeal({
+      studentId: getUserId(),
       warningId: appealForm.value.warningId,
       reason: appealForm.value.appealReason,
-      description: appealForm.value.appealReason
-    }
-    await studentAPI.submitAppeal(data)
-    ElMessage.success('预警申诉已提交')
-    appealDialogVisible.value = false
-    await loadAppeals(userId)
-  } catch (error) {
-    console.error('提交申诉失败:', error)
-    ElMessage.error('提交申诉失败')
-  }
-}
-
-// 查看申诉详情
-const viewAppealDetails = async (row) => {
-  try {
-    const detail = await studentAPI.getAppealDetail(row.id)
-    if (detail) {
-      ElMessage.info(detail.reason)
-    }
-  } catch (error) {
-    console.error('加载申诉详情失败:', error)
-  }
-}
-
-// 获取资源类型标签
-const getResourceTypeTag = (type) => {
-  switch (type) {
-    case 'group':
-      return 'success'
-    case 'lecture':
-      return 'warning'
-    case 'mentor':
-      return 'info'
-    default:
-      return 'info'
-  }
-}
-
-// 获取资源类型名称
-const getResourceTypeName = (type) => {
-  switch (type) {
-    case 'group':
-      return '帮扶小组'
-    case 'lecture':
-      return '讲座'
-    case 'mentor':
-      return '朋辈导师'
-    default:
-      return '其他'
-  }
-}
-
-// 打开资源链接
-const openResourceLink = (link) => {
-  window.open(link, '_blank')
-}
-
-// 加载帮扶资源
-const loadSupportResources = async (studentId, courseCode) => {
-  try {
-    // 这里需要调用后端API获取帮扶资源
-    // 暂时使用模拟数据
-    supportResources.value = [
-      {
-        id: 1,
-        name: '高数帮扶小组',
-        type: 'group',
-        courseCode: 'MATH101',
-        description: '由高年级优秀学生组成的帮扶小组，每周定期开展辅导活动，帮助同学解决高数学习中的问题。',
-        link: 'https://example.com/math-group',
-        status: 'active',
-        schedule: '每周二、四晚上 19:00-21:00'
-      },
-      {
-        id: 2,
-        name: '高数串讲讲座',
-        type: 'lecture',
-        courseCode: 'MATH101',
-        description: '由数学学院资深教授主讲的高数串讲讲座，涵盖重点难点内容，帮助同学系统复习。',
-        link: 'https://example.com/math-lecture',
-        status: 'active',
-        schedule: '本周末下午 14:00-16:00'
-      },
-      {
-        id: 3,
-        name: '高数朋辈导师',
-        type: 'mentor',
-        courseCode: 'MATH101',
-        description: '由高数成绩优异的学长学姐担任朋辈导师，一对一指导学习方法和解题技巧。',
-        link: 'https://example.com/math-mentor',
-        status: 'active',
-        mentorId: 1001
-      }
-    ]
-  } catch (error) {
-    console.error('加载帮扶资源失败:', error)
-    supportResources.value = []
-  }
-}
-
-// 修改查看详情方法，加载帮扶资源
-const viewDetails = (row) => {
-  selectedWarning.value = row
-  // 加载帮扶资源
-  const userId = getUserId()
-  const courseCode = row.courseName || 'MATH101' // 暂时使用默认课程代码
-  loadSupportResources(userId, courseCode)
-  detailsDialogVisible.value = true
+      description: appealForm.value.appealDesc
+    })
+    ElMessage.success('申诉已提交')
+    appealVisible.value = false
+    await loadAppeals()
+  } catch (e) { ElMessage.error('提交失败') }
 }
 </script>
 
 <style scoped>
-.warnings-container {
-  padding: 20px;
-  background-color: #f5f7fa;
-  min-height: 100vh;
-}
+.warnings-page { padding: 20px; min-height: 100vh; background: #f5f7fb; }
 
-.warning-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
-}
+/* 统计卡片 */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.stat-card { background: #fff; border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.05); border-left: 4px solid #ddd; }
+.stat-card.danger { border-left-color: #ef4444; }
+.stat-card.warning { border-left-color: #3b82f6; }
+.stat-card.info { border-left-color: #3b82f6; }
+.stat-card.appeal { border-left-color: #8b5cf6; }
+.stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.stat-card.danger .stat-icon { background: #fef2f2; color: #ef4444; }
+.stat-card.warning .stat-icon { background: #eff6ff; color: #3b82f6; }
+.stat-card.info .stat-icon { background: #eff6ff; color: #3b82f6; }
+.stat-card.appeal .stat-icon { background: #f5f3ff; color: #8b5cf6; }
+.stat-icon svg { width: 22px; height: 22px; }
+.stat-num { font-size: 26px; font-weight: 700; color: #18181b; }
+.stat-lbl { font-size: 13px; color: #71717a; }
 
-.stat-box {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
+/* 工具栏 */
+.toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.toolbar-title { font-size: 16px; font-weight: 600; color: #18181b; }
 
-.stat-label {
-  color: #666;
-  font-size: 13px;
-  margin-bottom: 8px;
-}
+/* 预警卡片 */
+.warning-list { display: flex; flex-direction: column; gap: 10px; }
+.warning-card { background: #fff; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.05); border-left: 4px solid #ddd; transition: box-shadow .2s; }
+.warning-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.warning-card.level-danger { border-left-color: #ef4444; }
+.warning-card.level-warning { border-left-color: #3b82f6; }
+.warning-card.level-info { border-left-color: #3b82f6; }
+.wc-level { flex-shrink: 0; }
+.level-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; }
+.level-badge.danger { background: #ef4444; }
+.level-badge.warning { background: #3b82f6; }
+.level-badge.info { background: #3b82f6; }
+.wc-body { flex: 1; min-width: 0; }
+.wc-title { font-size: 15px; font-weight: 600; color: #18181b; margin-bottom: 4px; }
+.wc-desc { font-size: 13px; color: #71717a; line-height: 1.5; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wc-meta { display: flex; align-items: center; gap: 10px; }
+.wc-tag { font-size: 12px; color: #7c3aed; background: #f5f3ff; padding: 1px 8px; border-radius: 4px; }
+.wc-time { font-size: 12px; color: #a1a1aa; }
+.wc-actions { flex-shrink: 0; display: flex; gap: 8px; }
 
-.stat-number {
-  font-size: 28px;
-  font-weight: bold;
-  color: #409eff;
-}
+/* 空 */
+.empty-box { text-align: center; padding: 60px 20px; color: #a1a1aa; }
+.empty-box svg { width: 60px; margin-bottom: 12px; }
+.empty-box p { font-size: 14px; }
 
-.stat-number.red {
-  color: #f56c6c;
-}
+/* 申诉列表 */
+.appeal-list { display: flex; flex-direction: column; gap: 8px; }
+.appeal-card { background: #fff; border-radius: 10px; padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.ap-info { display: flex; gap: 16px; align-items: center; }
+.ap-course { font-weight: 600; color: #18181b; font-size: 14px; }
+.ap-reason { color: #71717a; font-size: 13px; }
+.ap-meta { display: flex; gap: 12px; align-items: center; }
+.ap-time { font-size: 12px; color: #a1a1aa; }
 
-.stat-number.yellow {
-  color: #e6a23c;
-}
+/* 详情弹窗 */
+.detail-body { line-height: 1.6; }
+.detail-header { padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.detail-header.dl-danger { background: #fef2f2; }
+.detail-header.dl-warning { background: #eff6ff; }
+.detail-header.dl-info { background: #eff6ff; }
+.dl-level { padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #fff; }
+.dl-danger .dl-level { background: #ef4444; }
+.dl-warning .dl-level { background: #3b82f6; }
+.dl-info .dl-level { background: #3b82f6; }
+.dl-title { font-size: 16px; font-weight: 600; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dg-item.full { grid-column: span 2; }
+.dg-item label { display: block; font-size: 12px; color: #a1a1aa; margin-bottom: 2px; }
+.dg-item span { font-size: 14px; color: #3f3f46; }
+.detail-suggest { background: #eff6ff; border-radius: 8px; padding: 14px 18px; }
+.detail-suggest h4 { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #92400e; margin: 0 0 10px; }
+.detail-suggest ul { margin: 0; padding-left: 20px; }
+.detail-suggest li { font-size: 13px; color: #78716c; margin-bottom: 4px; }
 
-.stat-number.blue {
-  color: #409eff;
-}
-
-.card-header {
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
-  display: flex;
-  align-items: center;
-}
-
-.warning-details {
-  line-height: 1.8;
-}
-
-.warning-details p {
-  margin: 10px 0;
-}
-
-.warning-details ul {
-  margin-left: 20px;
-}
-
-.warning-details li {
-  margin: 8px 0;
-  color: #666;
-}
-
-.resource-item {
-  padding: 10px;
-}
-
-.resource-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.resource-name {
-  font-weight: bold;
-  font-size: 14px;
-  color: #333;
-}
-
-.resource-body {
-  font-size: 13px;
-  line-height: 1.5;
-  color: #666;
-}
-
-.resource-schedule {
-  margin: 8px 0;
-  padding: 4px 8px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.resource-link {
-  margin-top: 10px;
-}
-
-.no-resources {
-  text-align: center;
-  color: #999;
-  padding: 20px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
+@media (max-width: 768px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .warning-card { flex-direction: column; align-items: flex-start; }
+  .wc-actions { width: 100%; justify-content: flex-end; }
 }
 </style>

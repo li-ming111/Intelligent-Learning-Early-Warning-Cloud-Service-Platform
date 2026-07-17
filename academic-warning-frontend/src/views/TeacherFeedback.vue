@@ -1,425 +1,91 @@
 <template>
-  <div class="teacher-feedback">
-    <div class="page-header">
-      <h1>学生反馈管理</h1>
-      <p>查看、分类和回复学生课程反馈</p>
+  <div class="tfb-page">
+    <div class="tfb-stats">
+      <div class="tfs-card"><div class="tfs-icon all"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div class="tfs-num">{{ feedbacks.length }}</div><div class="tfs-lbl">全部反馈</div></div>
+      <div class="tfs-card"><div class="tfs-icon pend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="tfs-num" style="color:#f59e0b">{{ pendingCount }}</div><div class="tfs-lbl">待回复</div></div>
+      <div class="tfs-card"><div class="tfs-icon done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="tfs-num" style="color:#16a34a">{{ repliedCount }}</div><div class="tfs-lbl">已回复</div></div>
+      <div class="tfs-card"><div class="tfs-icon rate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div class="tfs-num">{{ replyRate }}%</div><div class="tfs-lbl">回复率</div></div>
     </div>
-
-    <!-- 反馈统计 -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-number">{{ feedbackStats.totalFeedback }}</div>
-        <div class="stat-label">总反馈数</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">{{ feedbackStats.pendingReply }}</div>
-        <div class="stat-label">待回复</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">{{ feedbackStats.averageRating }}</div>
-        <div class="stat-label">平均评分</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">{{ feedbackStats.replyRate }}%</div>
-        <div class="stat-label">回复率</div>
-      </div>
+    <div class="tfb-tool">
+      <span class="tfb-title">反馈列表</span>
+      <el-select v-model="filter" placeholder="全部分类" clearable style="width:150px"><el-option v-for="c in categories" :key="c" :label="c" :value="c"/></el-select>
     </div>
-
-    <!-- 筛选 -->
-    <div class="filter-bar">
-      <el-select v-model="filterCategory" placeholder="反馈分类" @change="loadFeedback">
-        <el-option label="全部分类" value=""></el-option>
-        <el-option label="教学质量" value="教学质量"></el-option>
-        <el-option label="成绩问题" value="成绩问题"></el-option>
-        <el-option label="作业评分" value="作业评分"></el-option>
-        <el-option label="考试安排" value="考试安排"></el-option>
-        <el-option label="其他" value="其他"></el-option>
-      </el-select>
-      <el-select v-model="filterStatus" placeholder="状态" @change="loadFeedback">
-        <el-option label="全部状态" value="all"></el-option>
-        <el-option label="待回复" value="pending"></el-option>
-        <el-option label="已回复" value="replied"></el-option>
-      </el-select>
-    </div>
-
-    <!-- 反馈列表 -->
-    <el-card>
-      <template #header>
-        <div class="card-header">反馈列表</div>
-      </template>
-
-      <div class="feedback-list" v-loading="loading">
-        <div v-if="feedbackList.length === 0" class="empty-feedback">
-          <el-empty description="暂无反馈数据"></el-empty>
+    <div class="tfb-list" v-if="filtered.length">
+      <div v-for="(f,i) in filtered" :key="f.id" class="tfb-card" :class="{pending:f.status===0}" :style="{animationDelay:i*0.06+'s'}">
+        <div class="tfc-left">
+          <div class="tfc-name"><el-tag size="small">{{ f.category||'其他' }}</el-tag><el-tag size="small" :type="f.status===0?'warning':'success'">{{ f.status===0?'待回复':'已回复' }}</el-tag></div>
+          <div class="tfc-content">{{ f.content }}</div>
+          <div v-if="f.reply" class="tfc-reply"><svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" width="14" height="14"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 01-4 4H4"/></svg><span>{{ f.reply }}</span></div>
+          <div class="tfc-time">{{ fmtDate(f.createTime) }}</div>
         </div>
-        <div class="feedback-item" v-for="feedback in feedbackList" :key="feedback.id">
-          <div class="feedback-header">
-            <div class="feedback-info">
-              <h4 class="student-name">{{ feedback.studentName }}</h4>
-              <div class="feedback-meta">
-                <el-tag :type="feedback.status === 'pending' ? 'warning' : 'success'" size="small">{{ feedback.category }}</el-tag>
-                <span class="feedback-time">{{ formatTime(feedback.createdAt) }}</span>
-                <el-rate v-model="feedback.rating" :max="5" size="small" disabled v-if="feedback.rating"></el-rate>
-              </div>
-            </div>
-            <el-button :type="feedback.status === 'pending' ? 'danger' : 'success'" size="small" link>{{ feedback.status === 'pending' ? '待回复' : '已回复' }}</el-button>
-          </div>
-
-          <div class="feedback-content">
-            <p>{{ feedback.content }}</p>
-          </div>
-
-          <div class="feedback-actions">
-            <el-button v-if="feedback.status === 'pending'" type="primary" @click="replyFeedback(feedback)">回复</el-button>
-            <el-button type="info" size="small" link @click="viewFeedback(feedback)">详情</el-button>
-          </div>
-        </div>
+        <div class="tfc-right"><el-button size="small" type="primary" v-if="f.status===0" @click="openReply(f)">回复</el-button><el-button size="small" v-else @click="viewReply(f)">查看回复</el-button></div>
       </div>
-    </el-card>
-
-    <!-- 回复对话框 -->
-    <el-dialog v-model="replyDialogVisible" title="回复反馈" width="600px">
-      <el-form :model="replyForm" label-width="100px">
-        <el-form-item label="学生">
-          <el-input :value="replyForm.studentName" disabled></el-input>
-        </el-form-item>
-        <el-form-item label="反馈内容">
-          <el-input :value="replyForm.content" type="textarea" disabled rows="3"></el-input>
-        </el-form-item>
-        <el-form-item label="回复内容">
-          <el-input v-model="replyForm.reply" type="textarea" rows="4" placeholder="请输入您的回复..."></el-input>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="replyDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitReply">发送回复</el-button>
-      </template>
+    </div>
+    <div v-else class="tfb-empty">暂无反馈</div>
+    <el-dialog v-model="replyVisible" title="回复反馈" width="500px" destroy-on-close>
+      <div v-if="replyRow"><div class="rpl-info"><span class="rpl-name">{{ replyRow.studentName }}</span><el-tag size="small">{{ replyRow.category }}</el-tag></div><div class="rpl-content">{{ replyRow.content }}</div><el-divider/><el-input v-model="replyText" type="textarea" rows="3" placeholder="输入回复..."/></div>
+      <template #footer><el-button @click="replyVisible=false">取消</el-button><el-button type="primary" @click="submitReply">提交</el-button></template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { teacherAPI } from '@/api/index'
 import { getUserId } from '@/utils/userUtils'
 
-const filterCategory = ref('')
-const filterStatus = ref('all')
-const replyDialogVisible = ref(false)
-const feedbackList = ref([])
-const loading = ref(false)
-const feedbackStats = ref({
-  totalFeedback: 0,
-  pendingReply: 0,
-  averageRating: 0,
-  replyRate: 0
-})
-const isMounted = ref(false)
+const feedbacks = ref([])
+const filter = ref('')
+const replyVisible = ref(false)
+const replyRow = ref(null)
+const replyText = ref('')
+const categories = ['教学质量','成绩问题','作业评分','考试安排','其他']
 
-const replyForm = ref({
-  feedbackId: '',
-  studentName: '',
-  content: '',
-  reply: ''
-})
+const pendingCount = computed(() => feedbacks.value.filter(f => f.status === 0).length)
+const repliedCount = computed(() => feedbacks.value.filter(f => f.status === 1).length)
+const replyRate = computed(() => feedbacks.value.length ? Math.round(repliedCount.value / feedbacks.value.length * 100) : 0)
+const filtered = computed(() => filter.value ? feedbacks.value.filter(f => f.category === filter.value) : feedbacks.value)
 
-onMounted(() => {
-  isMounted.value = true
-  loadFeedback()
-})
+onMounted(() => loadData())
 
-onUnmounted(() => {
-  isMounted.value = false
-})
-
-// 加载反馈数据
-const loadFeedback = async () => {
-  if (!isMounted.value) return
-  
-  loading.value = true
-  try {
-    const userId = getUserId()
-    if (!userId) return
-    
-    const response = await teacherAPI.getFeedbackList(
-      userId, 
-      filterCategory.value || undefined
-    )
-    
-    if (!isMounted.value) return
-    
-    if (response.data?.code === 200) {
-      feedbackList.value = response.data.data || []
-      updateFeedbackStats()
-    }
-  } catch (error) {
-    if (!isMounted.value) return
-    console.error('加载反馈失败:', error)
-    ElMessage.error('加载反馈数据失败')
-  } finally {
-    if (isMounted.value) {
-      loading.value = false
-    }
-  }
+async function loadData() {
+  try { const tid = localStorage.getItem('teacherId') || getUserId() || '29'; const r = await teacherAPI.getFeedbacks(tid); if (Array.isArray(r)) feedbacks.value = r } catch(e){ console.error(e) }
 }
-
-// 更新反馈统计数据
-const updateFeedbackStats = () => {
-  const total = feedbackList.value.length
-  const pending = feedbackList.value.filter(f => f.status === 'pending').length
-  const replied = total - pending
-  
-  // 计算平均评分
-  const ratedFeedbacks = feedbackList.value.filter(f => f.rating)
-  const averageRating = ratedFeedbacks.length > 0 
-    ? (ratedFeedbacks.reduce((sum, f) => sum + f.rating, 0) / ratedFeedbacks.length).toFixed(1)
-    : 0
-  
-  // 计算回复率
-  const replyRate = total > 0 ? Math.round((replied / total) * 100) : 0
-  
-  feedbackStats.value = {
-    totalFeedback: total,
-    pendingReply: pending,
-    averageRating: averageRating,
-    replyRate: replyRate
-  }
-}
-
-const replyFeedback = (feedback) => {
-  replyForm.value = {
-    feedbackId: feedback.id,
-    studentName: feedback.studentName,
-    content: feedback.content,
-    reply: ''
-  }
-  replyDialogVisible.value = true
-}
-
-const submitReply = async () => {
-  if (!isMounted.value) return
-  
-  if (!replyForm.value.reply) {
-    ElMessage.error('请输入回复内容')
-    return
-  }
-  try {
-    await teacherAPI.replyToFeedback(replyForm.value.feedbackId, {
-      reply_content: replyForm.value.reply
-    })
-    
-    if (!isMounted.value) return
-    
-    ElMessage.success('回复已发送')
-    replyDialogVisible.value = false
-    await loadFeedback()
-  } catch (error) {
-    if (!isMounted.value) return
-    console.error('发送回复失败:', error)
-    ElMessage.error('发送回复失败')
-  }
-}
-
-const viewFeedback = (feedback) => {
-  ElMessage.info('查看反馈详情')
-}
-
-// 格式化时间
-const formatTime = (time) => {
-  if (!time) return ''
-  const date = new Date(time)
-  return date.toLocaleString('zh-CN')
+function fmtDate(d) { if (!d) return '--'; return String(d).replace('T',' ').substring(0,16) }
+function openReply(f) { replyRow.value = f; replyText.value = ''; replyVisible.value = true }
+function viewReply(f) { replyRow.value = f; replyText.value = f.reply || ''; replyVisible.value = true }
+async function submitReply() {
+  if (!replyText.value.trim()) { ElMessage.error('请输入回复内容'); return }
+  try { await teacherAPI.replyFeedback(replyRow.value.id, { reply: replyText.value }); ElMessage.success('已回复'); replyVisible.value = false; await loadData() } catch(e){ ElMessage.error('回复失败') }
 }
 </script>
 
 <style scoped>
-.teacher-feedback {
-  padding: 24px;
-  background: #f5f7fa;
-  min-height: 100vh;
-}
-
-.page-header {
-  margin-bottom: 28px;
-  padding: 32px;
-  background: linear-gradient(135deg, #667eea 0%, #66b1ff 100%);
-  border-radius: 16px;
-  color: white;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-  animation: slideDown 0.6s ease-out;
-}
-
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.page-header h1 {
-  margin: 0 0 10px 0;
-  font-size: 28px;
-  font-weight: bold;
-  color: white;
-}
-
-.page-header p {
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.95;
-  color: white;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.stat-card {
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  text-align: center;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border-top: 4px solid #667eea;
-}
-
-.stat-card:hover {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-  transform: translateY(-8px);
-}
-
-.stat-number {
-  font-size: 32px;
-  font-weight: bold;
-  background: linear-gradient(135deg, #667eea 0%, #66b1ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 10px;
-}
-
-.stat-label {
-  color: #999;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.filter-bar {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding: 20px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.card-header {
-  font-size: 18px;
-  font-weight: bold;
-  background: linear-gradient(135deg, #667eea 0%, #66b1ff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.feedback-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.feedback-item {
-  padding: 20px;
-  background: white;
-  border-radius: 16px;
-  border-left: 4px solid #667eea;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: fadeInUp 0.6s ease-out;
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.feedback-item:hover {
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
-  transform: translateY(-4px);
-  border-left-color: #66b1ff;
-}
-
-.feedback-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-}
-
-.feedback-info {
-  flex: 1;
-}
-
-.student-name {
-  margin: 0;
-  font-size: 16px;
-  color: #333;
-  font-weight: 600;
-}
-
-.feedback-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 8px;
-  font-size: 12px;
-  color: #999;
-}
-
-.feedback-time {
-  color: #999;
-}
-
-.feedback-content {
-  margin-bottom: 16px;
-  color: #666;
-  line-height: 1.6;
-  font-size: 15px;
-}
-
-.feedback-content p {
-  margin: 0;
-}
-
-.feedback-actions {
-  display: flex;
-  gap: 8px;
-}
-
-:deep(.el-card) {
-  border-radius: 16px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-card:hover) {
-  border-color: #e8ecf1;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-:deep(.el-button) {
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-button:hover) {
-  transform: translateY(-2px);
-}
+.tfb-page { padding: 20px 24px; min-height: 100vh; background: #f5f7fb; }
+.tfb-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 18px; }
+.tfs-card { background:#fff; border-radius:12px; padding:18px 20px; display:flex; align-items:center; gap:14px; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.tfs-icon { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+.tfs-icon.all{background:#eff6ff;color:#3b82f6} .tfs-icon.pend{background:#fffbeb;color:#f59e0b}
+.tfs-icon.done{background:#ecfdf5;color:#16a34a} .tfs-icon.rate{background:#f5f3ff;color:#7c3aed}
+.tfs-num { font-size:24px; font-weight:700; color:#18181b; }
+.tfs-lbl { font-size:12px; color:#71717a; }
+.tfb-tool { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.tfb-title { font-size:16px; font-weight:600; color:#18181b; }
+.tfb-list { display:flex; flex-direction:column; gap:10px; }
+.tfb-card { background:#fff; border-radius:12px; padding:16px 20px; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; box-shadow:0 1px 3px rgba(0,0,0,.04); border-left:4px solid #16a34a; animation:fadeUp .4s ease both; }
+.tfb-card.pending { border-left-color: #f59e0b; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{} }
+.tfc-left { flex:1; min-width:0; }
+.tfc-name { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.tfc-student { font-size:15px; font-weight:600; color:#18181b; }
+.tfc-content { font-size:13px; color:#52525b; line-height:1.5; margin-bottom:8px; white-space:pre-wrap; }
+.tfc-reply { background:#ecfdf5; border-radius:8px; padding:10px 14px; margin-bottom:6px; display:flex; gap:8px; font-size:13px; color:#065f46; }
+.tfc-time { font-size:12px; color:#a1a1aa; }
+.tfc-right { flex-shrink:0; }
+.tfb-empty { text-align:center; padding:60px; color:#a1a1aa; font-size:14px; }
+.rpl-info { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.rpl-name { font-size:15px; font-weight:600; }
+.rpl-content { background:#f5f5f5; border-radius:8px; padding:14px; font-size:13px; line-height:1.5; white-space:pre-wrap; }
+@media(max-width:768px){ .tfb-stats{grid-template-columns:repeat(2,1fr)} .tfb-card{flex-direction:column} }
 </style>

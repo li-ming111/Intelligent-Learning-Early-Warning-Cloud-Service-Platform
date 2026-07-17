@@ -1,133 +1,127 @@
 <template>
-  <view class="register-page">
-    <view class="register-wrapper">
-      <view class="register-card">
-        <view class="register-header">
-          <image src="../../assets/vue.svg" alt="哈尔滨信息工程学院" class="logo-image"></image>
-          <text class="register-title">智学预警云服务平台</text>
-          <text class="register-subtitle">用户注册</text>
-        </view>
+  <view class="page">
+    <view class="brand">
+      <image src="/static/logo.jpg" mode="aspectFit" class="logo" />
+      <text class="brand-name">智能学习预警服务系统</text>
+      <text class="brand-sub">用户注册</text>
+    </view>
 
-        <view class="role-tabs">
-          <view 
-            v-for="role in roles" 
-            :key="role.value"
-            :class="['role-tab', { active: selectedRole === role.value }]"
-            @click="selectRole(role.value)"
-          >
-            {{ role.label }}
+    <view class="card">
+      <!-- 角色选择 -->
+      <view class="role-tabs">
+        <view
+          v-for="r in roles"
+          :key="r.value"
+          :class="['role-tab', { active: selectedRole === r.value }]"
+          @tap="selectRole(r.value)"
+        >{{ r.label }}</view>
+      </view>
+
+      <!-- 账号/学号 -->
+      <view class="field">
+        <text class="field-label">{{ selectedRole === 'student' ? '学号' : selectedRole === 'teacher' ? '工号' : '工号' }}</text>
+        <input v-model="form.username" placeholder="请输入" class="input" placeholder-class="ph" />
+      </view>
+
+      <!-- 密码 -->
+      <view class="field">
+        <text class="field-label">密码</text>
+        <input v-model="form.password" type="password" placeholder="至少6位" class="input" placeholder-class="ph" />
+      </view>
+
+      <!-- 姓名 -->
+      <view class="field">
+        <text class="field-label">姓名</text>
+        <input v-model="form.name" placeholder="请输入真实姓名" class="input" placeholder-class="ph" />
+      </view>
+
+      <!-- 手机号 -->
+      <view class="field">
+        <text class="field-label">手机号</text>
+        <input v-model="form.phone" placeholder="请输入手机号" class="input" placeholder-class="ph" />
+      </view>
+
+      <!-- 邮箱 -->
+      <view class="field">
+        <text class="field-label">邮箱</text>
+        <input v-model="form.email" placeholder="请输入邮箱" class="input" placeholder-class="ph" />
+      </view>
+
+      <!-- 学院（学生/教师/辅导员都需要） -->
+      <view class="field">
+        <text class="field-label">所属学院</text>
+        <picker :range="collegeNames" @change="onCollegeChange">
+          <view class="picker-box">
+            <text :class="{ placeholder: !selectedCollegeName }">{{ selectedCollegeName || '请选择学院' }}</text>
+            <text class="arrow">›</text>
           </view>
-        </view>
+        </picker>
+      </view>
 
-        <view class="form-group">
-          <input 
-            v-model="registerForm.username" 
-            :placeholder="selectedRole === 'student' ? '学号' : '工号'"
-            class="register-input"
-            placeholder-class="placeholder"
-          />
-        </view>
-        
-        <view class="form-group">
-          <input 
-            v-model="registerForm.password" 
-            type="password" 
-            placeholder="密码"
-            class="register-input"
-            placeholder-class="placeholder"
-          />
-        </view>
-
-        <view class="form-group">
-          <input 
-            v-model="registerForm.name" 
-            placeholder="姓名"
-            class="register-input"
-            placeholder-class="placeholder"
-          />
-        </view>
-
-        <view class="form-group">
-          <input 
-            v-model="registerForm.phone" 
-            placeholder="手机号"
-            class="register-input"
-            placeholder-class="placeholder"
-          />
-        </view>
-
-        <view class="form-group">
-          <input 
-            v-model="registerForm.email" 
-            placeholder="邮箱"
-            class="register-input"
-            placeholder-class="placeholder"
-          />
-        </view>
-
-        <!-- 教师和辅导员特有字段 -->
-        <view v-if="selectedRole === 'teacher'" class="form-group">
-          <view class="register-select" @click="showCollegePicker = true">
-            <text>{{ getSelectedCollegeName() }}</text>
+      <!-- 专业（仅学生） -->
+      <view class="field" v-if="selectedRole === 'student'">
+        <text class="field-label">所属专业</text>
+        <picker :range="majorNames" @change="onMajorChange">
+          <view class="picker-box">
+            <text :class="{ placeholder: !selectedMajorName }">{{ selectedMajorName || '请先选学院' }}</text>
+            <text class="arrow">›</text>
           </view>
-          <picker 
-            v-if="showCollegePicker" 
-            :range="colleges" 
-            range-key="name"
-            :value="getCollegeIndex()"
-            @change="handleCollegeChange"
-            @cancel="showCollegePicker = false"
-            @confirm="showCollegePicker = false"
-          >
-          </picker>
-        </view>
+        </picker>
+      </view>
 
-        <view v-if="selectedRole === 'counselor'" class="form-group">
-          <input 
-            v-model="registerForm.majorCode" 
-            placeholder="专业编码"
-            class="register-input"
-            placeholder-class="placeholder"
-          />
-        </view>
+      <!-- 班级（仅学生） -->
+      <view class="field" v-if="selectedRole === 'student'">
+        <text class="field-label">所属班级</text>
+        <picker :range="classNames" @change="onClassChange">
+          <view class="picker-box">
+            <text :class="{ placeholder: !selectedClassName }">{{ selectedClassName || '请先选专业' }}</text>
+            <text class="arrow">›</text>
+          </view>
+        </picker>
+      </view>
 
-        <button @click="handleRegister" type="primary" class="register-btn">注册</button>
+      <!-- 职称（仅教师） -->
+      <view class="field" v-if="selectedRole === 'teacher'">
+        <text class="field-label">职称</text>
+        <picker :range="['助教', '讲师', '副教授', '教授']" @change="(e) => form.titleIdx = e.detail.value">
+          <view class="picker-box">
+            <text :class="{ placeholder: form.titleIdx === -1 }">{{ form.titleIdx >= 0 ? ['助教','讲师','副教授','教授'][form.titleIdx] : '请选择职称' }}</text>
+            <text class="arrow">›</text>
+          </view>
+        </picker>
+      </view>
 
-        <view class="login-link">
-          <text>已有账号？</text>
-          <navigator url="/pages/auth/login" class="link">立即登录</navigator>
-        </view>
+      <!-- 错误/成功提示 -->
+      <view v-if="errorMsg" class="msg error-msg">{{ errorMsg }}</view>
+      <view v-if="successMsg" class="msg success-msg">{{ successMsg }}</view>
 
-        <view v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </view>
+      <button
+        class="btn"
+        :disabled="loading"
+        @tap="handleRegister"
+      >{{ loading ? '注册中...' : '注册' }}</button>
 
-        <view v-if="successMessage" class="success-message">
-          {{ successMessage }}
-        </view>
+      <view class="login-link">
+        <text>已有账号？</text>
+        <navigator url="/pages/auth/login" class="link">立即登录</navigator>
       </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { apiClient } from '../../services/api'
 
 const selectedRole = ref('student')
-const registerForm = ref({
-  username: '',
-  password: '',
-  name: '',
-  phone: '',
-  email: '',
-  collegeId: '',
-  majorCode: ''
+const loading = ref(false)
+const errorMsg = ref('')
+const successMsg = ref('')
+
+const form = ref({
+  username: '', password: '', name: '', phone: '', email: '',
+  collegeId: '', majorId: '', classId: '', titleIdx: -1
 })
-const errorMessage = ref('')
-const successMessage = ref('')
-const colleges = ref([])
-const showCollegePicker = ref(false)
 
 const roles = [
   { label: '学生', value: 'student' },
@@ -135,286 +129,210 @@ const roles = [
   { label: '辅导员', value: 'counselor' }
 ]
 
+const colleges = ref([])
+const majors = ref([])
+const classes = ref([])
+
+const collegeNames = computed(() => colleges.value.map(c => c.name))
+const majorNames = computed(() => majors.value.map(m => m.name))
+const classNames = computed(() => classes.value.map(c => c.name))
+
+const selectedCollegeObj = computed(() =>
+  colleges.value.find(c => c.id == form.value.collegeId) || null
+)
+const selectedMajorObj = computed(() =>
+  majors.value.find(m => m.id == form.value.majorId) || null
+)
+const selectedCollegeName = computed(() => selectedCollegeObj.value?.name || '')
+const selectedMajorName = computed(() => selectedMajorObj.value?.name || '')
+const selectedClassName = computed(() => {
+  const cls = classes.value.find(c => c.id == form.value.classId)
+  return cls?.name || cls?.className || ''
+})
+
 const selectRole = (role) => {
   selectedRole.value = role
-  // 重置表单
-  registerForm.value = {
-    username: '',
-    password: '',
-    name: '',
-    phone: '',
-    email: '',
-    collegeId: '',
-    majorCode: ''
-  }
-  errorMessage.value = ''
-  successMessage.value = ''
+  form.value = { username: '', password: '', name: '', phone: '', email: '', collegeId: '', majorId: '', classId: '', titleIdx: -1 }
+  errorMsg.value = ''
+  successMsg.value = ''
 }
 
-const loadColleges = async () => {
-  try {
-    const data = await apiClient.getColleges()
-    colleges.value = data
-  } catch (error) {
-    console.error('获取学院列表失败:', error)
+const onCollegeChange = (e) => {
+  const c = colleges.value[e.detail.value]
+  form.value.collegeId = c?.id || ''
+  form.value.majorId = ''
+  form.value.classId = ''
+  majors.value = []
+  classes.value = []
+  if (c) {
+    loadMajors(c.id)
+    loadClasses(c.id)
   }
 }
 
-const getSelectedCollegeName = () => {
-  if (!registerForm.value.collegeId) {
-    return '请选择学院'
-  }
-  const college = colleges.value.find(c => c.id == registerForm.value.collegeId)
-  return college ? college.name : '请选择学院'
+const onMajorChange = (e) => {
+  const m = majors.value[e.detail.value]
+  form.value.majorId = m?.id || ''
+  form.value.classId = ''
+  classes.value = []
+  if (m) loadClasses(form.value.collegeId)
 }
 
-const getCollegeIndex = () => {
-  if (!registerForm.value.collegeId) {
-    return 0
-  }
-  const index = colleges.value.findIndex(c => c.id == registerForm.value.collegeId)
-  return index >= 0 ? index : 0
-}
-
-const handleCollegeChange = (e) => {
-  const index = e.detail.value
-  if (colleges.value[index]) {
-    registerForm.value.collegeId = colleges.value[index].id
-  }
+const onClassChange = (e) => {
+  const c = classes.value[e.detail.value]
+  form.value.classId = c?.id || ''
 }
 
 const handleRegister = async () => {
-  // 验证输入
-  if (!registerForm.value.username) {
-    errorMessage.value = selectedRole.value === 'student' ? '请输入学号' : '请输入工号'
-    return
-  }
-  if (!registerForm.value.password) {
-    errorMessage.value = '请输入密码'
-    return
-  }
-  if (!registerForm.value.name) {
-    errorMessage.value = '请输入姓名'
-    return
-  }
-  if (!registerForm.value.phone) {
-    errorMessage.value = '请输入手机号'
-    return
-  }
-  if (!registerForm.value.email) {
-    errorMessage.value = '请输入邮箱'
-    return
-  }
+  errorMsg.value = ''
+  if (!form.value.username) { errorMsg.value = '请输入账号'; return }
+  if (!form.value.password || form.value.password.length < 6) { errorMsg.value = '密码至少6位'; return }
+  if (!form.value.name) { errorMsg.value = '请输入姓名'; return }
+  if (!form.value.phone) { errorMsg.value = '请输入手机号'; return }
+  if (!form.value.email) { errorMsg.value = '请输入邮箱'; return }
 
-  if (selectedRole.value === 'teacher' && !registerForm.value.collegeId) {
-    errorMessage.value = '请选择学院'
-    return
-  }
-
-  if (selectedRole.value === 'counselor' && !registerForm.value.majorCode) {
-    errorMessage.value = '请输入专业编码'
-    return
-  }
-
+  loading.value = true
   try {
-    let response
+    const base = {
+      username: form.value.username,
+      password: form.value.password,
+      name: form.value.name,
+      phone: form.value.phone,
+      email: form.value.email
+    }
+
     if (selectedRole.value === 'student') {
-      response = await apiClient.registerStudent({
-        studentId: registerForm.value.username,
-        password: registerForm.value.password,
-        name: registerForm.value.name,
-        phone: registerForm.value.phone,
-        email: registerForm.value.email
+      await apiClient.registerStudent({
+        ...base,
+        studentId: form.value.username,
+        collegeId: form.value.collegeId,
+        majorId: form.value.majorId,
+        classId: form.value.classId
       })
     } else if (selectedRole.value === 'teacher') {
-      response = await apiClient.registerTeacher({
-        username: registerForm.value.username,
-        password: registerForm.value.password,
-        name: registerForm.value.name,
-        collegeId: registerForm.value.collegeId,
-        phone: registerForm.value.phone,
-        email: registerForm.value.email
+      await apiClient.registerTeacher({
+        ...base,
+        collegeId: form.value.collegeId,
+        title: form.value.titleIdx >= 0 ? ['助教','讲师','副教授','教授'][form.value.titleIdx] : ''
       })
     } else if (selectedRole.value === 'counselor') {
-      response = await apiClient.registerCounselor({
-        username: registerForm.value.username,
-        password: registerForm.value.password,
-        name: registerForm.value.name,
-        majorCode: registerForm.value.majorCode,
-        phone: registerForm.value.phone,
-        email: registerForm.value.email
+      await apiClient.registerCounselor({
+        ...base,
+        counselorId: form.value.username,
+        collegeId: form.value.collegeId
       })
     }
 
-    successMessage.value = '注册成功！'
-    errorMessage.value = ''
-
-    // 3秒后跳转到登录页
-    setTimeout(() => {
-      uni.navigateTo({ url: '/pages/auth/login' })
-    }, 3000)
+    successMsg.value = '注册成功，即将跳转登录页...'
+    errorMsg.value = ''
+    setTimeout(() => { uni.redirectTo({ url: '/pages/auth/login' }) }, 1500)
   } catch (error) {
-    console.error('注册失败:', error)
-    errorMessage.value = error.message || '注册失败，请重试'
-    successMessage.value = ''
+    errorMsg.value = error.message || '注册失败，请重试'
+  } finally {
+    loading.value = false
   }
 }
 
-onMounted(() => {
-  loadColleges()
-})
+const loadColleges = async () => {
+  try { const d = await apiClient.getColleges(); colleges.value = d || [] }
+  catch (e) { console.error('学院加载失败:', e) }
+}
+const loadMajors = async (collegeId) => {
+  try { const d = await apiClient.getMajorsByCollege(collegeId); majors.value = d || [] }
+  catch (e) { console.error('专业加载失败:', e) }
+}
+const loadClasses = async (collegeId) => {
+  try {
+    const d = await apiClient.getClasses(collegeId)
+    classes.value = d || []
+  } catch (e) { classes.value = [] }
+}
+
+onMounted(() => { loadColleges() })
 </script>
 
 <style scoped>
-.register-page {
+.page {
+  min-height: 100vh;
+  background: #3b5ce8;
+}
+
+.brand {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  height: 100vh;
-  width: 100%;
-  background-color: #f5f5f5;
+  padding: 80rpx 0 36rpx;
+}
+.logo { width: 72rpx; height: 72rpx; margin-bottom: 16rpx; }
+.brand-name { font-size: 30rpx; font-weight: 700; color: #fff; letter-spacing: 2rpx; }
+.brand-sub { font-size: 22rpx; color: rgba(255,255,255,0.55); margin-top: 6rpx; }
+
+.card {
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 36rpx 40rpx 48rpx;
 }
 
-.register-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-}
-
-.register-card {
-  background: #ffffff;
-  border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-  padding: 40rpx 50rpx;
-  width: 100%;
-  max-width: 480rpx;
-}
-
-.register-header {
-  text-align: center;
-  margin-bottom: 30rpx;
-}
-
-.logo-image {
-  width: 80rpx;
-  height: 80rpx;
-  margin-bottom: 16rpx;
-  border-radius: 12rpx;
-  background: white;
-  padding: 8rpx;
-  border: 1rpx solid #e0e0e0;
-}
-
-.register-title {
-  font-size: 24rpx;
-  color: #1A3D5C;
-  font-weight: 700;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.register-subtitle {
-  font-size: 18rpx;
-  color: #666;
-  font-weight: 400;
-}
-
+/* 角色标签 */
 .role-tabs {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 30rpx;
-  border-bottom: 1rpx solid #e0e0e0;
+  margin-bottom: 28rpx;
+  gap: 16rpx;
 }
-
 .role-tab {
   flex: 1;
   text-align: center;
-  padding: 16rpx 0;
-  font-size: 16rpx;
-  color: #666;
-  border-bottom: 2rpx solid transparent;
-  cursor: pointer;
+  padding: 18rpx 0;
+  font-size: 26rpx;
+  color: #86868b;
+  background: #f5f5f7;
+  border-radius: 12rpx;
 }
-
 .role-tab.active {
-  color: #4facfe;
-  border-bottom-color: #4facfe;
+  background: #3b5ce8;
+  color: #fff;
   font-weight: 600;
 }
 
-.form-group {
-  margin-bottom: 16rpx;
+/* 字段 */
+.field { margin-bottom: 20rpx; }
+.field-label { display: block; font-size: 24rpx; color: #86868b; margin-bottom: 8rpx; }
+.input {
+  width: 100%; height: 80rpx;
+  background: #f5f5f7; border-radius: 12rpx;
+  padding: 0 20rpx; font-size: 26rpx; color: #1d1d1f;
+  box-sizing: border-box;
 }
+.ph { color: #aeaeb2; }
 
-.register-input {
-  height: 44rpx;
-  padding: 0 20rpx;
-  border: 1.5rpx solid #E0E0E0;
-  border-radius: 12rpx;
-  font-size: 16rpx;
-  width: 100%;
-  background-color: #F9FAFB;
+.picker-box {
+  width: 100%; height: 80rpx;
+  background: #f5f5f7; border-radius: 12rpx;
+  padding: 0 20rpx; font-size: 26rpx; color: #1d1d1f;
+  display: flex; align-items: center; justify-content: space-between;
+  box-sizing: border-box;
 }
+.picker-box .placeholder { color: #aeaeb2; }
+.arrow { font-size: 28rpx; color: #aeaeb2; }
 
-.register-select {
-  height: 44rpx;
-  padding: 0 20rpx;
-  border: 1.5rpx solid #E0E0E0;
-  border-radius: 12rpx;
-  font-size: 16rpx;
-  width: 100%;
-  background-color: #F9FAFB;
+/* 按钮 */
+.btn {
+  width: 100%; height: 84rpx; line-height: 84rpx;
+  background: #3b5ce8; color: #fff;
+  border-radius: 12rpx; border: none;
+  font-size: 30rpx; font-weight: 600;
+  letter-spacing: 6rpx; margin-top: 28rpx;
 }
+.btn[disabled] { opacity: 0.5; }
 
-.register-btn {
-  width: 100%;
-  height: 44rpx;
-  font-size: 16rpx;
-  font-weight: 700;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border: none;
-  margin-top: 28rpx;
-  border-radius: 12rpx;
-  color: white;
-  box-shadow: 0 6rpx 20rpx rgba(79, 172, 254, 0.3);
-}
+/* 消息 */
+.msg { padding: 16rpx 20rpx; border-radius: 10rpx; margin-top: 16rpx; font-size: 24rpx; }
+.error-msg { background: #fef2f2; color: #ef4444; }
+.success-msg { background: #f0fdf4; color: #22c55e; }
 
+/* 底部链接 */
 .login-link {
-  text-align: center;
-  margin-top: 20rpx;
-  font-size: 14rpx;
-  color: #666;
+  text-align: center; margin-top: 24rpx; font-size: 24rpx; color: #86868b;
 }
-
-.link {
-  color: #4facfe;
-  text-decoration: none;
-  margin-left: 4rpx;
-}
-
-.error-message {
-  background-color: #FFEBEE;
-  border-left: 4rpx solid #FF5252;
-  color: #D32F2F;
-  padding: 12rpx;
-  border-radius: 8rpx;
-  margin-top: 20rpx;
-  font-size: 14rpx;
-}
-
-.success-message {
-  background-color: #E8F5E8;
-  border-left: 4rpx solid #4CAF50;
-  color: #2E7D32;
-  padding: 12rpx;
-  border-radius: 8rpx;
-  margin-top: 20rpx;
-  font-size: 14rpx;
-}
-
-.placeholder {
-  color: #999;
-}
+.link { color: #3b5ce8; font-weight: 500; }
 </style>

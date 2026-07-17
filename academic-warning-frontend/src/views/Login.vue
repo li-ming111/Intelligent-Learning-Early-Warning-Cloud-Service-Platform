@@ -1,438 +1,489 @@
 <template>
   <div class="login-page">
-    <div class="login-wrapper">
-      <div class="login-card">
-        <div class="login-header">
-          <img src="@/assets/xiaohui.jpg" alt="哈尔滨信息工程学院" class="logo-image">
-          <h1>学业预警系统</h1>
-          <p>智能学业预警与帮扶平台</p>
+    <!-- 左侧：品牌展示 + 轨道环绕 + 粒子波纹 -->
+    <div class="login-left">
+      <!-- 左上角：校名 -->
+      <div class="ll-school-name">哈尔滨信息工程学院</div>
+
+      <!-- 浮空粒子 -->
+      <div class="ll-particles">
+        <span v-for="n in 10" :key="'p'+n" class="ll-particle"
+          :style="{
+            left: (Math.sin(n*2.7)*42 + 50) + '%',
+            top: (Math.cos(n*2.3)*42 + 50) + '%',
+            '--pd': (2.5 + n*0.2) + 's',
+            '--pdd': n*0.4 + 's',
+          }" />
+      </div>
+
+      <!-- 中心品牌内容 -->
+      <div class="ll-content">
+        <div class="ll-center-group">
+          <!-- 轨道环线 + 环绕图标 -->
+          <div class="ll-orbit-container">
+            <!-- 轨道1内圈：r=130px，3图标，顺时针8s -->
+            <svg class="ll-orbit-track" viewBox="0 0 260 260" style="width:260px;height:260px">
+              <circle cx="130" cy="130" r="120" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="8 6"/>
+            </svg>
+            <div class="ll-orbit-ring ring1">
+              <span class="ll-orbit-icon" style="--orbit-delay:0s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">📚</text></svg></span>
+              <span class="ll-orbit-icon" style="--orbit-delay:-2.7s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">🎓</text></svg></span>
+              <span class="ll-orbit-icon" style="--orbit-delay:-5.3s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">📊</text></svg></span>
+            </div>
+
+            <!-- 轨道2中圈：r=200px，4图标，逆时针12s -->
+            <svg class="ll-orbit-track" viewBox="0 0 420 420" style="width:420px;height:420px">
+              <circle cx="210" cy="210" r="198" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="14 10"/>
+            </svg>
+            <div class="ll-orbit-ring ring2">
+              <span class="ll-orbit-icon" style="--orbit-delay:-2s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">🤖</text></svg></span>
+              <span class="ll-orbit-icon" style="--orbit-delay:-5s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">🔔</text></svg></span>
+              <span class="ll-orbit-icon" style="--orbit-delay:-8s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">📋</text></svg></span>
+              <span class="ll-orbit-icon" style="--orbit-delay:-11s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">💡</text></svg></span>
+            </div>
+
+            <!-- 轨道3外圈：r=280px，5图标，顺时针16s -->
+            <svg class="ll-orbit-track" viewBox="0 0 580 580" style="width:580px;height:580px">
+              <circle cx="290" cy="290" r="278" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+            </svg>
+            <div class="ll-orbit-ring ring3">
+              <span class="ll-orbit-icon" style="--orbit-delay:0s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">🏫</text></svg></span>
+              <span class="ll-orbit-icon" style="--orbit-delay:-3.2s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">⭐</text></svg></span>
+              <span class="ll-orbit-icon" style="--orbit-delay:-6.4s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">📝</text></svg></span>
+              <span class="ll-orbit-icon" style="--orbit-delay:-9.6s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">🔬</text></svg></span>
+              <span class="ll-orbit-icon" style="--orbit-delay:-12.8s"><svg viewBox="0 0 40 40"><text x="20" y="28" text-anchor="middle" font-size="26">🎯</text></svg></span>
+            </div>
+          </div>
+
+          <!-- 波纹从校徽中心发散 -->
+          <svg class="ll-ripple-bg" viewBox="0 0 800 800">
+            <circle cx="400" cy="400" r="50" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1"><animate attributeName="r" values="50;380" dur="6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0" dur="6s" repeatCount="indefinite"/></circle>
+            <circle cx="400" cy="400" r="50" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"><animate attributeName="r" values="50;380" dur="6s" begin="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="6s" begin="2s" repeatCount="indefinite"/></circle>
+            <circle cx="400" cy="400" r="50" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"><animate attributeName="r" values="50;380" dur="6s" begin="4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0" dur="6s" begin="4s" repeatCount="indefinite"/></circle>
+          </svg>
+          <!-- 白底校徽 -->
+          <div class="ll-logo-wrap">
+            <img src="@/assets/logo.png" alt="校徽" class="ll-logo">
+          </div>
+        </div>
+        <h1 class="ll-title">智能学习预警服务系统</h1>
+        <div class="ll-tags">
+          <span>学业预警</span><span>成绩分析</span><span>帮扶计划</span><span>智能推荐</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：登录表单 -->
+    <div class="login-right">
+      <div class="lr-card">
+        <div class="lr-header">
+          <img src="@/assets/logo.png" alt="校徽" class="lr-mobile-logo">
+          <h1>欢迎回来</h1>
+          <p>请登录您的账户</p>
         </div>
 
-        <el-form :model="loginForm" @submit.prevent="handleLogin" label-width="0px">
-          <el-form-item>
-            <el-input 
-              v-model="loginForm.username" 
-              placeholder="学号或工号"
-              clearable
-              class="login-input"
-            >
-              <template #prefix>
-                <el-icon><User /></el-icon>
-              </template>
+        <form @submit.prevent="handleLogin">
+          <div class="lr-field">
+            <label>学号/工号</label>
+            <el-input v-model="loginForm.username" placeholder="请输入学号或工号"
+              clearable size="large">
+              <template #prefix><el-icon><User /></el-icon></template>
             </el-input>
-          </el-form-item>
-          
-          <el-form-item>
-            <el-input 
-              v-model="loginForm.password" 
-              type="password" 
-              placeholder="密码"
-              clearable
-              class="login-input"
-              @keyup.enter="handleLogin"
-            >
-              <template #prefix>
-                <el-icon><Lock /></el-icon>
-              </template>
-            </el-input>
-          </el-form-item>
+          </div>
 
-          <el-form-item>
-            <div class="captcha-row">
-              <el-input 
-                v-model="loginForm.captcha" 
-                placeholder="验证码"
-                clearable
-                class="login-input captcha-input"
-              >
-                <template #prefix>
-                  <el-icon><CircleCheck /></el-icon>
-                </template>
+          <div class="lr-field">
+            <label>密码</label>
+            <div class="lr-pwd-wrap">
+              <el-input v-model="loginForm.password"
+                :type="showPwd ? 'text' : 'password'"
+                placeholder="请输入密码" size="large"
+                @keyup.enter="handleLogin" autocomplete="current-password">
+                <template #prefix><el-icon><Lock /></el-icon></template>
               </el-input>
-              <button type="button" @click="generateCaptcha" class="captcha-btn">
+              <button type="button" class="lr-pwd-toggle" @click="showPwd = !showPwd">
+                <el-icon><component :is="showPwd ? View : Hide" /></el-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="lr-field">
+            <label>验证码</label>
+            <div class="lr-captcha-row">
+              <el-input v-model="loginForm.captcha" placeholder="验证码" clearable size="large">
+                <template #prefix><el-icon><CircleCheck /></el-icon></template>
+              </el-input>
+              <button type="button" class="lr-captcha-btn" @click="refreshCaptcha">
                 {{ captchaCode }}
               </button>
             </div>
-          </el-form-item>
+          </div>
 
-          <el-button @click="handleLogin" type="primary" class="login-btn">登录</el-button>
-        </el-form>
+          <div class="lr-extra">
+            <el-checkbox v-model="rememberMe">记住我30天</el-checkbox>
+          </div>
 
-        <div class="login-links">
-          <span>快速注册：</span>
-          <router-link to="/register" class="link">学生</router-link>
-          <router-link to="/teacher-register" class="link">教师</router-link>
-          <router-link to="/counselor-register" class="link">辅导员</router-link>
+          <el-alert v-if="errorMessage" :title="errorMessage" type="error"
+            closable @close="errorMessage = ''" style="margin-bottom:16px" />
+
+          <el-button type="primary" native-type="submit" class="lr-submit" :loading="loading" size="large">
+            {{ loading ? '登录中...' : '登 录' }}
+          </el-button>
+        </form>
+
+        <div class="lr-register">
+          还没有账户？快速注册：
+          <router-link to="/register">学生</router-link>
+          <router-link to="/teacher-register">教师</router-link>
+          <router-link to="/counselor-register">辅导员</router-link>
         </div>
-
-        <el-alert 
-          v-if="errorMessage"
-          :title="errorMessage" 
-          type="error"
-          closable
-          @close="errorMessage = ''"
-          style="margin-top: 20px;">
-        </el-alert>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { authAPI } from '../api'
+import { authAPI } from '@/api/index'
 import { ElMessage } from 'element-plus'
-import { User, Lock, CircleCheck } from '@element-plus/icons-vue'
+import { User, Lock, CircleCheck, View, Hide } from '@element-plus/icons-vue'
 
 const router = useRouter()
-const loginForm = ref({
-  username: '',
-  password: '',
-  captcha: ''
-})
+const loginForm = ref({ username: '', password: '', captcha: '' })
 const loading = ref(false)
 const errorMessage = ref('')
 const captchaCode = ref('')
+const showPwd = ref(false)
+const rememberMe = ref(false)
 
-// 生成验证码
-const generateCaptcha = () => {
-  const code = Math.random().toString(36).substring(2, 8).toUpperCase()
-  captchaCode.value = code
+// 进入登录页时清理旧登录信息，避免缓存账号导致显示错误
+const clearLoginCache = () => {
+  const keys = ['token', 'user', 'userId', 'username', 'userName', 'name', 'role', 'email', 'phone', 'adminPreferences', 'pageSize']
+  keys.forEach(k => localStorage.removeItem(k))
 }
+clearLoginCache()
 
-// 初始化验证码
-const initCaptcha = () => {
-  generateCaptcha()
+const refreshCaptcha = () => {
+  captchaCode.value = Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
 const handleLogin = async () => {
-  // 验证输入
-  if (!loginForm.value.username) {
-    ElMessage.error('请输入学号或工号')
-    return
-  }
-  if (!loginForm.value.password) {
-    ElMessage.error('请输入密码')
-    return
-  }
-  if (!loginForm.value.captcha) {
-    ElMessage.error('请输入验证码')
-    return
-  }
-
-  // 验证验证码
-  // if (loginForm.value.captcha !== captchaCode.value) {
-  //   ElMessage.error('验证码错误')
-  //   generateCaptcha()
-  //   loginForm.value.captcha = ''
-  //   return
-  // }
-
-  console.log('登录信息:', { username: loginForm.value.username, password: loginForm.value.password })
-
+  errorMessage.value = ''
+  if (!loginForm.value.username) { ElMessage.error('请输入学号或工号'); return }
+  if (!loginForm.value.password) { ElMessage.error('请输入密码'); return }
+  if (!loginForm.value.captcha) { ElMessage.error('请输入验证码'); return }
   loading.value = true
   try {
-    const response = await authAPI.login(loginForm.value.username, loginForm.value.password)
-
-    if (response && response.token) {
-      // 保存token和用户信息
-      console.log('登录响应完整数据:', response)
-      console.log('响应中的 userId 类型:', typeof response.userId, '值:', response.userId)
-      localStorage.setItem('token', response.token)
-      localStorage.setItem('userId', response.userId)
-      localStorage.setItem('username', response.username)
-      localStorage.setItem('role', response.role)
-      // 保存用户姓名（name）
-      if (response.name) {
-        localStorage.setItem('userName', response.name)
-      } else {
-        // 如果后端没有返回 name，根据角色设置默认名称
-        const role = String(response.role)
-        if (role === '2' || role === 'teacher') {
-          localStorage.setItem('userName', '教师')
-        } else if (role === '1' || role === 'student') {
-          localStorage.setItem('userName', '学生')
-        } else if (role === '3' || role === 'admin') {
-          localStorage.setItem('userName', '管理员')
-        } else if (role === '4' || role === 'counselor') {
-          localStorage.setItem('userName', '辅导员')
-        } else {
-          localStorage.setItem('userName', response.username || '用户')
-        }
+    const res = await authAPI.login(loginForm.value.username, loginForm.value.password)
+    const apiData = res.data
+    if (apiData.code !== 200) { errorMessage.value = apiData.message || '登录失败'; loading.value = false; return }
+    const d = apiData.data
+    if (d && d.token) {
+      localStorage.setItem('token', d.token)
+      localStorage.setItem('userId', d.userId)
+      localStorage.setItem('username', d.username)
+      localStorage.setItem('name', d.name || d.username)
+      localStorage.setItem('role', d.role)
+      localStorage.setItem('email', d.email || '')
+      localStorage.setItem('phone', d.phone || '')
+      if (rememberMe.value) {
+        localStorage.setItem('rememberMe', 'true')
       }
-      console.log('登录成功，响应数据:', response)
-      // 保存学号
-      const role = String(response.role)
-      console.log('登录角色:', role, '响应中的 studentId:', response.studentId, 'username:', response.username)
-      if (role === '1' || role === 'student') {
-        // 学生：username 就是学号
-        localStorage.setItem('studentId', response.username)
-      } else if (response.studentId) {
-        // 非学生：执行其他角色的 studentId
-        localStorage.setItem('studentId', response.studentId)
-      }
-      if (response.teacherId) localStorage.setItem('teacherId', response.teacherId)
-      if (response.counselorId) localStorage.setItem('counselorId', response.counselorId)
-      if (response.adminId) localStorage.setItem('adminId', response.adminId)
-      ElMessage.success('登录成功')
-      
-      // 根据用户角色跳转（角色值：1=学生, 2=教师, 3=管理员, 4=辅导员）
-      console.log('登录成功，role:', role, 'type:', typeof role)
-      if (role === '1' || role === 'student') {
-        router.push('/dashboard')
-      } else if (role === '2' || role === 'teacher') {
-        router.push('/teacher/dashboard')
-      } else if (role === '4' || role === 'counselor') {
-        router.push('/counselor-dashboard')
-      } else if (role === '3' || role === 'admin') {
-        router.push('/admin/dashboard')
-      } else {
-        // 不明角色，水平不跳转，提示错誤
-        ElMessage.warning('未能识别用户角色，请联系管理员')
-        return
-      }
-    } else {
-      errorMessage.value = response?.message || '登录失败'
+      const role = String(d.role)
+      if (role === '4' || role === 'admin') router.push('/admin/dashboard')
+      else if (role === '2' || role === 'teacher') router.push('/teacher/dashboard')
+      else if (role === '3' || role === 'counselor') router.push('/counselor/dashboard')
+      else if (role === '5' || role === 'college_admin') router.push('/college-admin/dashboard')
+      else router.push('/student/dashboard')
     }
-  } catch (error) {
-    console.error('登录错误:', error)
-    // 获取真实的错误信息
-    const errorMsg = error.response?.data?.message || error.message || '登录失败，请重试'
-    errorMessage.value = errorMsg
-    generateCaptcha()
-    loginForm.value.captcha = ''
-  } finally {
     loading.value = false
+  } catch (e) {
+    loading.value = false
+    errorMessage.value = e?.message || '网络连接失败，请稍后重试'
   }
 }
 
-onMounted(() => {
-  // 清除可能残留的过旧 token
-  localStorage.removeItem('token')
-  localStorage.removeItem('userId')
-  localStorage.removeItem('username')
-  localStorage.removeItem('role')
-  localStorage.removeItem('studentId')
-  localStorage.removeItem('teacherId')
-  localStorage.removeItem('counselorId')
-  localStorage.removeItem('adminId')
-  initCaptcha()
-})
+refreshCaptcha()
 </script>
 
 <style scoped>
 .login-page {
   display: flex;
-  justify-content: center;
-  align-items: center;
   height: 100vh;
-  width: 100%;
-  background: url('../assets/bj.jpg') center/cover no-repeat;
-  position: relative;
+  width: 100vw;
   overflow: hidden;
 }
 
-.login-page::before {
-  content: '';
+/* ========== 左侧 ========== */
+.login-left {
+  flex: 1;
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 40%, #3b82f6 70%, #60a5fa 100%);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* 左上角校名 */
+.ll-school-name {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.2);
+  top: 24px;
+  left: 28px;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  letter-spacing: 1px;
+  z-index: 20;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* SVG 波纹扩散 - 与校徽共享中心点 */
+.ll-center-group {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  margin: 0 auto 24px;
+}
+.ll-ripple-bg {
+  position: absolute;
+  inset: auto;
+  width: 800px; height: 800px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
   z-index: 0;
 }
 
-.login-wrapper {
+/* 轨道容器 - 与校徽共享中心点 */
+.ll-orbit-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 600px;
+  height: 600px;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* SVG 轨道虚线环 */
+.ll-orbit-track {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  width: 1px; height: 1px;
+  overflow: visible;
+}
+
+/* 轨道旋转环 */
+.ll-orbit-ring {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+}
+
+.ring1 { animation: orbit-spin 8s linear infinite; }
+.ring2 { animation: orbit-spin 12s linear infinite reverse; }
+.ring3 { animation: orbit-spin 16s linear infinite; }
+
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 轨道图标 */
+.ll-orbit-icon {
+  position: absolute;
+  width: 40px; height: 40px;
+  left: -20px;
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.25);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.ll-orbit-icon svg {
+  width: 40px; height: 40px;
+  display: block;
+}
+
+.ring1 .ll-orbit-icon { top: -130px; animation: icon-counter 8s linear infinite; }
+.ring2 .ll-orbit-icon { top: -200px; animation: icon-counter 12s linear infinite; }
+.ring3 .ll-orbit-icon { top: -280px; animation: icon-counter 16s linear infinite; }
+
+.ll-orbit-icon { animation-delay: var(--orbit-delay, 0s); }
+
+@keyframes icon-counter {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+/* 浮空粒子 */
+.ll-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.ll-particle {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.7);
+  animation: particle-float var(--pd, 2s) ease-in-out infinite;
+  animation-delay: var(--pdd, 0s);
+}
+@keyframes particle-float {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.15; }
+  50% { transform: translateY(-16px) scale(2.5); opacity: 0.9; }
+}
+
+/* 品牌内容 */
+.ll-content {
   position: relative;
   z-index: 10;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-}
-
-.login-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  padding: 60px 50px;
-  width: 100%;
-  max-width: 480px;
-  animation: slideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(50px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.login-header {
   text-align: center;
-  margin-bottom: 40px;
+  color: #fff;
+  padding: 30px 50px;
+  border-radius: 24px;
 }
-
-.logo-image {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 16px;
-  display: inline-block;
-  animation: bounce 2s ease-in-out infinite;
-  border-radius: 12px;
-  background: white;
-  padding: 8px;
-  border: 1px solid #e0e0e0;
+.ll-logo-wrap {
+  position: relative;
+  z-index: 1;
+  width: 130px;
+  height: 130px;
+  background: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
 }
-
-.login-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 28px;
-  color: #1A3D5C;
-  font-weight: 700;
-  letter-spacing: 1px;
+.ll-logo {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: contain;
+  padding: 6px;
 }
-
-.login-header p {
-  margin: 0;
-  font-size: 14px;
-  color: #666;
-  font-weight: 400;
+.ll-title {
+  font-size: 28px; font-weight: 700;
+  margin: 0 0 8px; letter-spacing: 2px;
 }
-
-.login-input {
-  height: 44px;
-  margin-bottom: 12px;
+.ll-sub {
+  font-size: 16px; opacity: 0.8;
+  margin: 0 0 20px;
 }
-
-.login-input :deep(.el-input__wrapper) {
-  background-color: #F9FAFB;
-  border: 1.5px solid #E0E0E0;
-  border-radius: 12px;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+.ll-tags {
+  display: flex; gap: 10px;
+  justify-content: center; flex-wrap: wrap;
 }
-
-.login-input :deep(.el-input__wrapper:hover) {
-  border-color: #4facfe;
-  background-color: #E6F7FF;
-  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.1);
+.ll-tags span {
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  padding: 6px 16px; border-radius: 20px;
+  font-size: 13px;
+  border: 1px solid rgba(255,255,255,0.2);
+  transition: all 0.3s;
 }
-
-.login-input :deep(.el-input__wrapper:focus-within) {
-  border-color: #4facfe;
-  background-color: #FFFFFF;
-  box-shadow: 0 8px 20px rgba(79, 172, 254, 0.2);
+.ll-tags span:hover {
+  background: rgba(255,255,255,0.28);
   transform: translateY(-2px);
 }
 
-.captcha-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.captcha-input {
+/* ========== 右侧 ========== */
+.login-right {
   flex: 1;
-}
-
-.captcha-btn {
-  width: 110px;
-  height: 44px;
-  border: 1.5px solid #E0E0E0;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  display: flex;
-  align-items: center;
+  display: flex; align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: #fff;
 }
-
-.captcha-btn:hover {
-  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(79, 172, 254, 0.3);
+.lr-card {
+  width: 100%; max-width: 460px;
+  padding: 40px 60px;
 }
-
-.login-btn {
-  width: 100%;
-  height: 44px;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  border: none;
-  margin-top: 28px;
+.lr-header { text-align: center; margin-bottom: 32px; }
+.lr-mobile-logo {
+  width: 48px; height: 48px;
   border-radius: 12px;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.3);
+  object-fit: contain;
+  background: #eff6ff;
+  padding: 6px; margin-bottom: 12px;
+  display: none;
+}
+.lr-header h1 {
+  margin: 0 0 6px;
+  font-size: 26px; font-weight: 700;
+  color: #1e293b;
+}
+.lr-header p {
+  margin: 0; font-size: 14px;
+  color: #94a3b8;
 }
 
-.login-btn:hover {
-  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-  box-shadow: 0 10px 28px rgba(79, 172, 254, 0.4);
-  transform: translateY(-3px);
+.lr-field { margin-bottom: 18px; }
+.lr-field label {
+  display: block; font-size: 13px;
+  font-weight: 600; color: #334155;
+  margin-bottom: 6px;
 }
-
-.login-links {
-  text-align: center;
-  margin-top: 30px;
-  font-size: 14px;
-  color: #4facfe;
-  animation: fadeInUp 0.8s ease-out 0.2s both;
+.lr-pwd-wrap { position: relative; }
+.lr-pwd-toggle {
+  position: absolute; right: 8px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: #94a3b8; cursor: pointer;
+  z-index: 1; padding: 4px;
 }
-
-.link {
-  color: #4facfe;
-  text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  margin: 0 6px;
-  position: relative;
-  padding-bottom: 2px;
+.lr-captcha-row { display: flex; gap: 10px; }
+.lr-captcha-row .el-input { flex: 1; }
+.lr-captcha-btn {
+  width: 100px; height: 40px;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border: 1px solid #bfdbfe; border-radius: 8px;
+  font-size: 16px; font-weight: 700;
+  letter-spacing: 3px; color: #2563eb;
+  cursor: pointer; font-family: monospace;
+  flex-shrink: 0;
 }
-
-.link::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: #4facfe;
-  transition: width 0.3s ease;
+.lr-extra { margin-bottom: 16px; }
+.lr-submit {
+  width: 100%; height: 44px;
+  font-size: 16px; font-weight: 700;
+  letter-spacing: 2px; border-radius: 10px;
+  margin-top: 4px;
+  background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+  border: none !important;
 }
-
-.link:hover::after {
-  width: 100%;
+.lr-submit:hover {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
 }
-
-.link:hover {
-  color: #764BA2;
-  transform: scale(1.05);
+.lr-register {
+  text-align: center; margin-top: 24px;
+  font-size: 13px; color: #94a3b8;
 }
-
-/* 错误提示优化 */
-.el-alert {
-  background-color: #FFEBEE;
-  border-color: #FFCDD2;
-  color: #D32F2F;
+.lr-register a {
+  color: #2563eb; text-decoration: none;
+  margin-left: 6px; font-weight: 500;
 }
+.lr-register a:hover { color: #1d4ed8; }
 
-.el-alert__title {
-  font-weight: 600;
+/* ========== 响应式 ========== */
+@media (max-width: 900px) {
+  .login-left { display: none; }
+  .login-right { flex: unset; width: 100%; }
+  .lr-mobile-logo { display: inline-block; }
+}
+@media (max-width: 480px) {
+  .lr-card { padding: 0 24px; }
 }
 </style>

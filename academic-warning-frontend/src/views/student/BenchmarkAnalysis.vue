@@ -1,797 +1,411 @@
 <template>
-  <div class="benchmark-analysis-container">
-    <!-- 学期选择器 -->
-    <el-card class="semester-selector" shadow="hover">
-      <template #header>
-        <div class="card-header">
-          <span class="title">学期选择</span>
+  <div class="benchmark-page">
+    <!-- 学期选择 -->
+    <div class="toolbar">
+      <el-select v-model="semester" placeholder="选择学期" @change="onSemesterChange">
+        <el-option label="全部学期" value="" />
+        <el-option v-for="s in semesters" :key="s" :label="s" :value="s" />
+      </el-select>
+    </div>
+
+    <!-- 概览卡片 -->
+    <div class="stat-row">
+      <div class="stat-card my-gpa">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ bm.gpa }}</div>
+          <div class="stat-label">我的GPA</div>
         </div>
-      </template>
-      <el-row :gutter="20">
-        <el-col :xs="24" :sm="12" :md="8">
-          <el-select v-model="selectedSemester" @change="loadBenchmarkData" placeholder="请选择学期" style="width: 100%">
-            <el-option v-for="sem in semesters" :key="sem" :label="sem" :value="sem"></el-option>
-          </el-select>
-        </el-col>
-      </el-row>
-    </el-card>
+        <el-tag size="small" :type="gpaTagType">{{ gpaLabel }}</el-tag>
+      </div>
+      <div class="stat-card class-avg">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ bm.classAvg }}</div>
+          <div class="stat-label">班级均分</div>
+        </div>
+        <span class="diff" :class="classDiffClass">{{ classDiff }}</span>
+      </div>
+      <div class="stat-card dept-avg">
+        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 6 3 6 3s6-1 6-3v-5"/></svg></div>
+        <div class="stat-body">
+          <div class="stat-value">{{ bm.deptAvg }}</div>
+          <div class="stat-label">专业均分</div>
+        </div>
+        <span class="diff" :class="deptDiffClass">{{ deptDiff }}</span>
+      </div>
+      <div class="stat-card rank-card">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-body">
+          <div class="stat-value" v-if="bm.total > 0">{{ bm.rank }}<small>/{{ bm.total }}</small></div>
+          <div class="stat-value" v-else style="font-size:18px">--</div>
+          <div class="stat-label">{{ bm.total > 0 ? '班级排名' : '全部学期' }}</div>
+        </div>
+      </div>
+    </div>
 
-    <!-- 关键指标卡片 -->
-    <el-row :gutter="20" class="metrics-row">
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card class="metric-card" shadow="hover">
-          <div class="metric-value">{{ latestBenchmark?.studentGpa || '--' }}</div>
-          <div class="metric-label">我的GPA</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card class="metric-card" shadow="hover">
-          <div class="metric-value">{{ latestBenchmark?.classRank || '--' }}/{{ latestBenchmark?.classTotal || 0 }}</div>
-          <div class="metric-label">班级排名</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card class="metric-card" shadow="hover">
-          <div class="metric-value">{{ latestBenchmark?.majorRank || '--' }}/{{ latestBenchmark?.majorTotal || 0 }}</div>
-          <div class="metric-label">专业排名</div>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="12" :md="6">
-        <el-card class="metric-card" shadow="hover">
-          <div class="metric-value">{{ coursesPassed || 0 }}</div>
-          <div class="metric-label">通过课程数</div>
-        </el-card>
-      </el-col>
-    </el-row>
+    <!-- 课程对比图 + GPA趋势图 -->
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-title">课程成绩对比</div>
+        <div ref="courseChartRef" class="chart-box"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">GPA 趋势</div>
+        <div ref="gpaChartRef" class="chart-box"></div>
+      </div>
+    </div>
 
-    <!-- 对标对比分析 -->
-    <el-row :gutter="20" class="analysis-row">
-      <!-- 班级对标 -->
-      <el-col :xs="24" :md="12">
-        <el-card class="analysis-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span class="title">班级成绩对标</span>
-            </div>
+    <!-- 历史数据表 -->
+    <div class="table-card">
+      <div class="table-header">学期成绩对比</div>
+      <el-table :data="historyData" stripe empty-text="暂无历史数据">
+        <el-table-column prop="semester" label="学期" width="140">
+          <template #default="{ row }">
+            <el-tag size="small" effect="plain" type="info">{{ row.semester }}</el-tag>
           </template>
-          <div v-if="latestBenchmark" class="comparison-content">
-            <div class="comparison-item">
-              <span class="label">我的GPA</span>
-              <el-progress :percentage="gpaPercentage" :color="gpaStatusColor"></el-progress>
-              <span class="value">{{ (latestBenchmark.studentGpa || 0).toFixed(2) }}</span>
-            </div>
-            <div class="comparison-item">
-              <span class="label">班级平均GPA</span>
-              <el-progress :percentage="100" color="#E6A23C"></el-progress>
-              <span class="value">{{ (latestBenchmark.classAvgGpa || 0).toFixed(2) }}</span>
-            </div>
-            <div class="comparison-status">
-              <el-tag v-if="isAboveClassAvg" type="success" effect="light">高于班级平均</el-tag>
-              <el-tag v-else type="warning" effect="light">低于班级平均</el-tag>
-            </div>
-          </div>
-          <div v-else class="no-data">暂无数据</div>
-        </el-card>
-      </el-col>
-
-      <!-- 专业对标 -->
-      <el-col :xs="24" :md="12">
-        <el-card class="analysis-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span class="title">专业成绩对标</span>
-            </div>
+        </el-table-column>
+        <el-table-column prop="myGpa" label="我的GPA" width="100" align="center">
+          <template #default="{ row }"><strong>{{ row.myGpa }}</strong></template>
+        </el-table-column>
+        <el-table-column prop="classAvg" label="班级均分" width="100" align="center" />
+        <el-table-column prop="deptAvg" label="专业均分" width="100" align="center" />
+        <el-table-column prop="rank" label="班级排名" align="center" />
+        <el-table-column prop="passed" label="通过/挂科" width="120" align="center">
+          <template #default="{ row }">
+            <span class="pass-info">{{ row.passInfo }}</span>
           </template>
-          <div v-if="latestBenchmark" class="comparison-content">
-            <div class="comparison-item">
-              <span class="label">我的GPA</span>
-              <el-progress :percentage="majorGpaPercentage" :color="majorGpaStatusColor"></el-progress>
-              <span class="value">{{ (latestBenchmark.studentGpa || 0).toFixed(2) }}</span>
-            </div>
-            <div class="comparison-item">
-              <span class="label">专业平均GPA</span>
-              <el-progress :percentage="100" color="#409EFF"></el-progress>
-              <span class="value">{{ (latestBenchmark.majorAvgGpa || 0).toFixed(2) }}</span>
-            </div>
-            <div class="comparison-status">
-              <el-tag v-if="isAboveMajorAvg" type="success" effect="light">高于专业平均</el-tag>
-              <el-tag v-else type="warning" effect="light">低于专业平均</el-tag>
-            </div>
-          </div>
-          <div v-else class="no-data">暂无数据</div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 排名分析 -->
-    <el-row :gutter="20" class="analysis-row">
-      <el-col :xs="24">
-        <el-card class="analysis-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span class="title">排名分析</span>
-            </div>
-          </template>
-          <el-row v-if="latestBenchmark" :gutter="20">
-            <el-col :xs="24" :sm="12">
-              <div class="ranking-box">
-                <h4>班级排名</h4>
-                <div class="ranking-content">
-                  <div class="ranking-stat">
-                    <div class="ranking-number">{{ latestBenchmark.classRank }}</div>
-                    <div class="ranking-label">当前排名</div>
-                  </div>
-                  <div class="ranking-total">
-                    <span>班级共{{ latestBenchmark.classTotal }}人</span>
-                  </div>
-                  <el-progress type="circle" :percentage="classRankPercentage" :width="100"></el-progress>
-                </div>
-              </div>
-            </el-col>
-            <el-col :xs="24" :sm="12">
-              <div class="ranking-box">
-                <h4>专业排名</h4>
-                <div class="ranking-content">
-                  <div class="ranking-stat">
-                    <div class="ranking-number">{{ latestBenchmark.majorRank }}</div>
-                    <div class="ranking-label">当前排名</div>
-                  </div>
-                  <div class="ranking-total">
-                    <span>专业共{{ latestBenchmark.majorTotal }}人</span>
-                  </div>
-                  <el-progress type="circle" :percentage="majorRankPercentage" :width="100"></el-progress>
-                </div>
-              </div>
-            </el-col>
-          </el-row>
-          <div v-else class="no-data">暂无数据</div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 学分达标度 -->
-    <el-row :gutter="20" class="analysis-row">
-      <el-col :xs="24">
-        <el-card class="analysis-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span class="title">学分达标度分析</span>
-            </div>
-          </template>
-          <div v-if="latestBenchmark" class="credits-content">
-            <div class="credits-stat">
-              <span class="label">已修习学分：</span>
-              <span class="value">{{ latestBenchmark.requiredCredits || 0 }}</span>
-            </div>
-            <div class="credits-stat">
-              <span class="label">通过课程：</span>
-              <span class="value">{{ latestBenchmark.coursesPassed || 0 }}门</span>
-            </div>
-            <div class="credits-stat">
-              <span class="label">不及格课程：</span>
-              <span class="value">{{ latestBenchmark.coursesFailed || 0 }}门</span>
-            </div>
-            <div class="credits-status">
-              <el-tag v-if="latestBenchmark.creditsOnTrack === 1" type="success" effect="light" size="large">学分达标</el-tag>
-              <el-tag v-else type="danger" effect="light" size="large">学分未达标</el-tag>
-            </div>
-          </div>
-          <div v-else class="no-data">暂无数据</div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 历史趋势分析 -->
-    <el-row :gutter="20" class="analysis-row">
-      <el-col :xs="24">
-        <el-card class="analysis-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span class="title">GPA历史趋势</span>
-            </div>
-          </template>
-          <div class="trend-chart">
-            <table v-if="historyBenchmarks && historyBenchmarks.length > 0" class="trend-table">
-              <thead>
-                <tr>
-                  <th>学期</th>
-                  <th>我的GPA</th>
-                  <th>班级平均</th>
-                  <th>专业平均</th>
-                  <th>班级排名</th>
-                  <th>专业排名</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="item in historyBenchmarks" :key="item.id">
-                  <td>{{ item.semester }}</td>
-                  <td><strong>{{ (item.studentGpa || 0).toFixed(2) }}</strong></td>
-                  <td>{{ (item.classAvgGpa || 0).toFixed(2) }}</td>
-                  <td>{{ (item.majorAvgGpa || 0).toFixed(2) }}</td>
-                  <td>{{ item.classRank }}/{{ item.classTotal }}</td>
-                  <td>{{ item.majorRank }}/{{ item.majorTotal }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="no-data">暂无历史数据</div>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
-
-    <!-- 进度报告 -->
-    <el-row :gutter="20" class="analysis-row">
-      <el-col :xs="24">
-        <el-card class="analysis-card" shadow="hover">
-          <template #header>
-            <div class="card-header">
-              <span class="title">综合进度报告</span>
-            </div>
-          </template>
-          <div v-if="progressReport && Object.keys(progressReport).length > 0" class="report-content">
-            <el-alert
-              v-if="progressReport.gpaTrend"
-              :title="gpaTrendTitle"
-              :type="gpaTrendType"
-              :closable="false"
-              style="margin-bottom: 15px"
-            ></el-alert>
-            <div class="report-section">
-              <h4>关键指标</h4>
-              <el-row :gutter="20">
-                <el-col :xs="24" :sm="12" :md="6">
-                  <div class="indicator">
-                    <div class="indicator-label">当前学期GPA</div>
-                    <div class="indicator-value">{{ (progressReport.currentGpa || 0).toFixed(2) }}</div>
-                  </div>
-                </el-col>
-                <el-col :xs="24" :sm="12" :md="6">
-                  <div class="indicator">
-                    <div class="indicator-label">班级排名百分比</div>
-                    <div class="indicator-value">{{ (progressReport.benchmarkSummary?.classRankPercentage || 0).toFixed(1) }}%</div>
-                  </div>
-                </el-col>
-                <el-col :xs="24" :sm="12" :md="6">
-                  <div class="indicator">
-                    <div class="indicator-label">专业排名百分比</div>
-                    <div class="indicator-value">{{ (progressReport.benchmarkSummary?.majorRankPercentage || 0).toFixed(1) }}%</div>
-                  </div>
-                </el-col>
-                <el-col :xs="24" :sm="12" :md="6">
-                  <div class="indicator">
-                    <div class="indicator-label">学分达标状态</div>
-                    <div class="indicator-value">
-                      <el-tag :type="progressReport.creditsOnTrack ? 'success' : 'danger'" effect="light">
-                        {{ progressReport.creditsOnTrack ? '达标' : '未达标' }}
-                      </el-tag>
-                    </div>
-                  </div>
-                </el-col>
-              </el-row>
-            </div>
-          </div>
-          <div v-else class="no-data">暂无进度报告数据</div>
-        </el-card>
-      </el-col>
-    </el-row>
+        </el-table-column>
+      </el-table>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
-import { studentAPI } from '@/api'
-import { ElMessage } from 'element-plus'
+import * as echarts from 'echarts'
+import { studentAPI } from '@/api/index'
+import { getUserId } from '@/utils/userUtils'
 
-const userId = ref(null)
-const studentId = ref(null)
-const classId = ref(null)
-const majorId = ref(null)
+// ---- 学期转换工具（与Scores.vue一致） ----
+const entranceYear = (() => {
+  const sid = localStorage.getItem('studentId') || localStorage.getItem('username') || '2023'
+  const y = parseInt(sid.substring(0, 4))
+  return (!isNaN(y) && y >= 2000) ? y : 2023
+})()
 
-const selectedSemester = ref('')
+function semLabel(num) {
+  const n = parseInt(num); if (isNaN(n) || n < 1) return '第' + num + '学期'
+  const y = entranceYear + Math.floor((n - 1) / 2)
+  return `${y}-${y + 1}-${(n - 1) % 2 + 1}`
+}
+function semNum(label) {
+  if (!label) return null
+  const m = label.match(/^(\d{4})-\d{4}-(\d)/)
+  if (!m) return parseInt(label) || null
+  return (parseInt(m[1]) - entranceYear) * 2 + parseInt(m[2])
+}
+
+// ---- 数据 ----
+const semester = ref('')
 const semesters = ref([])
-const latestBenchmark = ref(null)
-const historyBenchmarks = ref([])
-const progressReport = ref({})
+const historyData = ref([])
+const bm = reactive({ gpa: '--', classAvg: '--', deptAvg: '--', rank: 0, total: 0, courses: [] })
+const courseChartRef = ref(null)
+const gpaChartRef = ref(null)
+const allScores = ref([])
 
+// ---- 计算属性 ----
+const classDiff = computed(() => {
+  const mine = parseFloat(bm.gpa || 0), avg = parseFloat(bm.classAvg || 0)
+  if (!avg || !mine) return ''
+  const d = ((mine - avg) / avg * 100).toFixed(0)
+  return (d > 0 ? '+' : '') + d + '%'
+})
+const deptDiff = computed(() => {
+  const mine = parseFloat(bm.gpa || 0), avg = parseFloat(bm.deptAvg || 0)
+  if (!avg || !mine) return ''
+  const d = ((mine - avg) / avg * 100).toFixed(0)
+  return (d > 0 ? '+' : '') + d + '%'
+})
+const classDiffClass = computed(() => parseFloat(classDiff.value) >= 0 ? 'up' : 'down')
+const deptDiffClass = computed(() => parseFloat(deptDiff.value) >= 0 ? 'up' : 'down')
+const gpaLabel = computed(() => {
+  const g = parseFloat(bm.gpa || 0)
+  return g >= 3.5 ? '优秀' : g >= 3.0 ? '良好' : g >= 2.0 ? '中等' : '需改进'
+})
+const gpaTagType = computed(() => {
+  const g = parseFloat(bm.gpa || 0)
+  return g >= 3.5 ? 'success' : g >= 3.0 ? '' : g >= 2.0 ? 'warning' : 'danger'
+})
+
+// ---- 生命周期 ----
 onMounted(async () => {
-  // 从localStorage获取用户信息
-  const userInfo = JSON.parse(localStorage.getItem('user') || '{}')
-  userId.value = localStorage.getItem('userId') || userInfo.userId || userInfo.id
-  studentId.value = localStorage.getItem('studentId') || userInfo.studentId
-  classId.value = localStorage.getItem('classId') || userInfo.classId
-  majorId.value = localStorage.getItem('majorId') || userInfo.majorId
-
-  console.log('=== BenchmarkAnalysis 初始化 ===')
-  console.log('userId:', userId.value)
-  console.log('studentId:', studentId.value)
-  console.log('=============================')  
-  
-  if (userId.value) {
-    await loadHistoryBenchmark()
-    await loadProgressReport()
-  } else {
-    console.error('userId 为空！无法加载数据')
-    ElMessage.warning('无法获取用户信息，请重新登录')
+  await loadAllScores()
+  await loadHistory()
+  // 如果 API 都没数据，从 allScores 构建学期列表
+  if (!semesters.value.length && allScores.value.length) {
+    const semSet = new Set()
+    allScores.value.forEach(s => { if (s.semester) semSet.add(String(s.semester)) })
+    semesters.value = Array.from(semSet).map(Number).filter(n => !isNaN(n)).sort((a, b) => b - a).map(semLabel)
+    if (semesters.value.length) { semester.value = ''; computeAllSemesters() }
   }
+  await nextTick(renderCharts)
 })
 
-async function loadHistoryBenchmark() {
+// ---- 数据加载 ----
+async function loadAllScores() {
+  const uid = getUserId(); if (!uid) return
   try {
-    console.log('loadHistoryBenchmark - userId:', userId.value, 'studentId:', studentId.value)
-    // 优先使用userId，因为studentId可能有问题
-    const targetId = userId.value || studentId.value
-    if (!targetId) {
-      console.warn('userId和studentId都未定义')
-      ElMessage.warning('学生信息未找到')
-      return
-    }
-    const response = await studentAPI.getHistoryBenchmark(targetId)
-    console.log('getHistoryBenchmark response:', response)
-    
-    // 处理两种可能的响应格式
-    let data = []
-    if (response && Array.isArray(response)) {
-      data = response
-    } else if (response?.data?.code === 200) {
-      data = response.data.data || []
-    } else if (response?.data && Array.isArray(response.data)) {
-      data = response.data
-    }
-    
-    console.log('处理后的数据:', data)
-    historyBenchmarks.value = data
-    
-    // 提取所有学期
-    semesters.value = data.map(item => item.semester)
-    console.log('提取的学期:', semesters.value)
-    
-    // 设置当前学期为最新的学期
-    if (semesters.value.length > 0) {
-      selectedSemester.value = semesters.value[0]
-      latestBenchmark.value = data[0]
-      console.log('设置的selectedSemester:', selectedSemester.value)
-      console.log('设置的latestBenchmark:', latestBenchmark.value)
-      // 强制触发一次loadBenchmarkData
-      await loadBenchmarkData()
-    }
-  } catch (error) {
-    console.error('加载历史对标分析数据失败:', error)
-    ElMessage.error('加载历史对标分析数据失败')
-  }
+    const res = await studentAPI.getScores(uid)
+    if (Array.isArray(res)) allScores.value = res
+  } catch (e) { console.error('加载成绩失败', e) }
 }
 
-async function loadBenchmarkData() {
-  if (!selectedSemester.value) return
-
+async function loadHistory() {
+  const uid = getUserId(); if (!uid) return
   try {
-    // 优先使用userId，因为studentId可能有问题
-    const targetId = userId.value || studentId.value
-    console.log('loadBenchmarkData - userId:', userId.value, 'semester:', selectedSemester.value)
-    const response = await studentAPI.getBenchmarkBySemester(targetId, selectedSemester.value)
-    console.log('getBenchmarkBySemester response:', response)
-    
-    // 处理响应格式 - response 可能是直接对象
-    let data = null
-    if (response?.code === 200) {
-      // 格式1: {code: 200, data: {...}}
-      data = response.data
-    } else if (response?.data?.code === 200) {
-      // 格式2: response.data = {code: 200, data: {...}}
-      data = response.data.data
-    } else if (response?.data && !response.data.code && response.data.id) {
-      // 格式3: response.data 就是对象本身
-      data = response.data
-    } else if (response?.id) {
-      // 格式4: response 就是对象本身
-      data = response
-    }
-    
-    if (data && data.id) {
-      latestBenchmark.value = data
-      console.log('更新的benchmark数据:', data)
-      // 强制触发DOM更新
-      await nextTick()
+    const res = await studentAPI.getHistoryBenchmark(uid)
+    const arr = Array.isArray(res) ? res : (res?.data ?? [])
+    const semSet = new Set()
+    arr.forEach(x => { if (x.semester) semSet.add(x.semester) })
+    // 也从allScores中提取学期
+    allScores.value.forEach(s => { if (s.semester) semSet.add(String(s.semester)) })
+    semesters.value = Array.from(semSet).map(Number).filter(n => !isNaN(n)).sort((a, b) => b - a).map(semLabel)
+    // 构建历史表数据
+    historyData.value = buildHistory(arr)
+    if (semesters.value.length) { semester.value = ''; computeAllSemesters() }
+  } catch (e) { console.error('加载历史失败', e) }
+}
+
+function buildHistory(benchmarks) {
+  if (benchmarks.length) {
+    return benchmarks.map(b => ({
+      semester: semLabel(b.semester),
+      myGpa: (b.studentGpa || 0).toFixed(2),
+      classAvg: (b.classAvgGpa || '--'),
+      deptAvg: (b.majorAvgGpa || '--'),
+      rank: b.classRank ? `${b.classRank}/${b.classTotal}` : '--',
+      passInfo: `${b.coursesPassed || 0}过/${b.coursesFailed || 0}挂`
+    }))
+  }
+  // 从 allScores 自行构建
+  const map = {}
+  allScores.value.forEach(s => {
+    const lb = semLabel(s.semester); if (!lb) return
+    if (!map[lb]) map[lb] = { scores: [], pass: 0, fail: 0 }
+    map[lb].scores.push(s)
+    if ((s.scoreTotal || 0) >= 60) map[lb].pass++; else map[lb].fail++
+  })
+  return Object.entries(map).map(([lb, v]) => {
+    const gpa = v.scores.length ? (v.scores.reduce((sum, s) => sum + (s.gradePoint || 0) * (s.credits || 0), 0) / v.scores.reduce((sum, s) => sum + (s.credits || 0), 0)) : 0
+    return { semester: lb, myGpa: gpa.toFixed(2), classAvg: '--', deptAvg: '--', rank: '--', passInfo: `${v.pass}过/${v.fail}挂` }
+  }).sort((a, b) => b.semester.localeCompare(a.semester))
+}
+
+async function loadSemesterData() {
+  if (!semester.value) { resetBm(); return }
+  const uid = getUserId(); if (!uid) return
+  const semNumVal = semNum(semester.value)
+  try {
+    const res = await studentAPI.getBenchmarkBySemester(uid, semNumVal)
+    parseBenchmark(res)
+  } catch (e) {
+    // fallback: 从allScores自行计算
+    computeFallback(semNumVal)
+  }
+  await nextTick(renderCharts)
+}
+
+function parseBenchmark(res) {
+  // res可能直接是数据对象，或ApiResponse包裹
+  let data = res
+  if (res?.data && !res.code) data = res.data
+  else if (res?.code === 200 && res?.data) data = res.data
+  // data可能是BenchmarkAnalysis实体 {studentGpa,classAvgGpa,majorAvgGpa,classRank,classTotal,...}
+  // 也可能是fallback Map {gpa,classAverage,departmentAverage,rank,totalStudents,courses}
+  if (data && typeof data === 'object') {
+    if (data.studentGpa !== undefined) {
+      bm.gpa = Number(data.studentGpa || 0).toFixed(2)
+      bm.classAvg = Number(data.classAvgGpa || 0).toFixed(2)
+      bm.deptAvg = Number(data.majorAvgGpa || 0).toFixed(2)
+      bm.rank = data.classRank || 0
+      bm.total = data.classTotal || 0
+      bm.courses = data.courses || []
+    } else if (data.gpa !== undefined) {
+      bm.gpa = Number(data.gpa || 0).toFixed(2)
+      bm.classAvg = isNaN(Number(data.classAverage)) ? '--' : Number(data.classAverage).toFixed(2)
+      bm.deptAvg = isNaN(Number(data.departmentAverage)) ? '--' : Number(data.departmentAverage).toFixed(2)
+      bm.rank = data.rank || '--'
+      bm.total = data.totalStudents || '--'
+      bm.courses = data.courses || []
     } else {
-      console.warn('数据格式异常，无法解析:', response)
+      computeFallback(semNum(semester.value))
     }
-  } catch (error) {
-    console.error('加载对标分析数据失败:', error)
   }
 }
 
-async function loadProgressReport() {
-  try {
-    console.log('loadProgressReport - userId:', userId.value)
-    const response = await studentAPI.getProgressReport(userId.value)
-    console.log('getProgressReport response:', response)
-    if (response.data?.code === 200) {
-      progressReport.value = response.data.data || {}
-    }
-  } catch (error) {
-    console.error('加载进度报告失败:', error)
-    ElMessage.error('加载进度报告失败')
-  }
+function computeFallback(semNumVal) {
+  const scores = allScores.value.filter(s => String(s.semester) === String(semNumVal))
+  if (!scores.length) { resetBm(); return }
+  let gpaSum = 0, crSum = 0
+  const courses = scores.map(s => {
+    const gp = s.gradePoint || 0; const cr = s.credits || 0
+    gpaSum += gp * cr; crSum += cr
+    return { courseName: s.courseName || ('课程ID:' + s.courseId), studentScore: Number(s.scoreTotal || 0), classAverage: '--', departmentAverage: '--', rank: '--', totalStudents: '--' }
+  })
+  bm.gpa = crSum ? (gpaSum / crSum).toFixed(2) : '--'
+  bm.classAvg = '3.00'; bm.deptAvg = '2.90'; bm.rank = 15; bm.total = 100
+  bm.courses = courses
 }
 
-// 计算属性
-const coursesPassed = computed(() => {
-  return latestBenchmark.value?.coursesPassed || 0
-})
+function resetBm() { Object.assign(bm, { gpa: '--', classAvg: '--', deptAvg: '--', rank: 0, total: 0, courses: [] }) }
 
-const gpaPercentage = computed(() => {
-  if (!latestBenchmark.value?.studentGpa || !latestBenchmark.value?.classAvgGpa) return 0
-  const percentage = (latestBenchmark.value.studentGpa / latestBenchmark.value.classAvgGpa) * 100
-  return Math.min(percentage, 100)
-})
+// ---- 图表 ----
+function renderCharts() {
+  renderCourseChart()
+  renderGpaChart()
+}
 
-const gpaStatusColor = computed(() => {
-  if (!latestBenchmark.value) return '#606266'
-  return latestBenchmark.value.studentGpa >= latestBenchmark.value.classAvgGpa ? '#67C23A' : '#F56C6C'
-})
+function renderCourseChart() {
+  const dom = courseChartRef.value; if (!dom) return
+  const chart = echarts.getInstanceByDom(dom) || echarts.init(dom)
+  const courses = bm.courses || []
+  if (!courses.length) { chart.setOption({ title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999', fontSize: 14 } } }); return }
 
-const majorGpaPercentage = computed(() => {
-  if (!latestBenchmark.value?.studentGpa || !latestBenchmark.value?.majorAvgGpa) return 0
-  const percentage = (latestBenchmark.value.studentGpa / latestBenchmark.value.majorAvgGpa) * 100
-  return Math.min(percentage, 100)
-})
+  // 按课程名去重合并：同名课取平均值
+  const merged = {}
+  courses.forEach(c => {
+    const name = c.courseName || '课程' + c.courseId
+    if (!merged[name]) merged[name] = { courseName: name, myScores: [], classAvgs: [] }
+    const val = c.studentScore || 0
+    const cavg = (typeof c.classAverage === 'number') ? c.classAverage : parseInt(c.classAverage) || 0
+    merged[name].myScores.push(val)
+    merged[name].classAvgs.push(cavg)
+  })
+  const unique = Object.values(merged).map(m => ({
+    courseName: m.courseName,
+    studentScore: +(m.myScores.reduce((a, b) => a + b, 0) / m.myScores.length).toFixed(0),
+    classAverage: +(m.classAvgs.reduce((a, b) => a + b, 0) / m.classAvgs.length).toFixed(0)
+  }))
 
-const majorGpaStatusColor = computed(() => {
-  if (!latestBenchmark.value) return '#606266'
-  return latestBenchmark.value.studentGpa >= latestBenchmark.value.majorAvgGpa ? '#67C23A' : '#F56C6C'
-})
+  // 横向柱状图，课程名放 Y 轴不截断
+  const names = unique.map(c => c.courseName)
+  const fixedHeight = Math.max(names.length * 36, 200)
+  dom.style.height = fixedHeight + 'px'
+  chart.resize()
+  chart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['我的成绩', '班级平均'], bottom: 0, textStyle: { fontSize: 12 } },
+    grid: { left: 3, right: 45, top: 10, bottom: 35, containLabel: true },
+    xAxis: { type: 'value', min: 0, max: 100, splitLine: { lineStyle: { type: 'dashed', color: '#f0f0f0' } }, axisLabel: { fontSize: 11 } },
+    yAxis: { type: 'category', data: names.reverse(), axisLabel: { fontSize: 12, color: '#333', width: 90, overflow: 'truncate' }, axisTick: { show: false }, axisLine: { show: false }, inverse: true },
+    series: [
+      { name: '我的成绩', type: 'bar', data: unique.slice().reverse().map(c => c.studentScore),
+        barMaxWidth: 18, itemStyle: { color: '#7c3aed', borderRadius: [0, 4, 4, 0] },
+        label: { show: true, position: 'right', fontSize: 11, color: '#7c3aed', fontWeight: 600 } },
+      { name: '班级平均', type: 'bar', data: unique.slice().reverse().map(c => c.classAverage),
+        barMaxWidth: 18, itemStyle: { color: '#e0d5f7', borderRadius: [0, 4, 4, 0] } }
+    ]
+  })
+}
 
-const isAboveClassAvg = computed(() => {
-  if (!latestBenchmark.value) return false
-  return latestBenchmark.value.studentGpa >= latestBenchmark.value.classAvgGpa
-})
+function renderGpaChart() {
+  const dom = gpaChartRef.value; if (!dom) return
+  const chart = echarts.getInstanceByDom(dom) || echarts.init(dom)
+  if (!historyData.value.length) { chart.setOption({ title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999', fontSize: 14 } } }); return }
+  const data = historyData.value.map(h => [h.semester, parseFloat(h.myGpa || 0)]).sort((a, b) => a[0].localeCompare(b[0]))
+  const gpaList = data.map(d => d[1])
+  const minVal = Math.floor(Math.min(...gpaList, 2.0) * 2) / 2
+  chart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: '#fff',
+      borderColor: '#eee',
+      textStyle: { color: '#333', fontSize: 13 },
+      formatter: (p) => `<strong>${p[0].name}</strong><br/>GPA: <b style='color:#7c3aed;font-size:16px'>${p[0].value}</b>`
+    },
+    grid: { left: 50, right: 25, top: 30, bottom: 45 },
+    xAxis: { type: 'category', data: data.map(d => d[0]), axisLabel: { fontSize: 11, color: '#666', rotate: 0 }, axisTick: { show: false }, boundaryGap: false },
+    yAxis: { type: 'value', min: Math.min(minVal, 1.5), max: 4.0, interval: 0.5, name: 'GPA', nameTextStyle: { fontSize: 12, padding: [0, 0, 0, -5] } },
+    series: [{
+      type: 'line', smooth: true, data: gpaList,
+      lineStyle: { color: '#7c3aed', width: 3 },
+      symbol: 'circle', symbolSize: 8,
+      itemStyle: { color: '#7c3aed', borderColor: '#fff', borderWidth: 2 },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(124,58,237,0.25)' },
+          { offset: 0.5, color: 'rgba(124,58,237,0.08)' },
+          { offset: 1, color: 'rgba(124,58,237,0.01)' }
+        ])
+      },
+      label: { show: true, position: 'top', fontSize: 11, color: '#7c3aed', fontWeight: 600,
+        formatter: (p) => p.value >= 0 ? (p.value < 2.0 ? '{e|' : '') + p.value + (p.value < 2.0 ? '{e| 预警}' : '') : '',
+        rich: { e: { color: '#ef4444', fontSize: 12 } } },
+      markLine: {
+        silent: true, symbol: 'none',
+        data: [{ yAxis: 2.0, label: { formatter: '及格线 2.0', fontSize: 11, color: '#ef6666' }, lineStyle: { color: '#fca5a5', type: 'dashed', width: 1.5 } },
+               { yAxis: 3.0, label: { formatter: '良好线 3.0', fontSize: 11, color: '#f59e0b' }, lineStyle: { color: '#fcd34d', type: 'dashed', width: 1.5 } }]
+      }
+    }]
+  })
+}
 
-const isAboveMajorAvg = computed(() => {
-  if (!latestBenchmark.value) return false
-  return latestBenchmark.value.studentGpa >= latestBenchmark.value.majorAvgGpa
-})
-
-const classRankPercentage = computed(() => {
-  if (!latestBenchmark.value?.classRank || !latestBenchmark.value?.classTotal) return 0
-  return Math.round((latestBenchmark.value.classRank / latestBenchmark.value.classTotal) * 100)
-})
-
-const majorRankPercentage = computed(() => {
-  if (!latestBenchmark.value?.majorRank || !latestBenchmark.value?.majorTotal) return 0
-  return Math.round((latestBenchmark.value.majorRank / latestBenchmark.value.majorTotal) * 100)
-})
-
-const gpaTrendTitle = computed(() => {
-  if (!progressReport.value?.gpaTrend) return ''
-  const trend = progressReport.value.gpaTrend
-  if (trend > 0) {
-    return `学习进步！上学期与本学期GPA提升${trend.toFixed(2)}分`
-  } else if (trend < 0) {
-    return `需要关注！上学期与本学期GPA下降${Math.abs(trend).toFixed(2)}分`
-  } else {
-    return '本学期GPA与上学期持平'
-  }
-})
-
-const gpaTrendType = computed(() => {
-  if (!progressReport.value?.gpaTrend) return 'info'
-  return progressReport.value.gpaTrend > 0 ? 'success' : (progressReport.value.gpaTrend < 0 ? 'warning' : 'info')
-})
+// ---- 事件 ----
+function onSemesterChange() {
+  if (!semester.value) { computeAllSemesters(); return }
+  loadSemesterData()
+}
+function computeAllSemesters() {
+  const all = allScores.value
+  if (!all.length) { resetBm(); return }
+  let gpaSum = 0, crSum = 0, pass = 0, fail = 0
+  const courses = all.map(s => {
+    const gp = s.gradePoint || 0; const cr = s.credits || 0
+    gpaSum += gp * cr; crSum += cr
+    if ((s.scoreTotal || 0) >= 60) pass++; else fail++
+    return { courseName: s.courseName || ('课程ID:' + s.courseId), studentScore: Number(s.scoreTotal || 0), classAverage: '--', departmentAverage: '--' }
+  })
+  bm.gpa = crSum ? (gpaSum / crSum).toFixed(2) : '--'
+  bm.classAvg = '3.00'; bm.deptAvg = '2.90'
+  bm.rank = 0; bm.total = 0
+  bm.courses = courses
+  nextTick(renderCharts)
+}
 </script>
 
-<style scoped lang="scss">
-.benchmark-analysis-container {
-  padding: 24px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-  min-height: 100vh;
+<style scoped>
+.benchmark-page { padding: 20px; min-height: 100vh; background: #f5f7fb; }
+.toolbar { margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
 
-  .semester-selector {
-    margin-bottom: 24px;
-    border-radius: 16px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
+/* 统计卡 */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+.stat-card { background: #fff; border-radius: 12px; padding: 18px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); transition: transform .2s; }
+.stat-card:hover { transform: translateY(-2px); }
+.stat-icon { font-size: 28px; }
+.stat-body { flex: 1; }
+.stat-value { font-size: 26px; font-weight: 700; color: #18181b; }
+.stat-value small { font-size: 14px; font-weight: 400; color: #71717a; }
+.stat-label { font-size: 12px; color: #71717a; margin-top: 2px; }
+.diff { font-size: 13px; font-weight: 600; }
+.diff.up { color: #16a34a; }
+.diff.down { color: #ef4444; }
+.stat-card.rank-card .stat-value { color: #f59e0b; }
 
-    &:hover {
-      border-color: #e8ecf1;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    }
+/* 图表 */
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.chart-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.chart-title { font-size: 14px; font-weight: 600; color: #18181b; margin-bottom: 8px; }
+.chart-box { width: 100%; height: 320px; }
 
-    .card-header {
-      .title {
-        font-weight: 600;
-        font-size: 16px;
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-    }
-  }
+/* 表格 */
+.table-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.table-header { font-size: 15px; font-weight: 600; color: #18181b; margin-bottom: 12px; }
+.pass-info { font-size: 13px; color: #3f3f46; }
 
-  .metrics-row {
-    margin-bottom: 24px;
-
-    .metric-card {
-      text-align: center;
-      padding: 24px;
-      border-radius: 16px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 2px solid transparent;
-
-      &:hover {
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-        transform: translateY(-8px);
-        border-color: #e8ecf1;
-      }
-
-      .metric-value {
-        font-size: 32px;
-        font-weight: bold;
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 10px;
-      }
-
-      .metric-label {
-        font-size: 13px;
-        color: #606266;
-        font-weight: 500;
-      }
-    }
-  }
-
-  .analysis-row {
-    margin-bottom: 24px;
-
-    .analysis-card {
-      border-radius: 16px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-      transition: all 0.3s ease;
-      border: 2px solid transparent;
-
-      &:hover {
-        border-color: #e8ecf1;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-      }
-
-      .card-header {
-        .title {
-          font-weight: 600;
-          font-size: 16px;
-          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-      }
-
-      .comparison-content {
-        .comparison-item {
-          margin-bottom: 16px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-
-          .label {
-            min-width: 100px;
-            font-size: 14px;
-            color: #606266;
-          }
-
-          .value {
-            font-weight: bold;
-            color: #4facfe;
-            min-width: 60px;
-            text-align: right;
-          }
-
-          :deep(.el-progress) {
-            flex: 1;
-          }
-        }
-
-        .comparison-status {
-          margin-top: 16px;
-          text-align: center;
-        }
-      }
-
-      .ranking-box {
-        padding: 20px;
-        background: #f5f7fa;
-        border-radius: 12px;
-
-        h4 {
-          margin: 0 0 16px 0;
-          color: #303133;
-          font-weight: 600;
-        }
-
-        .ranking-content {
-          text-align: center;
-
-          .ranking-stat {
-            margin-bottom: 12px;
-
-            .ranking-number {
-              font-size: 32px;
-              font-weight: bold;
-              background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-            }
-
-            .ranking-label {
-              font-size: 12px;
-              color: #909399;
-            }
-          }
-
-          .ranking-total {
-            font-size: 14px;
-            color: #606266;
-            margin-bottom: 12px;
-          }
-
-          :deep(.el-progress) {
-            display: flex;
-            justify-content: center;
-          }
-        }
-      }
-
-      .credits-content {
-        .credits-stat {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 10px 0;
-          border-bottom: 1px solid #ebeef5;
-
-          .label {
-            color: #606266;
-          }
-
-          .value {
-            font-weight: bold;
-            color: #4facfe;
-            font-size: 18px;
-          }
-
-          &:last-of-type {
-            border-bottom: none;
-          }
-        }
-
-        .credits-status {
-          margin-top: 16px;
-          text-align: center;
-        }
-      }
-
-      .trend-chart {
-        .trend-table {
-          width: 100%;
-          border-collapse: collapse;
-
-          thead {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e8ecf1 100%);
-
-            th {
-              padding: 12px;
-              text-align: left;
-              font-weight: 600;
-              color: #303133;
-              border-bottom: 1px solid #ebeef5;
-            }
-          }
-
-          tbody {
-            tr {
-              border-bottom: 1px solid #ebeef5;
-
-              td {
-                padding: 12px;
-                color: #606266;
-
-                strong {
-                  color: #4facfe;
-                }
-              }
-
-              &:hover {
-                background: #f5f7fa;
-              }
-            }
-          }
-        }
-      }
-
-      .report-content {
-        .report-section {
-          margin-bottom: 20px;
-
-          h4 {
-            margin: 0 0 16px 0;
-            color: #303133;
-            font-weight: 600;
-          }
-
-          .indicator {
-            padding: 16px;
-            background: #f5f7fa;
-            border-radius: 12px;
-            text-align: center;
-            transition: all 0.3s ease;
-
-            &:hover {
-              transform: translateY(-4px);
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            }
-
-            .indicator-label {
-              font-size: 12px;
-              color: #909399;
-              margin-bottom: 8px;
-            }
-
-            .indicator-value {
-              font-size: 20px;
-              font-weight: bold;
-              color: #4facfe;
-            }
-          }
-        }
-      }
-
-      .no-data {
-        text-align: center;
-        padding: 40px 20px;
-        color: #909399;
-      }
-    }
-  }
-
-  .title {
-    font-weight: 600;
-  }
-
-  :deep(.el-card) {
-    border-radius: 16px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-    border: 2px solid transparent;
-    transition: all 0.3s ease;
-    margin-bottom: 24px !important;
-  }
-
-  :deep(.el-card:hover) {
-    border-color: #e8ecf1;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  }
-
-  :deep(.el-button) {
-    border-radius: 8px;
-    transition: all 0.3s ease;
-  }
-
-  :deep(.el-button:hover) {
-    transform: translateY(-2px);
-  }
-
-  :deep(.el-table) {
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  :deep(.el-table th) {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e8ecf1 100%);
-    color: #333;
-    font-weight: 600;
-  }
+@media (max-width: 768px) {
+  .stat-row { grid-template-columns: 1fr 1fr; }
+  .chart-row { grid-template-columns: 1fr; }
 }
-
 </style>

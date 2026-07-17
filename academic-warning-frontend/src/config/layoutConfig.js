@@ -61,7 +61,7 @@ export const layoutConfig = {
       { label: '反馈管理', path: '/counselor/feedback', icon: 'chat-dots' },
     ],
     theme: 'light',
-    primaryColor: '#FF9800',
+    primaryColor: '#2563eb',
   },
 
   // 管理员端布局
@@ -122,8 +122,8 @@ export const colorScheme = {
   warning: {
     50: '#FFF3E0',
     100: '#FFE0B2',
-    500: '#FF9800',
-    700: '#F57C00',
+    500: '#2563eb',
+    700: '#1d40af',
     900: '#E65100',
   },
   success: {

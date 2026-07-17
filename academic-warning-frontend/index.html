@@ -4,22 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:,">
-    <title>学业预警系统</title>
+    <title>智能学习预警云服务平台</title>
 </head>
 <body>
     <div id="app"></div>
-    <script>
-        // 在所有脚本执行前捕获全局错误
-        window.addEventListener('error', function(e) {
-            console.warn('⚠️ 脚本错误被捕获:', e.message || 'unknown error');
-            e.preventDefault();
-            return true;
-        }, true);
-        window.addEventListener('unhandledrejection', function(e) {
-            console.warn('⚠️ Promise错误被捕获');
-            e.preventDefault();
-        });
-    </script>
-    <script type="module" src="/src/main.js?v=1.0.1"></script>
+    <script type="module" src="/src/main.js?v=1.0.2"></script>
 </body>
 </html>

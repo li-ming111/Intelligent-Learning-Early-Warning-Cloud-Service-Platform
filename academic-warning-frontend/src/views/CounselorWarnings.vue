@@ -36,20 +36,22 @@
         <el-table-column prop="className" label="班级" width="80"></el-table-column>
         <el-table-column label="预警级别" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.level === 'red' ? 'danger' : row.level === 'yellow' ? 'warning' : 'info'">
-              {{ row.level === 'red' ? '红色' : row.level === 'yellow' ? '黄色' : '蓝色' }}
+            <el-tag :type="row.warningLevel === 3 ? 'danger' : row.warningLevel === 2 ? 'warning' : 'info'">
+              {{ row.warningLevel === 3 ? '红色' : row.warningLevel === 2 ? '黄色' : '蓝色' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="reason" label="预警原因" width="180"></el-table-column>
+        <el-table-column prop="description" label="预警原因" min-width="200" show-overflow-tooltip></el-table-column>
         <el-table-column label="处理状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.processed ? 'success' : 'info'">{{ row.processed ? '已处理' : '待处理' }}</el-tag>
+            <el-tag :type="row.status === 1 ? 'success' : row.status === 2 ? 'warning' : 'info'">
+              {{ row.status === 1 ? '已处理' : row.status === 2 ? '已解除' : '待处理' }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" link @click="handleWarning(row)" v-if="!row.processed">处理</el-button>
+            <el-button type="primary" size="small" link @click="handleWarning(row)" v-if="row.status === 0">处理</el-button>
             <el-button type="info" size="small" link @click="viewDetails(row)">详情</el-button>
           </template>
         </el-table-column>
@@ -114,17 +116,13 @@ const loadWarnings = async () => {
     const counselorId = localStorage.getItem('counselorId') || userId
     if (!counselorId) return
     const response = await counselorAPI.getWarnings(counselorId)
-    if (response && response.code === 0) {
-      warningsList.value = response.data || []
-    } else if (Array.isArray(response)) {
-      warningsList.value = response
-    }
+    warningsList.value = Array.isArray(response) ? response : (response?.data || [])
     // 计算统计数据
     warningStats.value = {
-      redWarnings: warningsList.value.filter(w => w.warning_level === 'red').length,
-      yellowWarnings: warningsList.value.filter(w => w.warning_level === 'yellow').length,
-      blueWarnings: warningsList.value.filter(w => w.warning_level === 'blue').length,
-      processedWarnings: warningsList.value.filter(w => w.status === 'processed').length
+      redWarnings: warningsList.value.filter(w => w.warningLevel === 3).length,
+      yellowWarnings: warningsList.value.filter(w => w.warningLevel === 2).length,
+      blueWarnings: warningsList.value.filter(w => w.warningLevel === 1).length,
+      processedWarnings: warningsList.value.filter(w => w.status === 1 || w.status === 2).length
     }
   } catch (error) {
     console.error('加载预警失败:', error)
@@ -148,7 +146,7 @@ const submitHandle = async () => {
   }
   try {
     const data = {
-      measures: handleForm.value.opinion
+      handleResult: handleForm.value.opinion
     }
     await counselorAPI.processWarning(handleForm.value.warningId, data)
     ElMessage.success('预警已处理')
@@ -182,7 +180,7 @@ const generateOpinion = async () => {
     const prompt = `作为高校辅导员，为学生${handleForm.value.studentName}生成一份预警处理意见。请根据学生情况，包括预警原因、学习状态等，生成一段专业、合理的处理意见，内容应包括：1. 对学生情况的分析 2. 具体的帮扶措施 3. 后续跟踪计划。生成的内容要符合辅导员的专业身份，语言要正式、关怀。`
     
     const response = await aiAPI.getResponse(userId, prompt)
-    if (response && response.code === 0 && response.data) {
+    if (response && response.code === 200 && response.data) {
       handleForm.value.opinion = response.data
       ElMessage.success('处理意见生成成功')
     } else {
@@ -237,7 +235,7 @@ const generateOpinion = async () => {
 }
 
 .stat-card.yellow {
-  background: linear-gradient(135deg, #e6a23c, #d89216);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
 }
 
 .stat-card.blue {

@@ -7,7 +7,7 @@
       :class="{ 'sidebar-collapsed': isCollapsed }"
     >
       <div class="sidebar-header">
-        <h2>{{ isAdmin ? '学业预警系统' : '学业预警' }}</h2>
+        <h2>{{ isAdmin ? '智能学习预警云服务平台' : '智能学习预警' }}</h2>
         <button v-if="!isAdmin" class="collapse-btn" @click="isCollapsed = !isCollapsed">
           {{ isCollapsed ? '▶' : '◀' }}
         </button>
@@ -66,7 +66,7 @@
             <span>反馈管理</span>
           </router-link>
           <router-link to="/teacher/courses" class="nav-item" active-class="active">
-            <span>选修课管理</span>
+            <span>课程管理</span>
           </router-link>
         </template>
 
@@ -109,13 +109,14 @@
     <div 
       :class="[
         'main-wrapper', 
-        { 'full-wrapper': !isLoggedIn || isPureAuthPage || isTeacher || isStudent || isAdmin || isCounselor },
+        { 'full-wrapper': !isLoggedIn || isPureAuthPage || isTeacher || isStudent || isCounselor },
+        { 'admin-wrapper': isAdmin },
         { 'main-wrapper-collapsed': isLoggedIn && !isPureAuthPage && !isTeacher && !isStudent && !isAdmin && !isCounselor && isCollapsed }
       ]"
     >
       <!-- 深部 -->
       <header v-if="isLoggedIn && !isPureAuthPage && !isTeacher && !isStudent && !isAdmin && !isCounselor" class="app-header" :class="{ 'admin-header': isAdmin }">
-        <div class="header-content">{{ isAdmin ? '学业预警系统 - 管理员端' : '学业预警与帮扶系统' }}</div>
+        <div class="header-content">{{ isAdmin ? '智能学习预警云服务平台 - 管理员端' : '智能学习预警云服务平台' }}</div>
         <div v-if="!isAdmin" class="header-user">
           {{ userName }} | {{ roleLabel }}
         </div>
@@ -133,11 +134,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from './store'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import apiClient from './api/client'
+import { getTheme, getElementPlusTheme, elementPlusTheme } from './config/theme'
 
 // 初始化
 const router = useRouter()
@@ -148,11 +150,42 @@ const userRole = ref('1') // 默认学生角色
 const isCollapsed = ref(false) // 侧边栏折叠状态
 
 // 统一角色判断（转为数字后判断，避免类型问题）
+// 角色映射：1=学生, 2=教师, 3=辅导员, 4=管理员
 const roleNum = computed(() => Number(userRole.value) || 1)
 const isStudent = computed(() => roleNum.value === 1)
 const isTeacher = computed(() => roleNum.value === 2)
-const isAdmin = computed(() => roleNum.value === 3)
-const isCounselor = computed(() => roleNum.value === 4)
+const isCounselor = computed(() => roleNum.value === 3)
+const isAdmin = computed(() => roleNum.value === 4 || roleNum.value === 5)
+
+// 主题配置
+const currentTheme = computed(() => getTheme(userRole.value))
+
+// 更新页面主题样式
+const updatePageTheme = () => {
+  const theme = currentTheme.value
+  // 更新 CSS 变量
+  document.documentElement.style.setProperty('--theme-primary', theme.primary)
+  document.documentElement.style.setProperty('--theme-primary-light', theme.primaryLight)
+  document.documentElement.style.setProperty('--theme-primary-dark', theme.primaryDark)
+  document.documentElement.style.setProperty('--theme-gradient', theme.gradient)
+  document.documentElement.style.setProperty('--theme-gradient-header', theme.gradientHeader)
+  document.documentElement.style.setProperty('--theme-text', theme.text)
+  document.documentElement.style.setProperty('--theme-background', theme.background)
+  document.documentElement.style.setProperty('--theme-border', theme.border)
+
+  // 更新 Element Plus 主题
+  const roleMap = { 1: 'student', 2: 'teacher', 3: 'counselor', 4: 'admin', 5: 'admin' }
+  const themeKey = roleMap[roleNum.value] || 'admin'
+  const epTheme = elementPlusTheme[themeKey] || elementPlusTheme.admin
+  for (const [key, value] of Object.entries(epTheme)) {
+    document.documentElement.style.setProperty(key, value)
+  }
+}
+
+// 监听角色变化，更新主题
+watch(userRole, () => {
+  updatePageTheme()
+}, { immediate: false })
 
 // 验证区域判定（仅登录/注册页）
 const isPureAuthPage = computed(() => {
@@ -164,7 +197,7 @@ const isPureAuthPage = computed(() => {
 // 用户信息
 const userName = computed(() => localStorage.getItem('userName') || localStorage.getItem('username') || '未知用户')
 const roleLabel = computed(() => {
-  const labels = { 1: '学生', 2: '教师', 3: '管理员', 4: '辅导员' }
+  const labels = { 1: '学生', 2: '教师', 3: '辅导员', 4: '管理员', 5: '学院管理员' }
   return labels[roleNum.value] || '学生'
 })
 
@@ -231,7 +264,9 @@ onMounted(async () => {
   await validateToken()
   // 加载系统偏好
   loadAdminPreferences()
-  console.log('用户role:', userRole.value, 'type:', typeof userRole.value)
+  // 应用主题配置
+  updatePageTheme()
+  console.log('用户role:', userRole.value, 'type:', typeof userRole.value, '主题已更新')
 })
 
 // 加载管理员系统偏好
@@ -301,7 +336,7 @@ body,
 .app-wrapper {
   display: flex;
   height: 100vh;
-  background: #f8f9fa;
+  background: var(--theme-background, #f8f9fa);
   transition: all 0.3s ease;
   overflow: hidden;
   margin: 0;
@@ -327,7 +362,7 @@ body,
 }
 
 .sidebar-header {
-  background: linear-gradient(135deg, #667eea 0%, #66b1ff 100%);
+  background: var(--theme-gradient, linear-gradient(135deg, #667eea 0%, #66b1ff 100%));
   color: white;
   padding: 0 14px;
   height: 64px;
@@ -419,14 +454,14 @@ body,
   transform: translateY(-50%);
   width: 3px;
   height: 0;
-  background: linear-gradient(180deg, #409eff, #66b1ff);
+  background: var(--theme-gradient, linear-gradient(180deg, #409eff, #66b1ff));
   border-radius: 0 2px 2px 0;
   transition: height 0.3s ease;
 }
 
 .nav-item:hover {
-  background: rgba(102, 126, 234, 0.08);
-  color: #667eea;
+  background: color-mix(in srgb, var(--theme-primary) 8%, transparent);
+  color: var(--theme-primary);
   transform: translateX(2px);
 }
 
@@ -435,9 +470,9 @@ body,
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, rgba(102, 126, 234, 0.15) 0%, rgba(102, 126, 234, 0.1) 100%);
-  color: #667eea;
-  box-shadow: inset 0 0 0 1px rgba(102, 126, 234, 0.2);
+  background: color-mix(in srgb, var(--theme-primary) 15%, transparent);
+  color: var(--theme-primary);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--theme-primary) 20%, transparent);
   font-weight: 600;
 }
 
@@ -448,7 +483,7 @@ body,
 
 .nav-divider {
   height: 1px;
-  background: rgba(102, 126, 234, 0.1);
+  background: color-mix(in srgb, var(--theme-primary) 10%, transparent);
   margin: 6px 8px;
 }
 
@@ -492,7 +527,7 @@ body,
 
 /* 头部 */
 .app-header {
-  background: linear-gradient(90deg, #667eea 0%, #66b1ff 50%, #667eea 100%);
+  background: var(--theme-gradient-header, linear-gradient(90deg, #667eea 0%, #66b1ff 50%, #667eea 100%));
   color: white;
   padding: 0 28px;
   height: 64px;
@@ -501,7 +536,7 @@ body,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--theme-primary) 15%, transparent);
   flex-shrink: 0;
   position: relative;
   overflow: visible;
@@ -549,10 +584,10 @@ body,
   padding: 24px 24px 24px 28px;
   overflow-y: auto;
   overflow-x: hidden;
-  background-color: #f8f9fa !important;
+  background-color: var(--theme-background, #f8f9fa) !important;
   scroll-behavior: smooth;
   border-left: none !important;
-  background: linear-gradient(90deg, #f8f9fa 0%, #f5f7fb 100%) !important;
+  background: linear-gradient(90deg, var(--theme-background, #f8f9fa) 0%, #f5f7fb 100%) !important;
   position: relative;
 }
 
@@ -571,13 +606,30 @@ body,
 
 .full-wrapper .app-main {
   flex: 1;
-  background: linear-gradient(135deg, #667eea 0%, #66b1ff 100%);
+  background: var(--theme-gradient, linear-gradient(135deg, #667eea 0%, #66b1ff 100%));
   padding: 0;
+}
+
+.admin-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-left: 0;
+  height: 100%;
+}
+
+.admin-wrapper .app-main {
+  flex: 1;
+  background-color: var(--theme-background, #f5f7fa) !important;
+  padding: 0;
+  margin: 0;
+  height: 100%;
 }
 </style>
 
 <style>
-/* 全局管理员端样式优化 - 强制覆盖所有scoped样式 */
+/* 全局管理员端样式优化 - 使用主题变量 */
 
 /* 背景色 - 最高优先级 */
 body,
@@ -586,7 +638,7 @@ html,
 .app-wrapper,
 .main-wrapper,
 .app-main {
-  background-color: #f8f9fa !important;
+  background-color: var(--theme-background, #f8f9fa) !important;
 }
 
 body,
@@ -615,100 +667,117 @@ html {
 }
 
 .full-wrapper .app-main {
-  background: linear-gradient(135deg, #667eea 0%, #66b1ff 100%) !important;
+  background: var(--theme-gradient, linear-gradient(135deg, #667eea 0%, #66b1ff 100%)) !important;
 }
 
 /* Element Plus 全局组件样式 */
 .el-card,
 .metric-card,
 .chart-card {
-  border: 1px solid #e9ecef !important;
+  border: 1px solid var(--theme-border, #e9ecef) !important;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
   background-color: white !important;
 }
 
 .el-card__header {
-  border-bottom: 1px solid #e9ecef !important;
+  border-bottom: 1px solid var(--theme-border, #e9ecef) !important;
   background-color: white !important;
 }
 
-/* 按钮主色调 - 浅蓝紫色 */
+/* 按钮主色调 - 使用主题变量 */
 .el-button--primary,
 .el-button.is-primary {
-  background-color: #667eea !important;
-  border-color: #667eea !important;
+  background-color: var(--el-color-primary, #667eea) !important;
+  border-color: var(--el-color-primary, #667eea) !important;
   color: white !important;
 }
 
 .el-button--primary:hover,
 .el-button.is-primary:hover,
 .el-button--primary:focus {
-  background-color: #5568d3 !important;
-  border-color: #5568d3 !important;
+  background-color: var(--el-color-primary-dark-2, #5568d3) !important;
+  border-color: var(--el-color-primary-dark-2, #5568d3) !important;
 }
 
 .el-button--primary.is-active,
 .el-button--primary:active {
-  background-color: #4a52b8 !important;
-  border-color: #4a52b8 !important;
+  background-color: var(--el-color-primary-dark-2, #4a52b8) !important;
+  border-color: var(--el-color-primary-dark-2, #4a52b8) !important;
 }
 
 /* 标签和标记 */
 .el-tabs__active-bar {
-  background-color: #667eea !important;
+  background-color: var(--el-color-primary, #667eea) !important;
 }
 
 .el-tabs__item.is-active {
-  color: #667eea !important;
+  color: var(--el-color-primary, #667eea) !important;
 }
 
 .el-tag {
-  border: 1px solid #e9ecef !important;
+  border: 1px solid var(--theme-border, #e9ecef) !important;
 }
 
 /* 表格样式 */
 .el-table,
 .el-table__wrapper {
-  border: 1px solid #e9ecef !important;
+  border: 1px solid var(--theme-border, #e9ecef) !important;
 }
 
 .el-table__header th,
 .el-table__header tr {
-  background-color: #f8f9fa !important;
-  border-bottom: 1px solid #e9ecef !important;
+  background-color: var(--theme-background, #f8f9fa) !important;
+  border-bottom: 1px solid var(--theme-border, #e9ecef) !important;
+}
+
+/* 表头文字和排序图标不换行 */
+.el-table th .cell {
+  display: inline-flex !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+  gap: 4px !important;
+}
+.el-table .caret-wrapper {
+  display: inline-flex !important;
+  flex-shrink: 0 !important;
+}
+
+/* 操作列按钮不换行 */
+.el-table td .cell {
+  white-space: nowrap !important;
 }
 
 .el-table__body tr {
-  border-bottom: 1px solid #e9ecef !important;
+  border-bottom: 1px solid var(--theme-border, #e9ecef) !important;
 }
 
 .el-table__body td {
-  border-right: 1px solid #e9ecef !important;
+  border-right: 1px solid var(--theme-border, #e9ecef) !important;
 }
 
 /* 输入框 */
 .el-input__wrapper,
 .el-input--large .el-input__wrapper {
-  border: 1px solid #e9ecef !important;
+  border: 1px solid var(--theme-border, #e9ecef) !important;
   background-color: white !important;
 }
 
 .el-input__wrapper:hover,
 .el-input__wrapper.is-focus {
-  border-color: #667eea !important;
+  border-color: var(--el-color-primary, #667eea) !important;
 }
 
 .el-input__wrapper.is-focus {
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary, #667eea) 20%, transparent) !important;
 }
 
 /* 对话框 */
 .el-dialog {
-  border: 1px solid #e9ecef !important;
+  border: 1px solid var(--theme-border, #e9ecef) !important;
 }
 
 .el-dialog__header {
-  border-bottom: 1px solid #e9ecef !important;
+  border-bottom: 1px solid var(--theme-border, #e9ecef) !important;
   background-color: white !important;
 }
 
@@ -717,7 +786,7 @@ html {
 }
 
 .el-dialog__footer {
-  border-top: 1px solid #e9ecef !important;
+  border-top: 1px solid var(--theme-border, #e9ecef) !important;
   background-color: white !important;
 }
 
@@ -725,41 +794,41 @@ html {
 .el-pagination .btn-prev,
 .el-pagination .btn-next,
 .el-pagination .el-pager li {
-  border: 1px solid #e9ecef !important;
+  border: 1px solid var(--theme-border, #e9ecef) !important;
   background-color: white !important;
 }
 
 .el-pagination .btn-prev:hover,
 .el-pagination .btn-next:hover,
 .el-pagination .el-pager li:hover {
-  color: #667eea !important;
-  border-color: #667eea !important;
+  color: var(--el-color-primary, #667eea) !important;
+  border-color: var(--el-color-primary, #667eea) !important;
 }
 
 .el-pagination .el-pager li.active {
-  color: #667eea !important;
-  background-color: #f0f2f8 !important;
+  color: var(--el-color-primary, #667eea) !important;
+  background-color: var(--el-color-primary-light-9, #f0f2f8) !important;
 }
 
 /* 选择器和下拉菜单 */
 .el-select__wrapper,
 .el-select .el-input__wrapper {
-  border: 1px solid #e9ecef !important;
+  border: 1px solid var(--theme-border, #e9ecef) !important;
 }
 
 .el-select__wrapper:hover,
 .el-select .el-input__wrapper:hover {
-  border-color: #667eea !important;
+  border-color: var(--el-color-primary, #667eea) !important;
 }
 
 /* 进度条 */
 .el-progress__bar .el-progress-bar__inner {
-  background-color: #667eea !important;
+  background-color: var(--el-color-primary, #667eea) !important;
 }
 
 /* 徽章 */
 .el-badge__content {
-  background-color: #667eea !important;
+  background-color: var(--el-color-primary, #667eea) !important;
 }
 
 /* 表单项 */
@@ -767,44 +836,44 @@ html {
   color: #333 !important;
 }
 
-/* 统计卡片和指标卡 - 统一浅蓝紫色 */
+/* 统计卡片和指标卡 - 使用主题变量 */
 .metric-card.blue {
-  border-top-color: #667eea !important;
+  border-top-color: var(--el-color-primary, #667eea) !important;
 }
 
 .metric-card.green {
-  border-top-color: #667eea !important;
+  border-top-color: var(--el-color-primary, #667eea) !important;
 }
 
 .metric-card.red {
-  border-top-color: #667eea !important;
+  border-top-color: var(--el-color-primary, #667eea) !important;
 }
 
 .metric-card.purple {
-  border-top-color: #667eea !important;
+  border-top-color: var(--el-color-primary, #667eea) !important;
 }
 
 .metric-value {
-  color: #667eea !important;
+  color: var(--el-color-primary, #667eea) !important;
 }
 
-/* 图标颜色统一为浅蓝紫色 */
+/* 图标颜色统一为主题色 */
 .metric-icon,
 .action-icon,
 .online-icon,
 .today-icon {
-  color: #667eea !important;
+  color: var(--el-color-primary, #667eea) !important;
 }
 
 /* 预警条颜色统一 */
 .warning-bar {
-  background-color: #667eea !important;
+  background-color: var(--el-color-primary, #667eea) !important;
 }
 
 /* 活动类型标签统一 */
 .activity-type {
-  background: #f0f2f8 !important;
-  color: #667eea !important;
+  background: var(--el-color-primary-light-9, #f0f2f8) !important;
+  color: var(--el-color-primary, #667eea) !important;
 }
 
 /* 状态标签统一颜色 */
@@ -812,8 +881,8 @@ html {
 .el-tag.el-tag--warning,
 .el-tag.el-tag--danger,
 .el-tag.el-tag--info {
-  background-color: #f0f2f8 !important;
-  color: #667eea !important;
-  border-color: #667eea !important;
+  background-color: var(--el-color-primary-light-9, #f0f2f8) !important;
+  color: var(--el-color-primary, #667eea) !important;
+  border-color: var(--el-color-primary, #667eea) !important;
 }
 </style>

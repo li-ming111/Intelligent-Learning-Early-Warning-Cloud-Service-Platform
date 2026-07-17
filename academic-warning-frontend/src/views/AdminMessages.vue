@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-messages">
+  <div class="admin-messages" style="background-color: #f8f9fa !important; min-height: 100vh;">
     <div class="page-header">
       <h1>消息与任务管理</h1>
       <p>系统广播消息、定向通知、任务分配与追踪</p>
@@ -51,7 +51,7 @@
                     style="width: 100%;"
                   >
                     <el-option
-                      v-for="(user, idx) in mockUsers"
+                      v-for="(user, idx) in users"
                       :key="idx"
                       :label="user.username"
                       :value="user.id"
@@ -70,41 +70,65 @@
           <!-- 消息列表 -->
           <el-card>
             <template #header>
-              <div class="card-header">消息历史</div>
+              <div class="card-header">
+                <span>消息历史</span>
+                <span class="message-count">共 {{ messages.length }} 条消息</span>
+              </div>
             </template>
 
-            <el-table :data="messages" stripe v-loading="loading">
+            <div v-if="messages.length === 0" style="padding: 20px; text-align: center; color: #999;">
+              暂无数据
+            </div>
+            <el-table v-else :data="filteredMessages" stripe v-loading="loading" @selection-change="handleMessageSelectionChange">
+              <el-table-column type="selection" width="55" />
+              <el-table-column prop="id" label="消息ID" width="100" sortable />
               <el-table-column prop="title" label="标题" min-width="150"></el-table-column>
               <el-table-column prop="content" label="内容" min-width="250"></el-table-column>
-              <el-table-column prop="level" label="等级" width="80">
+              <el-table-column prop="level" label="等级" width="100">
                 <template #default="{ row }">
                   <el-tag
                     :type="row.level === 'info' ? 'info' : (row.level === 'warning' ? 'warning' : 'danger')"
                   >
-                    {{ row.level }}
+                    {{ row.level === 'info' ? '信息' : (row.level === 'warning' ? '警告' : '危急') }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="target" label="目标" width="100">
+              <el-table-column prop="target" label="目标" width="120">
                 <template #default="{ row }">
                   <el-tag type="success">{{ row.target === 'all' ? '全部用户' : '指定用户' }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="created_at" label="发送时间" width="180"></el-table-column>
+              <el-table-column prop="createdAt" label="发送时间" width="180" sortable></el-table-column>
               <el-table-column label="操作" width="100" fixed="right">
                 <template #default="{ row }">
-                  <el-button type="danger" size="small" link @click="deleteMessage(row.id)"
-                    >删除</el-button
-                  >
+                  <div class="action-buttons">
+                    <el-button type="danger" size="small" @click="deleteMessage(row.id)">删除</el-button>
+                  </div>
                 </template>
               </el-table-column>
             </el-table>
+
+            <div class="table-footer">
+              <div class="selection-info" v-if="selectedMessages.length > 0">
+                已选择 {{ selectedMessages.length }} 项
+                <el-button type="danger" size="small" @click="batchDeleteMessages">批量删除</el-button>
+              </div>
+              <el-pagination
+                v-model:current-page="messagePage"
+                v-model:page-size="messagePageSize"
+                :page-sizes="[10, 20, 50, 100]"
+                :total="messages.length"
+                layout="total, sizes, prev, pager, next, jumper"
+                @size-change="handleMessageSizeChange"
+                @current-change="handleMessageCurrentChange"
+              />
+            </div>
           </el-card>
         </div>
       </el-tab-pane>
 
       <!-- 任务管理 -->
-      <el-tab-pane label="✅ 任务管理">
+      <el-tab-pane label="任务管理">
         <div class="tab-content">
           <!-- 创建任务卡片 -->
           <el-card style="margin-bottom: 20px;">
@@ -167,7 +191,10 @@
           <!-- 任务列表 -->
           <el-card>
             <template #header>
-              <div class="card-header">任务列表</div>
+              <div class="card-header">
+                <span>任务列表</span>
+                <span class="task-count">共 {{ tasks.length }} 个任务</span>
+              </div>
             </template>
 
             <div style="margin-bottom: 15px;">
@@ -182,10 +209,15 @@
               </el-button>
             </div>
 
-            <el-table :data="filteredTasks" stripe>
+            <div v-if="filteredTasks.length === 0" style="padding: 20px; text-align: center; color: #999;">
+              暂无数据
+            </div>
+            <el-table v-else :data="filteredTasks" stripe @selection-change="handleTaskSelectionChange">
+              <el-table-column type="selection" width="55" />
+              <el-table-column prop="id" label="任务ID" width="100" sortable />
               <el-table-column prop="title" label="任务标题" min-width="150"></el-table-column>
               <el-table-column prop="description" label="描述" min-width="250"></el-table-column>
-              <el-table-column label="优先级" width="80">
+              <el-table-column label="优先级" width="100">
                 <template #default="{ row }">
                   <el-tag
                     :type="row.priority === 'high' ? 'danger' : (row.priority === 'medium' ? 'warning' : 'info')"
@@ -203,30 +235,89 @@
                   </el-select>
                 </template>
               </el-table-column>
-              <el-table-column prop="created_at" label="创建时间" width="180"></el-table-column>
-              <el-table-column label="操作" width="100" fixed="right">
+              <el-table-column prop="createdAt" label="创建时间" width="180" sortable></el-table-column>
+              <el-table-column label="操作" width="120" fixed="right">
                 <template #default="{ row }">
-                  <el-button type="danger" size="small" link @click="deleteTask(row.id)">删除</el-button>
+                  <el-button type="danger" size="small" @click="deleteTask(row.id)">
+                    <el-icon><Delete /></el-icon> 删除
+                  </el-button>
                 </template>
               </el-table-column>
             </el-table>
+
+            <div class="table-footer">
+              <div class="selection-info" v-if="selectedTasks.length > 0">
+                已选择 {{ selectedTasks.length }} 项
+                <el-button type="danger" size="small" @click="batchDeleteTasks">批量删除</el-button>
+              </div>
+              <el-pagination
+                v-model:current-page="taskPage"
+                v-model:page-size="taskPageSize"
+                :page-sizes="[10, 20, 50, 100]"
+                :total="tasks.length"
+                layout="total, sizes, prev, pager, next, jumper"
+                @size-change="handleTaskSizeChange"
+                @current-change="handleTaskCurrentChange"
+              />
+            </div>
           </el-card>
         </div>
       </el-tab-pane>
     </el-tabs>
+
+    <!-- 删除确认弹窗 -->
+    <el-dialog v-model="deleteDialogVisible" title="确认删除" width="400px">
+      <div class="delete-warning">
+        <el-icon color="#E6A23C" size="20"><WarningFilled /></el-icon>
+        <p>确定要删除 <strong>{{ deleteItemName }}</strong> 吗？</p>
+        <p class="warning-text">此操作不可逆，删除后将无法恢复！</p>
+      </div>
+      <template #footer>
+        <el-button @click="deleteDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="confirmDelete" :loading="deleteLoading">确认删除</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量删除确认弹窗 -->
+    <el-dialog v-model="batchDeleteDialogVisible" title="批量删除" width="400px">
+      <div class="delete-warning">
+        <el-icon color="#F56C6C" size="20"><WarningFilled /></el-icon>
+        <p>确定要删除选中的 <strong>{{ batchDeleteCount }} 项</strong> 吗？</p>
+        <p class="warning-text">此操作不可逆，删除后将无法恢复！</p>
+      </div>
+      <template #footer>
+        <el-button @click="batchDeleteDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="confirmBatchDelete" :loading="deleteLoading">确认删除</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { adminAPI } from '@/api/index'
+import apiClient from '@/api/client'
 import { ElMessage } from 'element-plus'
+import { Delete, WarningFilled } from '@element-plus/icons-vue'
 
 // 数据
 const messages = ref([])
 const tasks = ref([])
 const loading = ref(false)
 const taskFilter = ref('all')
+const messagePage = ref(1)
+const messagePageSize = ref(20)
+const taskPage = ref(1)
+const taskPageSize = ref(20)
+const selectedMessages = ref([])
+const selectedTasks = ref([])
+const deleteDialogVisible = ref(false)
+const batchDeleteDialogVisible = ref(false)
+const deleteLoading = ref(false)
+const deleteItemName = ref('')
+const deleteItemId = ref(null)
+const deleteType = ref('')
+const batchDeleteCount = ref(0)
 
 const newMessage = ref({
   title: '',
@@ -242,31 +333,104 @@ const newTask = ref({
   priority: 'medium'
 })
 
-const mockUsers = ref([])
+const users = ref([])
 
 // 计算属性
 const filteredTasks = computed(() => {
-  if (taskFilter.value === 'all') return tasks.value
-  return tasks.value.filter(t => t.status === taskFilter.value)
+  let filtered = tasks.value
+  if (taskFilter.value !== 'all') {
+    filtered = filtered.filter(t => t.status === taskFilter.value)
+  }
+  const start = (taskPage.value - 1) * taskPageSize.value
+  const end = start + taskPageSize.value
+  return filtered.slice(start, end)
 })
+
+const filteredMessages = computed(() => {
+  const start = (messagePage.value - 1) * messagePageSize.value
+  const end = start + messagePageSize.value
+  return messages.value.slice(start, end)
+})
+
+// 订阅实时消息
+const subscribeToMessages = async () => {
+  const userId = localStorage.getItem('userId')
+  if (!userId) return
+  
+  const topic = `/user/${userId}/queue/messages`
+  try {
+    const { default: stompClient } = await import('@/utils/stompClient')
+    await stompClient.subscribe(topic, (message) => {
+      console.log('[AdminMessages] 收到实时消息:', message)
+      handleNewMessage(message)
+    })
+    console.log(`[AdminMessages] 已订阅主题: ${topic}`)
+  } catch (error) {
+    console.error('[AdminMessages] 订阅失败:', error)
+  }
+}
+
+// 处理新消息
+const handleNewMessage = (message) => {
+  if (!message || !message.id) return
+  
+  const existingIndex = messages.value.findIndex(m => m.id === message.id)
+  
+  if (existingIndex >= 0) {
+    messages.value[existingIndex] = { ...messages.value[existingIndex], ...message }
+  } else {
+    messages.value.unshift(message)
+  }
+  
+  ElMessage.success('收到新消息')
+}
 
 onMounted(async () => {
   await loadUsers()
   await loadMessages()
   await loadTasks()
+  subscribeToMessages()
+})
+
+onUnmounted(async () => {
+  const userId = localStorage.getItem('userId')
+  if (userId) {
+    const topic = `/user/${userId}/queue/messages`
+    try {
+      const { default: stompClient } = await import('@/utils/stompClient')
+      stompClient.unsubscribe(topic)
+      console.log(`[AdminMessages] 已取消订阅主题: ${topic}`)
+    } catch (error) {
+      console.error('[AdminMessages] 取消订阅失败:', error)
+    }
+  }
 })
 
 // 加载用户列表
 const loadUsers = async () => {
   try {
-    const response = await adminAPI.getUsers()
-    if (Array.isArray(response)) {
-      mockUsers.value = response
-    } else if (response && response.data && Array.isArray(response.data)) {
-      mockUsers.value = response.data
+    console.log('开始加载用户列表...')
+    const response = await apiClient.get('/admin/users/all')
+    console.log('用户列表完整响应:', response)
+    console.log('response.data:', response.data)
+    
+    let users = []
+    if (response.data && response.data.code === 200 && Array.isArray(response.data.data)) {
+      users = response.data.data
+      console.log('从data.data获取用户:', users.length, '个')
+    } else if (response.data && Array.isArray(response.data)) {
+      users = response.data
+      console.log('从data获取用户:', users.length, '个')
+    } else if (Array.isArray(response)) {
+      users = response
+      console.log('从response获取用户:', users.length, '个')
     }
+    
+    users.value = users
+    console.log('最终用户列表:', users.value)
   } catch (error) {
     console.error('加载用户列表失败:', error)
+    users.value = []
   }
 }
 
@@ -322,13 +486,86 @@ const sendMessage = async () => {
 }
 
 // 删除消息
-const deleteMessage = async (messageId) => {
+const deleteMessage = (messageId) => {
+  const message = messages.value.find(m => m.id === messageId)
+  deleteItemName.value = message?.title || '消息'
+  deleteItemId.value = messageId
+  deleteType.value = 'message'
+  deleteDialogVisible.value = true
+}
+
+const confirmDelete = async () => {
+  deleteLoading.value = true
   try {
-    await adminAPI.deleteMessage(messageId)
-    ElMessage.success('消息已删除')
-    await loadMessages()
+    if (deleteType.value === 'message') {
+      await adminAPI.deleteMessage(deleteItemId.value)
+      ElMessage.success('消息已删除')
+      messages.value = messages.value.filter(m => m.id !== deleteItemId.value)
+    } else if (deleteType.value === 'task') {
+      await adminAPI.deleteTask(deleteItemId.value)
+      ElMessage.success('任务已删除')
+      tasks.value = tasks.value.filter(t => t.id !== deleteItemId.value)
+    }
+    deleteDialogVisible.value = false
+    deleteItemId.value = null
+    deleteType.value = ''
   } catch (error) {
-    ElMessage.error('删除消息失败')
+    ElMessage.error('删除失败')
+  } finally {
+    deleteLoading.value = false
+  }
+}
+
+const handleMessageSelectionChange = (selection) => {
+  selectedMessages.value = selection
+}
+
+const handleTaskSelectionChange = (selection) => {
+  selectedTasks.value = selection
+}
+
+const batchDeleteMessages = () => {
+  if (selectedMessages.value.length === 0) {
+    ElMessage.warning('请先选择要删除的消息')
+    return
+  }
+  batchDeleteCount.value = selectedMessages.value.length
+  deleteType.value = 'message'
+  batchDeleteDialogVisible.value = true
+}
+
+const batchDeleteTasks = () => {
+  if (selectedTasks.value.length === 0) {
+    ElMessage.warning('请先选择要删除的任务')
+    return
+  }
+  batchDeleteCount.value = selectedTasks.value.length
+  deleteType.value = 'task'
+  batchDeleteDialogVisible.value = true
+}
+
+const confirmBatchDelete = async () => {
+  deleteLoading.value = true
+  try {
+    if (deleteType.value === 'message') {
+      const deletePromises = selectedMessages.value.map(m => adminAPI.deleteMessage(m.id))
+      await Promise.all(deletePromises)
+      ElMessage.success(`成功删除 ${selectedMessages.value.length} 条消息`)
+      messages.value = messages.value.filter(m => !selectedMessages.value.some(sm => sm.id === m.id))
+      selectedMessages.value = []
+    } else if (deleteType.value === 'task') {
+      const deletePromises = selectedTasks.value.map(t => adminAPI.deleteTask(t.id))
+      await Promise.all(deletePromises)
+      ElMessage.success(`成功删除 ${selectedTasks.value.length} 个任务`)
+      tasks.value = tasks.value.filter(t => !selectedTasks.value.some(st => st.id === t.id))
+      selectedTasks.value = []
+    }
+    batchDeleteDialogVisible.value = false
+    deleteType.value = ''
+  } catch (error) {
+    ElMessage.error('批量删除失败')
+  } finally {
+    deleteLoading.value = false
   }
 }
 
@@ -360,14 +597,12 @@ const updateTaskStatus = async (task) => {
 }
 
 // 删除任务
-const deleteTask = async (taskId) => {
-  try {
-    await adminAPI.deleteTask(taskId)
-    ElMessage.success('任务已删除')
-    await loadTasks()
-  } catch (error) {
-    ElMessage.error('删除任务失败')
-  }
+const deleteTask = (taskId) => {
+  const task = tasks.value.find(t => t.id === taskId)
+  deleteItemName.value = task?.title || '任务'
+  deleteItemId.value = taskId
+  deleteType.value = 'task'
+  deleteDialogVisible.value = true
 }
 
 // 重置表单
@@ -388,11 +623,32 @@ const resetTaskForm = () => {
     priority: 'medium'
   }
 }
+
+// 分页处理
+const handleMessageSizeChange = (val) => {
+  messagePageSize.value = val
+  messagePage.value = 1
+}
+
+const handleMessageCurrentChange = (val) => {
+  messagePage.value = val
+}
+
+const handleTaskSizeChange = (val) => {
+  taskPageSize.value = val
+  taskPage.value = 1
+}
+
+const handleTaskCurrentChange = (val) => {
+  taskPage.value = val
+}
 </script>
 
 <style scoped>
 .admin-messages {
   padding: 20px;
+  background-color: #f8f9fa !important;
+  min-height: 100vh;
 }
 
 .page-header {
@@ -419,6 +675,15 @@ const resetTaskForm = () => {
   font-size: 16px;
   font-weight: bold;
   color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.message-count, .task-count {
+  font-size: 14px;
+  color: #909399;
+  font-weight: normal;
 }
 
 .stats-grid {
@@ -445,6 +710,70 @@ const resetTaskForm = () => {
   font-size: 28px;
   font-weight: bold;
   color: #409eff;
+}
+
+.table-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.selection-info {
+  color: #606266;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.delete-warning {
+  text-align: center;
+  padding: 20px;
+}
+
+.delete-warning p {
+  margin: 10px 0;
+  color: #606266;
+}
+
+.delete-warning .warning-text {
+  color: #F56C6C;
+  font-size: 14px;
+}
+
+.admin-messages :deep(.el-card) {
+  border: 1px solid #e9ecef !important;
+}
+
+.admin-messages :deep(.el-button--primary) {
+  background-color: #667eea !important;
+  border-color: #667eea !important;
+}
+
+.admin-messages :deep(.el-button--primary:hover) {
+  background-color: #5568d3 !important;
+  border-color: #5568d3 !important;
+}
+
+.admin-messages :deep(.el-button--danger) {
+  background-color: #f56c6c !important;
+  border-color: #f56c6c !important;
+}
+
+.admin-messages :deep(.el-button--danger:hover) {
+  background-color: #e64141 !important;
+  border-color: #e64141 !important;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.action-buttons .el-button {
+  margin: 0;
 }
 
 @media (max-width: 1200px) {

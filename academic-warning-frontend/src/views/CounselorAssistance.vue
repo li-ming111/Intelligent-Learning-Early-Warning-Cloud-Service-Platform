@@ -31,18 +31,18 @@
         <div class="card-header">帮扶计划列表</div>
       </template>
 
-      <el-table :data="assistancePlans" stripe>
-        <el-table-column prop="studentName" label="学生" width="100"></el-table-column>
-        <el-table-column prop="title" label="计划标题" width="150"></el-table-column>
-        <el-table-column label="目标" width="150">
+      <el-table :data="assistancePlans" stripe style="width: 100%">
+        <el-table-column prop="studentName" label="学生" width="100" align="center"></el-table-column>
+        <el-table-column prop="title" label="计划标题" min-width="150" show-overflow-tooltip></el-table-column>
+        <el-table-column label="目标" min-width="200" show-overflow-tooltip>
           <template #default="{ row }">{{ row.target || '学分提升' }}</template>
         </el-table-column>
-        <el-table-column label="进度" width="150">
+        <el-table-column label="进度" min-width="180">
           <template #default="{ row }">
             <el-progress :percentage="row.progressPercentage || 0" :color="customColor"></el-progress>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 'completed' ? 'success' : row.status === 'in_progress' ? 'warning' : 'info'">
               {{ formatStatus(row.status) }}
@@ -146,6 +146,7 @@ const progressForm = ref({
   progress: 0,
   notes: ''
 })
+const currentPlanId = ref(null)
 
 const effectiveness = ref(null)
 
@@ -166,19 +167,53 @@ const loadAssistancePlans = async () => {
     const userId = getUserId()
     const counselorId = localStorage.getItem('counselorId') || userId
     if (!counselorId) return
-    
-    // 获取当前登录用户的所有帮扶计划（通过学生列表）
-    const response = await counselorAPI.getStudents(counselorId)
-    const students = response.data || []
-    
-    // 为演示目的，获取第一个学生的帮扶计划
-    if (students.length > 0) {
-      const plansResponse = await counselorAPI.getPlansByStudent(students[0].id)
-      assistancePlans.value = plansResponse.data || []
-    } else {
-      assistancePlans.value = []
+
+    // 并行获取：学生列表 + 辅导员下所有帮扶计划
+    const [studentsRes, plansRes] = await Promise.all([
+      counselorAPI.getStudents(counselorId),
+      counselorAPI.getCounselorPlans(counselorId)
+    ])
+
+    // 解析学生列表
+    let students = []
+    if (studentsRes && studentsRes.code === 200) {
+      students = studentsRes.data || []
+    } else if (Array.isArray(studentsRes)) {
+      students = studentsRes
     }
-    
+
+    const studentMap = {}
+    students.forEach(s => {
+      const sid = s.id || s.studentId
+      const sname = s.studentName || s.name || '未知'
+      studentMap[sid] = sname
+    })
+
+    // 解析帮扶计划
+    let rawPlans = []
+    if (plansRes && plansRes.code === 200) {
+      rawPlans = plansRes.data || []
+    } else if (Array.isArray(plansRes)) {
+      rawPlans = plansRes
+    }
+
+    // 映射后端字段到前端表格字段（后端 getCounselorPlans 未按辅导员过滤，这里展示全部返回数据）
+    assistancePlans.value = rawPlans.map(p => {
+      const sid = p.studentId || p.student_id
+      const status = normStatus(p.status)
+      return {
+        ...p,
+        id: p.id,
+        studentId: sid,
+        studentName: studentMap[sid] || p.studentName || p.student_name || '未知',
+        title: p.title || (p.content ? p.content.substring(0, 30) : '帮扶计划'),
+        target: p.target || p.content || '暂无目标',
+        measures: p.measures || p.content || '',
+        progressPercentage: p.progressPercentage || (status === 'completed' ? 100 : status === 'in_progress' ? 50 : 0),
+        status: status
+      }
+    })
+
     // 更新统计数据
     const plans = assistancePlans.value
     stats.value = {
@@ -192,33 +227,63 @@ const loadAssistancePlans = async () => {
   }
 }
 
+const normStatus = (s) => {
+  if (s === 'completed' || s === '已完成' || s === 2 || s === '2') return 'completed'
+  if (s === 'in_progress' || s === '进行中' || s === 1 || s === '1') return 'in_progress'
+  return 'initiated'
+}
+
 const editPlan = (row) => {
   editForm.value = { ...row }
   editDialogVisible.value = true
 }
 
+const statusToInt = (s) => {
+  if (s === 'completed') return 2
+  if (s === 'in_progress') return 1
+  return 0
+}
+
 const savePlan = async () => {
   try {
+    const payload = {
+      id: editForm.value.id,
+      studentId: editForm.value.studentId,
+      counselorId: editForm.value.counselorId || editForm.value.counselor_id,
+      content: editForm.value.target || editForm.value.content || '',
+      status: statusToInt(editForm.value.status)
+    }
+    await counselorAPI.updateAssistancePlan(editForm.value.id, payload)
     ElMessage.success('计划已保存')
     editDialogVisible.value = false
     await loadAssistancePlans()
   } catch (error) {
     console.error('保存计划失败:', error)
+    ElMessage.error('保存失败')
   }
 }
 
 const updateProgress = (row) => {
+  currentPlanId.value = row.id
   progressForm.value.progress = row.progressPercentage || 0
   progressDialogVisible.value = true
 }
 
 const saveProgress = async () => {
   try {
+    const progress = progressForm.value.progress || 0
+    let status = 'initiated'
+    if (progress >= 100) status = 'completed'
+    else if (progress > 0) status = 'in_progress'
+    if (currentPlanId.value) {
+      await counselorAPI.updatePlanProgress(currentPlanId.value, { status })
+    }
     ElMessage.success('进度已更新')
     progressDialogVisible.value = false
     await loadAssistancePlans()
   } catch (error) {
     console.error('更新进度失败:', error)
+    ElMessage.error('更新失败')
   }
 }
 

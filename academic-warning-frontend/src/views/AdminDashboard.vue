@@ -1,253 +1,128 @@
 <template>
-  <div class="dashboard-wrapper">
-    <!-- 顶部欢迎卡片 -->
-    <div class="welcome-section">
-      <div class="welcome-card">
-        <div class="welcome-content">
-          <h1>管理员仪表盘</h1>
-          <p>全校数据统计、预警分析和系统监控中心</p>
-          <div class="welcome-stats">
-            <div class="stat-item">
-              <span class="stat-value">{{ stats.studentCount || 0 }}</span>
-              <span class="stat-label">在籍学生</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-value">{{ stats.warningCount || 0 }}</span>
-              <span class="stat-label">预警总数</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-value">{{ stats.userCount || 0 }}</span>
-              <span class="stat-label">系统用户</span>
-            </div>
-          </div>
-        </div>
-        <div class="welcome-time">
-          <div class="time">{{ currentTime }}</div>
-          <div class="date">{{ currentDate }}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 核心指标卡片 -->
-    <div class="metrics-section">
-      <div class="metric-card student">
-        <div class="metric-icon">
-          <i class="el-icon-user"></i>
-        </div>
-        <div class="metric-content">
-          <div class="metric-value">{{ stats.studentCount || 0 }}</div>
-          <div class="metric-title">全校学生</div>
-          <div class="metric-change positive">+2.5%</div>
-        </div>
-      </div>
-      <div class="metric-card course">
-        <div class="metric-icon">
-          <i class="el-icon-notebook-2"></i>
-        </div>
-        <div class="metric-content">
-          <div class="metric-value">{{ stats.courseCount || 0 }}</div>
-          <div class="metric-title">开设课程</div>
-          <div class="metric-change positive">+1.8%</div>
-        </div>
-      </div>
-      <div class="metric-card warning">
-        <div class="metric-icon">
-          <i class="el-icon-warning"></i>
-        </div>
-        <div class="metric-content">
-          <div class="metric-value">{{ stats.redWarnings || 0 }}</div>
-          <div class="metric-title">红色预警</div>
-          <div :class="['metric-change', stats.redWarnings > 0 ? 'negative' : 'positive']">{{ stats.redWarnings > 0 ? '+5.2%' : '0%' }}</div>
-        </div>
-      </div>
-      <div class="metric-card user">
-        <div class="metric-icon">
-          <i class="el-icon-connection"></i>
-        </div>
-        <div class="metric-content">
-          <div class="metric-value">{{ stats.userCount || 0 }}</div>
-          <div class="metric-title">系统用户</div>
-          <div class="metric-change positive">+3.1%</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 数据可视化区域 -->
-    <div class="visualization-section">
-      <!-- 预警分布 -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>预警等级分布</h3>
-          <div class="chart-actions">
-            <el-select v-model="warningTimeRange" size="small" @change="loadDashboard">
-              <el-option label="本学期" value="current"></el-option>
-              <el-option label="上学期" value="last"></el-option>
-              <el-option label="全年" value="year"></el-option>
-            </el-select>
-          </div>
-        </div>
-        <div class="chart-content">
-          <div class="warning-distribution">
-            <div class="warning-item">
-              <span class="warning-label">红色预警</span>
-              <div class="warning-bar red" :style="{ width: getWarningPercentage('red') }"></div>
-              <span class="warning-count">{{ stats.redWarnings || 0 }}</span>
-            </div>
-            <div class="warning-item">
-              <span class="warning-label">黄色预警</span>
-              <div class="warning-bar yellow" :style="{ width: getWarningPercentage('yellow') }"></div>
-              <span class="warning-count">{{ stats.yellowWarnings || 0 }}</span>
-            </div>
-            <div class="warning-item">
-              <span class="warning-label">蓝色预警</span>
-              <div class="warning-bar blue" :style="{ width: getWarningPercentage('blue') }"></div>
-              <span class="warning-count">{{ stats.blueWarnings || 0 }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 今日数据 -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>今日数据</h3>
-        </div>
-        <div class="today-stats">
-          <div class="today-item">
-            <div class="today-icon new"><i class="el-icon-circle-plus"></i></div>
-            <div class="today-content">
-              <div class="today-value">{{ todayStats.newWarnings || 0 }}</div>
-              <div class="today-label">新增预警</div>
-            </div>
-          </div>
-          <div class="today-item">
-            <div class="today-icon processed"><i class="el-icon-check"></i></div>
-            <div class="today-content">
-              <div class="today-value">{{ todayStats.processedWarnings || 0 }}</div>
-              <div class="today-label">处理预警</div>
-            </div>
-          </div>
-          <div class="today-item">
-            <div class="today-icon online"><i class="el-icon-video-camera"></i></div>
-            <div class="today-content">
-              <div class="today-value">{{ todayStats.onlineTeachers || 0 }}</div>
-              <div class="today-label">在线教师</div>
-            </div>
-          </div>
-          <div class="today-item">
-            <div class="today-icon student"><i class="el-icon-user"></i></div>
-            <div class="today-content">
-              <div class="today-value">{{ todayStats.onlineStudents || 0 }}</div>
-              <div class="today-label">在线学生</div>
-            </div>
+  <div class="ad-page">
+    <!-- Hero -->
+    <div class="ad-hero">
+      <div class="adh-glow adh-g1"></div>
+      <div class="adh-glow adh-g2"></div>
+      <div class="adh-inner">
+        <div class="adh-left">
+          <div class="adh-avatar">A</div>
+          <div>
+            <h1>{{ greetingText }}，管理员</h1>
+            <p class="adh-sub">全校数据统计 · 预警系统监控中心</p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 系统状态监控 -->
-    <div class="system-status-section">
-      <h2>系统状态监控</h2>
-      <div class="status-grid">
-        <div class="status-card">
-          <div class="status-icon online"><i class="el-icon-check"></i></div>
-          <div class="status-content">
-            <div class="status-title">数据库连接</div>
-            <div class="status-description">正常运行</div>
-          </div>
-        </div>
-        <div class="status-card">
-          <div class="status-icon online"><i class="el-icon-check"></i></div>
-          <div class="status-content">
-            <div class="status-title">API服务</div>
-            <div class="status-description">响应正常</div>
-          </div>
-        </div>
-        <div class="status-card">
-          <div class="status-icon online"><i class="el-icon-check"></i></div>
-          <div class="status-content">
-            <div class="status-title">缓存服务</div>
-            <div class="status-description">运行良好</div>
-          </div>
-        </div>
-        <div class="status-card">
-          <div class="status-icon online"><i class="el-icon-check"></i></div>
-          <div class="status-content">
-            <div class="status-title">系统负载</div>
-            <div class="status-description">正常</div>
-          </div>
-        </div>
+    <!-- 指标卡片 -->
+    <div class="ad-metrics">
+      <div class="adm-card">
+        <div class="adm-icon ic-purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+        <div class="adm-body"><div class="adm-val">{{ stats.totalStudents }}</div><div class="adm-lbl">在籍学生</div></div>
+      </div>
+      <div class="adm-card">
+        <div class="adm-icon ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/></svg></div>
+        <div class="adm-body"><div class="adm-val">{{ stats.totalTeachers }}</div><div class="adm-lbl">教师</div></div>
+      </div>
+      <div class="adm-card">
+        <div class="adm-icon ic-teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div class="adm-body"><div class="adm-val">{{ stats.totalCounselors }}</div><div class="adm-lbl">辅导员</div></div>
+      </div>
+      <div class="adm-card">
+        <div class="adm-icon ic-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div class="adm-body"><div class="adm-val red">{{ stats.totalWarnings }}</div><div class="adm-lbl">预警总数</div></div>
+      </div>
+      <div class="adm-card">
+        <div class="adm-icon ic-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+        <div class="adm-body"><div class="adm-val">{{ stats.totalCourses }}</div><div class="adm-lbl">课程</div></div>
+      </div>
+      <div class="adm-card">
+        <div class="adm-icon ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+        <div class="adm-body"><div class="adm-val">{{ stats.totalColleges }}</div><div class="adm-lbl">学院</div></div>
       </div>
     </div>
 
-    <!-- 快速操作 -->
-    <div class="actions-section">
-      <h2>快速操作</h2>
-      <div class="action-grid">
-        <router-link to="/admin/colleges" class="action-card">
-          <div class="action-icon"><i class="el-icon-office-building"></i></div>
-          <div class="action-name">学院管理</div>
-        </router-link>
-        <router-link to="/admin/majors" class="action-card">
-          <div class="action-icon"><i class="el-icon-suitcase"></i></div>
-          <div class="action-name">专业管理</div>
-        </router-link>
-        <router-link to="/admin/users" class="action-card">
-          <div class="action-icon"><i class="el-icon-user"></i></div>
-          <div class="action-name">用户管理</div>
-        </router-link>
-        <router-link to="/admin/courses" class="action-card">
-          <div class="action-icon"><i class="el-icon-notebook-2"></i></div>
-          <div class="action-name">课程管理</div>
-        </router-link>
-        <router-link to="/admin/rules" class="action-card">
-          <div class="action-icon"><i class="el-icon-s-grid"></i></div>
-          <div class="action-name">规则管理</div>
-        </router-link>
-        <router-link to="/admin/statistics" class="action-card">
-          <div class="action-icon"><i class="el-icon-data-line"></i></div>
-          <div class="action-name">数据分析</div>
-        </router-link>
-        <router-link to="/admin/class-management/pending-requests" class="action-card">
-          <div class="action-icon"><i class="el-icon-document"></i></div>
-          <div class="action-name">班级管理申请</div>
-        </router-link>
-        <router-link to="/admin/messages/broadcast" class="action-card">
-          <div class="action-icon"><i class="el-icon-message"></i></div>
-          <div class="action-name">发送通知</div>
-        </router-link>
-      </div>
-    </div>
-
-    <!-- 最近动态 -->
-    <div class="activity-section">
-      <div class="section-header">
-        <h2>最近动态</h2>
-        <el-button type="primary" size="small" @click="refreshActivities">
-          <i class="el-icon-refresh"></i> 刷新
-        </el-button>
-      </div>
-      <div class="activity-list">
-        <div v-for="activity in activities" :key="activity.id" class="activity-item">
-          <div class="activity-icon">
-            <i :class="getActivityIcon(activity.type)"></i>
-          </div>
-          <div class="activity-content">
-            <div class="activity-time">{{ formatTime(activity.createdAt) }}</div>
-            <div class="activity-text">
-              <span :class="['activity-type', activity.type]">{{ getTypeLabel(activity.type) }}</span>
-              <span>{{ activity.content }}</span>
-            </div>
+    <!-- 双栏 -->
+    <div class="ad-main">
+      <div class="ad-left">
+        <!-- 待处理审批 -->
+        <div class="ad-panel">
+          <div class="adp-head"><span class="adp-title">待处理审批</span></div>
+          <div class="adp-approvals">
+            <router-link to="/admin/class-management/pending-requests" class="adpa-item">
+              <div class="adpai-icon ic-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+              <div class="adpai-info"><span class="adpai-num">{{ pending.classRequests }}</span><span class="adpai-lbl">班级管理申请</span></div>
+            </router-link>
+            <router-link to="/admin/warnings" class="adpa-item">
+              <div class="adpai-icon ic-red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+              <div class="adpai-info"><span class="adpai-num red">{{ pending.warnings }}</span><span class="adpai-lbl">待处理预警</span></div>
+            </router-link>
+            <router-link to="/admin/data-export" class="adpa-item">
+              <div class="adpai-icon ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg></div>
+              <div class="adpai-info"><span class="adpai-num">{{ pending.appeals }}</span><span class="adpai-lbl">成绩申诉</span></div>
+            </router-link>
           </div>
         </div>
-        <div v-if="activities.length === 0" class="activity-item empty">
-          <div class="activity-icon"><i class="el-icon-info"></i></div>
-          <div class="activity-content">
-            <div class="activity-time">--</div>
-            <div class="activity-text">
-              <span class="activity-type notify">提示</span>
-              <span>暂无最近动态</span>
+
+        <!-- 最新预警 -->
+        <div class="ad-panel">
+          <div class="adp-head">
+            <span class="adp-title">最新预警</span>
+            <router-link to="/admin/warnings" class="adp-link">查看全部 →</router-link>
+          </div>
+          <div class="adw-stats">
+            <span class="adws-item r3">严重 {{ warnCounts.severe }}</span>
+            <span class="adws-item r2">中度 {{ warnCounts.medium }}</span>
+            <span class="adws-item r1">轻度 {{ warnCounts.low }}</span>
+            <span class="adws-item ok">已处理 {{ warnCounts.processed }}</span>
+          </div>
+          <div v-if="warnings.length" class="ad-wlist">
+            <div v-for="(w, i) in warnings.slice(0,5)" :key="w.id || i" class="adw-item">
+              <div class="adwi-bar" :class="'lvl'+w.warningLevel"></div>
+              <div class="adwi-body">
+                <div class="adwi-top">
+                  <span class="adwi-name">{{ w.studentName }}</span>
+                  <span class="adwi-lvl" :class="'b'+w.warningLevel">{{ levelLabel(w.warningLevel) }}</span>
+                </div>
+                <div class="adwi-meta">{{ w.title || w.warningMessage }} · {{ fmtTime(w.createdAt) }}</div>
+              </div>
             </div>
+          </div>
+          <div v-else class="adp-empty">暂无预警数据</div>
+        </div>
+
+      </div>
+
+      <div class="ad-right">
+        <!-- 管理入口 -->
+        <div class="ad-panel">
+          <div class="adp-head"><span class="adp-title">管理入口</span></div>
+          <div class="adp-actions">
+            <router-link v-for="a in actions" :key="a.key" :to="a.link" class="adpa-btn">
+              <span class="adpa-icon" :class="'ci-'+a.color"><span v-html="a.icon"></span></span>
+              <span>{{ a.label }}</span>
+            </router-link>
+          </div>
+        </div>
+
+        <!-- 预警类型分布 -->
+        <div class="ad-panel">
+          <div class="adp-head"><span class="adp-title">预警分布</span></div>
+          <div class="adpw-row">
+            <span class="adpw-lbl r3">严重</span>
+            <div class="adpw-track"><div class="adpw-bar r3" :style="{width:warnBar('red')+'%'}"></div></div>
+            <span class="adpw-cnt r3">{{ stats.redWarnings }}</span>
+          </div>
+          <div class="adpw-row">
+            <span class="adpw-lbl r2">中度</span>
+            <div class="adpw-track"><div class="adpw-bar r2" :style="{width:warnBar('yellow')+'%'}"></div></div>
+            <span class="adpw-cnt r2">{{ stats.yellowWarnings }}</span>
+          </div>
+          <div class="adpw-row">
+            <span class="adpw-lbl r1">轻度</span>
+            <div class="adpw-track"><div class="adpw-bar r1" :style="{width:warnBar('low')+'%'}"></div></div>
+            <span class="adpw-cnt r1">{{ stats.lowWarnings }}</span>
           </div>
         </div>
       </div>
@@ -256,822 +131,135 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { adminAPI } from '@/api/index'
 
-const stats = ref({
-  studentCount: 0,
-  collegeCount: 0,
-  majorCount: 0,
-  courseCount: 0,
-  redWarnings: 0,
-  yellowWarnings: 0,
-  blueWarnings: 0,
-  userCount: 0,
-  warningCount: 0
-})
-const todayStats = ref({
-  newWarnings: 5,
-  processedWarnings: 3,
-  onlineTeachers: 12,
-  onlineStudents: 89
-})
-const currentTime = ref('')
-const currentDate = ref('')
-const activities = ref([])
-const warningTimeRange = ref('current')
+const stats = reactive({ totalStudents:'--', totalTeachers:'--', totalCounselors:'--', totalCourses:'--', totalMajors:'--', totalWarnings:'--', totalColleges:'--', totalUsers:'--', redWarnings:'--', yellowWarnings:'--', lowWarnings:'--' })
+const warnings = ref([])
+const pending = reactive({ classRequests: 0, warnings: 0, appeals: 0 })
+const greetingText = (() => { const h = new Date().getHours(); return h<9?'早上好':h<12?'上午好':h<14?'中午好':h<18?'下午好':'晚上好' })()
 
-let timer = null
+const warnCounts = computed(() => ({
+  severe: warnings.value.filter(w => w.warningLevel >= 3).length,
+  medium: warnings.value.filter(w => w.warningLevel == 2).length,
+  low: warnings.value.filter(w => w.warningLevel == 1).length,
+  processed: warnings.value.filter(w => w.status == 1).length,
+}))
+
+function warnBar(level) {
+  const r = Number(stats.redWarnings)||0, y = Number(stats.yellowWarnings)||0, b = Number(stats.lowWarnings)||0
+  const t = r+y+b; if (t===0) return 0
+  return Math.round(((level==='red'?r:level==='yellow'?y:b)/t)*100)
+}
+
+function levelLabel(l) { return l>=3?'严重':l==2?'中度':'轻度' }
+function fmtTime(t) { if (!t) return ''; const d = new Date(t); return d.toLocaleDateString('zh-CN')+' '+d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}) }
+
+const actions = [
+  { key:'users', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>', label:'用户管理', link:'/admin/users', color:'p' },
+  { key:'colleges', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>', label:'学院管理', link:'/admin/colleges', color:'b' },
+  { key:'majors', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>', label:'专业管理', link:'/admin/majors', color:'c' },
+  { key:'courses', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>', label:'课程管理', link:'/admin/courses', color:'g' },
+  { key:'stats', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', label:'数据分析', link:'/admin/statistics', color:'r' },
+  { key:'rules', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>', label:'规则管理', link:'/admin/rules', color:'a' },
+  { key:'permissions', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>', label:'权限管理', link:'/admin/permissions', color:'t' },
+  { key:'classReq', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>', label:'班级申请', link:'/admin/class-management/pending-requests', color:'y' },
+]
 
 onMounted(async () => {
-  updateTime()
-  timer = setInterval(updateTime, 1000)
-  await loadDashboard()
+  try { const r = await adminAPI.getStatistics(); if (r && typeof r === 'object') { stats.totalStudents=r.totalStudents||0; stats.totalTeachers=r.totalTeachers||0; stats.totalCounselors=r.totalCounselors||0; stats.totalCourses=r.totalCourses||0; stats.totalColleges=r.totalColleges||0; stats.totalMajors=r.totalMajors||0; stats.totalUsers=r.totalUsers||0; stats.totalWarnings=r.totalWarnings||0; stats.redWarnings=r.redWarnings||0; stats.yellowWarnings=r.yellowWarnings||0; stats.lowWarnings=r.lowWarnings||0 } } catch(e){}
+  try { const d = await adminAPI.getDashboard(); if (d) { const wl = d.recentWarnings || d.warnings || []; warnings.value = (Array.isArray(wl)?wl:[]).slice(0,20); pending.warnings = (d.totalWarnings||0) } } catch(e){}
+  try { const pr = await adminAPI.getPendingRequests(); if (pr) { pending.classRequests=pr.classRequests||0; pending.appeals=pr.appeals||0 } } catch(e){}
 })
-
-onUnmounted(() => {
-  if (timer) clearInterval(timer)
-})
-
-const updateTime = () => {
-  const now = new Date()
-  currentTime.value = now.toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-  currentDate.value = now.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    weekday: 'long'
-  })
-}
-
-const loadDashboard = async () => {
-  try {
-    const response = await adminAPI.getStatistics()
-    console.log('Statistics response:', response)
-    if (response && typeof response === 'object') {
-      stats.value = {
-        studentCount: response.totalStudents || 0,
-        courseCount: response.totalCourses || 0,
-        userCount: response.totalUsers || 0,
-        redWarnings: response.redWarnings || 0,
-        yellowWarnings: response.yellowWarnings || 0,
-        blueWarnings: response.lowWarnings || 0,
-        warningCount: response.totalWarnings || 0,
-        collegeCount: response.totalColleges || 0,
-        majorCount: 0
-      }
-      console.log('Stats updated:', stats.value)
-      
-      // 更新今日数据
-      if (response.todayStats) {
-        todayStats.value = {
-          newWarnings: response.todayStats.newWarnings || 0,
-          processedWarnings: response.todayStats.processedWarnings || 0,
-          onlineTeachers: response.todayStats.onlineTeachers || 0,
-          onlineStudents: response.todayStats.onlineStudents || 0
-        }
-        console.log('Today stats updated:', todayStats.value)
-      }
-    }
-    
-    // 获取最近动态
-    await loadActivities()
-  } catch (error) {
-    console.error('加载管理员看板失败:', error)
-  }
-}
-
-const loadActivities = async () => {
-  try {
-    const activitiesResponse = await adminAPI.getActivities()
-    if (activitiesResponse && Array.isArray(activitiesResponse)) {
-      activities.value = activitiesResponse
-    }
-  } catch (error) {
-    console.error('加载最近动态失败:', error)
-  }
-}
-
-const refreshActivities = async () => {
-  await loadActivities()
-}
-
-const formatTime = (timeString) => {
-  if (!timeString) return '--'
-  const now = new Date()
-  const activityTime = new Date(timeString)
-  const diffMs = now - activityTime
-  const diffMinutes = Math.floor(diffMs / (1000 * 60))
-  
-  if (diffMinutes < 1) {
-    return '刚刚'
-  } else if (diffMinutes < 60) {
-    return `${diffMinutes}分钟前`
-  } else if (diffMinutes < 1440) {
-    return `${Math.floor(diffMinutes / 60)}小时前`
-  } else {
-    return activityTime.toLocaleDateString('zh-CN')
-  }
-}
-
-const getTypeLabel = (type) => {
-  const typeMap = {
-    'warning': '预警',
-    'plan_update': '计划更新',
-    'system_message': '通知',
-    'score_update': '成绩修改',
-    'user_register': '用户注册'
-  }
-  return typeMap[type] || '通知'
-}
-
-const getActivityIcon = (type) => {
-  const iconMap = {
-    'warning': 'el-icon-warning',
-    'plan_update': 'el-icon-document',
-    'system_message': 'el-icon-message',
-    'score_update': 'el-icon-edit',
-    'user_register': 'el-icon-user'
-  }
-  return iconMap[type] || 'el-icon-info'
-}
-
-const getWarningPercentage = (level) => {
-  const total = (stats.value.redWarnings || 0) + (stats.value.yellowWarnings || 0) + (stats.value.blueWarnings || 0)
-  if (total === 0) return '0%'
-  
-  switch (level) {
-    case 'red':
-      return `${Math.round((stats.value.redWarnings || 0) / total * 100)}%`
-    case 'yellow':
-      return `${Math.round((stats.value.yellowWarnings || 0) / total * 100)}%`
-    case 'blue':
-      return `${Math.round((stats.value.blueWarnings || 0) / total * 100)}%`
-    default:
-      return '0%'
-  }
-}
 </script>
 
 <style scoped>
-.dashboard-wrapper {
-  background: linear-gradient(135deg, #f5f7fb 0%, #e8ecf1 100%);
-  padding: 24px;
-  min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-/* 欢迎区域 */
-.welcome-section {
-  margin-bottom: 32px;
-}
-
-.welcome-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  padding: 32px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: white;
-  box-shadow: 0 12px 40px rgba(102, 126, 234, 0.3);
-  position: relative;
-  overflow: hidden;
-}
-
-.welcome-card::before {
-  content: '';
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-  border-radius: 50%;
-  top: -100px;
-  right: -100px;
-  animation: float 6s ease-in-out infinite;
-}
-
-.welcome-content {
-  z-index: 1;
-  flex: 1;
-}
-
-.welcome-content h1 {
-  margin: 0 0 8px 0;
-  font-size: 28px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.welcome-content p {
-  margin: 0 0 24px 0;
-  font-size: 14px;
-  opacity: 0.9;
-}
-
-.welcome-stats {
-  display: flex;
-  gap: 32px;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 12px;
-  opacity: 0.8;
-}
-
-.welcome-time {
-  z-index: 1;
-  text-align: right;
-  margin-left: 40px;
-}
-
-.welcome-time .time {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.welcome-time .date {
-  font-size: 14px;
-  opacity: 0.8;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-}
-
-/* 核心指标 */
-.metrics-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-  margin-bottom: 32px;
-}
-
-.metric-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid #e9ecef;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  position: relative;
-  overflow: hidden;
-}
-
-.metric-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-}
-
-.metric-card.student::before {
-  background: linear-gradient(90deg, #667eea, #764ba2);
-}
-
-.metric-card.course::before {
-  background: linear-gradient(90deg, #667eea, #764ba2);
-}
-
-.metric-card.warning::before {
-  background: linear-gradient(90deg, #f56c6c, #f5a623);
-}
-
-.metric-card.user::before {
-  background: linear-gradient(90deg, #67c23a, #409eff);
-}
-
-.metric-card:hover {
-  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.15);
-  transform: translateY(-4px);
-}
-
-.metric-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: white;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-}
-
-.metric-card.warning .metric-icon {
-  background: linear-gradient(135deg, #f56c6c, #f5a623);
-}
-
-.metric-card.user .metric-icon {
-  background: linear-gradient(135deg, #67c23a, #409eff);
-}
-
-.metric-content {
-  flex: 1;
-}
-
-.metric-value {
-  font-size: 32px;
-  font-weight: 800;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.metric-title {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.metric-change {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.metric-change.positive {
-  color: #67c23a;
-}
-
-.metric-change.negative {
-  color: #f56c6c;
-}
-
-/* 可视化区域 */
-.visualization-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
-}
-
-.chart-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e9ecef;
-}
-
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.chart-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.chart-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.chart-content {
-  margin-top: 20px;
-}
-
-/* 预警分布 */
-.warning-distribution {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.warning-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.warning-label {
-  font-size: 14px;
-  color: #666;
-  min-width: 90px;
-}
-
-.warning-bar {
-  height: 10px;
-  border-radius: 5px;
-  flex: 1;
-  transition: all 0.3s ease;
-}
-
-.warning-bar.red {
-  background: linear-gradient(90deg, #f56c6c, #f5a623);
-}
-
-.warning-bar.yellow {
-  background: linear-gradient(90deg, #e6a23c, #f56c6c);
-}
-
-.warning-bar.blue {
-  background: linear-gradient(90deg, #409eff, #67c23a);
-}
-
-.warning-item:hover .warning-bar {
-  height: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.warning-count {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  min-width: 40px;
-  text-align: right;
-}
-
-/* 今日数据 */
-.today-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.today-item {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: all 0.3s ease;
-}
-
-.today-item:hover {
-  background: #e9ecef;
-  transform: translateY(-2px);
-}
-
-.today-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: white;
-}
-
-.today-icon.new {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-}
-
-.today-icon.processed {
-  background: linear-gradient(135deg, #67c23a, #409eff);
-}
-
-.today-icon.online {
-  background: linear-gradient(135deg, #409eff, #667eea);
-}
-
-.today-icon.student {
-  background: linear-gradient(135deg, #e6a23c, #f56c6c);
-}
-
-.today-content {
-  flex: 1;
-}
-
-.today-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.today-label {
-  font-size: 12px;
-  color: #666;
-}
-
-/* 系统状态监控 */
-.system-status-section {
-  margin-bottom: 32px;
-}
-
-.system-status-section h2 {
-  margin: 0 0 20px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.status-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e9ecef;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: all 0.3s ease;
-}
-
-.status-card:hover {
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.12);
-  transform: translateY(-2px);
-}
-
-.status-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: white;
-}
-
-.status-icon.online {
-  background: linear-gradient(135deg, #67c23a, #409eff);
-}
-
-.status-icon.offline {
-  background: linear-gradient(135deg, #f56c6c, #e6a23c);
-}
-
-.status-content {
-  flex: 1;
-}
-
-.status-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.status-description {
-  font-size: 12px;
-  color: #666;
-}
-
-/* 快速操作区 */
-.actions-section {
-  margin-bottom: 32px;
-}
-
-.actions-section h2 {
-  margin: 0 0 20px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-.action-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 16px;
-}
-
-.action-card {
-  background: white;
-  border-radius: 12px;
-  padding: 24px 16px;
-  text-align: center;
-  text-decoration: none;
-  color: #333;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  border: 1px solid #e9ecef;
-  position: relative;
-  overflow: hidden;
-}
-
-.action-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, transparent 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.action-card:hover::before {
-  opacity: 1;
-}
-
-.action-card:hover {
-  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.2);
-  transform: translateY(-4px);
-  border-color: #667eea;
-  color: #667eea;
-}
-
-.action-icon {
-  font-size: 32px;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  position: relative;
-  z-index: 1;
-}
-
-.action-card:hover .action-icon {
-  transform: scale(1.2) rotateY(360deg);
-}
-
-.action-name {
-  font-size: 13px;
-  font-weight: 600;
-  position: relative;
-  z-index: 1;
-}
-
-/* 最近动态区 */
-.activity-section {
-  margin-bottom: 24px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.section-header h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-.activity-list {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-  border: 1px solid #e9ecef;
-}
-
-.activity-item {
-  padding: 20px 24px;
-  border-bottom: 1px solid #e9ecef;
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  transition: background 0.3s ease;
-}
-
-.activity-item:last-child {
-  border-bottom: none;
-}
-
-.activity-item:hover {
-  background: #f8f9fa;
-}
-
-.activity-item.empty {
-  justify-content: center;
-}
-
-.activity-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  color: white;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.activity-content {
-  flex: 1;
-}
-
-.activity-time {
-  font-size: 12px;
-  color: #999;
-  margin-bottom: 8px;
-}
-
-.activity-text {
-  font-size: 14px;
-  color: #666;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.activity-type {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  background: #f0f2f8;
-  color: #667eea;
-}
-
-.activity-type.warning {
-  background: #fef0f0;
-  color: #f56c6c;
-}
-
-.activity-type.plan_update {
-  background: #f0f9eb;
-  color: #67c23a;
-}
-
-.activity-type.score_update {
-  background: #ecf5ff;
-  color: #409eff;
-}
-
-.activity-type.user_register {
-  background: #fdf6ec;
-  color: #e6a23c;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .dashboard-wrapper {
-    padding: 16px;
-  }
-  
-  .welcome-card {
-    flex-direction: column;
-    text-align: center;
-    gap: 24px;
-  }
-  
-  .welcome-time {
-    margin-left: 0;
-  }
-  
-  .welcome-stats {
-    justify-content: center;
-  }
-  
-  .metrics-section {
-    grid-template-columns: 1fr;
-  }
-  
-  .visualization-section {
-    grid-template-columns: 1fr;
-  }
-  
-  .today-stats {
-    grid-template-columns: 1fr;
-  }
-  
-  .status-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .action-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
+.ad-page { padding: 0 0 24px; min-height: 100vh; background: #f0f4ff; }
+
+/* Hero */
+.ad-hero { position: relative; background: linear-gradient(135deg, #1e3a8a, #2563eb, #3b82f6); padding: 32px 36px; overflow: hidden; }
+.adh-glow { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+.adh-g1 { width: 260px; height: 260px; background: #3b82f6; top: -70px; right: -50px; opacity: .25; }
+.adh-g2 { width: 180px; height: 180px; background: #60a5fa; bottom: -50px; left: 20%; opacity: .18; }
+.adh-inner { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; }
+.adh-left { display: flex; align-items: center; gap: 14px; }
+.adh-avatar { width: 48px; height: 48px; border-radius: 14px; background: rgba(255,255,255,.2); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.adh-left h1 { margin: 0; font-size: 20px; color: #fff; font-weight: 700; }
+.adh-sub { margin: 2px 0 0; font-size: 12px; color: rgba(255,255,255,.6); }
+
+/* Metrics */
+.ad-metrics { display: grid; grid-template-columns: repeat(6,1fr); gap: 14px; padding: 20px 24px; }
+.adm-card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,.04); display: flex; align-items: center; gap: 14px; transition: all .2s; }
+.adm-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+.adm-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.adm-icon svg { width: 18px; height: 18px; }
+.ic-purple { background:#f5f3ff; color:#7c3aed; } .ic-blue { background:#eff6ff; color:#2563eb; }
+.ic-teal { background:#f0fdfa; color:#0d9488; } .ic-red { background:#fef2f2; color:#ef4444; }
+.ic-green { background:#ecfdf5; color:#16a34a; } .ic-amber { background:#fffbeb; color:#d97706; }
+.adm-val { font-size: 22px; font-weight: 700; color: #1e293b; } .adm-val.red { color: #ef4444; }
+.adm-lbl { font-size: 12px; color: #94a3b8; }
+
+/* Main */
+.ad-main { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 0 24px 24px; }
+.ad-panel { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.04); overflow: hidden; margin-bottom: 18px; }
+.adp-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid #f1f5f9; }
+.adp-title { font-size: 14px; font-weight: 600; color: #1e293b; }
+.adp-link { font-size: 12px; color: #2563eb; text-decoration: none; } .adp-link:hover { text-decoration: underline; }
+.adp-empty { text-align: center; padding: 32px; font-size: 13px; color: #94a3b8; }
+
+/* Approvals */
+.adp-approvals { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; padding: 16px 20px; }
+.adpa-item { display: flex; align-items: center; gap: 10px; padding: 14px; background: #f8fafc; border-radius: 10px; text-decoration: none; transition: all .15s; }
+.adpa-item:hover { background: #eff6ff; transform: translateY(-1px); }
+.adpai-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.adpai-icon svg { width: 17px; height: 17px; }
+.adpai-icon.ic-amber { background:#fefce8; color:#ca8a04; } .adpai-icon.ic-red { background:#fef2f2; color:#ef4444; }
+.adpai-icon.ic-blue { background:#eff6ff; color:#2563eb; }
+.adpai-num { font-size: 16px; font-weight: 700; color:#1e293b; } .adpai-num.red { color:#ef4444; }
+.adpai-lbl { font-size: 11px; color:#94a3b8; display: block; }
+
+/* Warning stats */
+.adw-stats { display: flex; gap: 8px; padding: 10px 20px; background: #f8fafc; }
+.adws-item { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+.adws-item.r3 { background:#fef2f2; color:#ef4444; } .adws-item.r2 { background:#fffbeb; color:#d97706; }
+.adws-item.r1 { background:#eff6ff; color:#2563eb; } .adws-item.ok { background:#ecfdf5; color:#16a34a; }
+
+/* Warnings list */
+.ad-wlist { padding: 4px 20px; }
+.adw-item { display: flex; gap: 10px; padding: 11px 0; border-bottom: 1px solid #f1f5f9; }
+.adw-item:last-child { border-bottom: none; }
+.adwi-bar { width: 3px; border-radius: 2px; align-self: stretch; flex-shrink: 0; }
+.adwi-bar.lvl3 { background:#ef4444; } .adwi-bar.lvl2 { background:#f59e0b; } .adwi-bar.lvl1 { background:#3b82f6; }
+.adwi-body { flex: 1; min-width: 0; }
+.adwi-top { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.adwi-name { font-size: 13px; font-weight: 500; color: #1e293b; }
+.adwi-lvl { font-size: 10px; padding: 1px 7px; border-radius: 8px; font-weight: 600; }
+.adwi-lvl.b3 { background:#fef2f2; color:#ef4444; } .adwi-lvl.b2 { background:#fffbeb; color:#d97706; } .adwi-lvl.b1 { background:#eff6ff; color:#2563eb; }
+.adwi-meta { font-size: 12px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Quick actions */
+.adp-actions { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; padding: 12px 16px 16px; }
+.adpa-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 14px 8px; border-radius: 10px; text-decoration: none; background: #f8fafc; transition: all .2s; }
+.adpa-btn:hover { background: #eff6ff; transform: translateY(-2px); }
+.adpa-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+.ci-p { background:#f5f3ff; color:#7c3aed; } .ci-b { background:#eff6ff; color:#2563eb; }
+.ci-c { background:#cffafe; color:#0891b2; } .ci-g { background:#ecfdf5; color:#16a34a; }
+.ci-r { background:#fef2f2; color:#ef4444; } .ci-a { background:#fffbeb; color:#d97706; }
+.ci-t { background:#f0fdfa; color:#0d9488; } .ci-y { background:#fefce8; color:#ca8a04; }
+.adpa-btn > span:last-child { font-size: 11px; color: #475569; font-weight: 500; }
+
+/* Warning distribution */
+.adpw-row { display: flex; align-items: center; gap: 10px; padding: 10px 22px; }
+.adpw-row:last-child { padding-bottom: 16px; }
+.adpw-lbl { font-size: 12px; font-weight: 600; min-width: 32px; }
+.adpw-lbl.r3 { color:#ef4444; } .adpw-lbl.r2 { color:#d97706; } .adpw-lbl.r1 { color:#2563eb; }
+.adpw-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+.adpw-bar { height: 100%; border-radius: 3px; transition: width .6s; }
+.adpw-bar.r3 { background:#ef4444; } .adpw-bar.r2 { background:#f59e0b; } .adpw-bar.r1 { background:#3b82f6; }
+.adpw-cnt { font-size: 14px; font-weight: 700; min-width: 24px; text-align: right; }
+.adpw-cnt.r3 { color:#ef4444; } .adpw-cnt.r2 { color:#d97706; } .adpw-cnt.r1 { color:#2563eb; }
+
+@media (max-width:1200px) { .ad-metrics { grid-template-columns: repeat(3,1fr); } }
+@media (max-width:900px) { .ad-metrics { grid-template-columns: repeat(2,1fr); } .ad-main { grid-template-columns: 1fr; } }
+@media (max-width:600px) { .ad-hero { padding: 24px 20px; } .ad-metrics { padding: 16px; } .ad-main { padding: 0 16px 24px; } .adp-approvals { grid-template-columns: 1fr; } .adp-actions { grid-template-columns: repeat(2,1fr); } }
 </style>

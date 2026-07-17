@@ -1,15 +1,10 @@
 package com.academic.mapper;
 
-import com.academic.entity.User;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
+import com.academic.common.entity.User;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
-@Mapper
-public interface UserMapper {
-    
-    @Select("SELECT * FROM user WHERE username = #{username}")
-    User selectByUsername(String username);
-    
-    @Select("SELECT * FROM user WHERE id = #{id}")
-    User selectById(Long id);
+/**
+ * 用户Mapper接口
+ */
+public interface UserMapper extends BaseMapper<User> {
 }
